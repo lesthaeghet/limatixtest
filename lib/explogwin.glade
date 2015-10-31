@@ -1,0 +1,504 @@
+<?xml version="1.0"?>
+<interface>
+  <requires lib="gtk+" version="2.16"/>
+  <!-- interface-requires dg_gui_widgets 0.0 -->
+  <!-- interface-naming-policy project-wide -->
+  <object class="GtkVBox" id="explog">
+    <property name="visible">True</property>
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkMenuBar" id="explogmenu">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkMenuItem" id="explogfilemenuitem">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_File</property>
+            <property name="use_underline">True</property>
+            <child type="submenu">
+              <object class="GtkMenu" id="explogfilemenu">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogfilenew">
+                    <property name="label">gtk-new</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogfileopen">
+                    <property name="label">gtk-open</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogfileloadconfig">
+                    <property name="label">Load Config...</property>
+                    <property name="visible">True</property>
+                    <property name="image">image1</property>
+                    <property name="use_stock">False</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem" id="explogfilesaveparams">
+                    <property name="label">Save Params...</property>
+                    <property name="visible">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparatorMenuItem" id="separatormenuitem1">
+                    <property name="visible">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogquit">
+                    <property name="label">gtk-quit</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkMenuItem" id="explogeditmenuitem">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_Edit</property>
+            <property name="use_underline">True</property>
+            <child type="submenu">
+              <object class="GtkMenu" id="explogeditmenu">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogeditcut">
+                    <property name="label">gtk-cut</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogeditcopy">
+                    <property name="label">gtk-copy</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogeditpaste">
+                    <property name="label">gtk-paste</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkMenuItem" id="explogguimenuitem">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_Gui</property>
+            <property name="use_underline">True</property>
+            <child type="submenu">
+              <object class="GtkMenu" id="explogguimenu">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogguiopen">
+                    <property name="label">gtk-open</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem" id="explogguiopenparamdbeditor">
+                    <property name="visible">True</property>
+                    <property name="label">Open paramdb editor</property>
+                    <property name="use_underline">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparatorMenuItem" id="separatormenuitem2">
+                    <property name="visible">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem" id="explogguiexpphotograph">
+                    <property name="visible">True</property>
+                    <property name="label">Experiment Photograph</property>
+                    <property name="use_underline">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem" id="explogguimeasphotograph">
+                    <property name="visible">True</property>
+                    <property name="label">Measurement Photograph</property>
+                    <property name="use_underline">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkMenuItem" id="explogplanmenuitem">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_Plan</property>
+            <property name="use_underline">True</property>
+            <child type="submenu">
+              <object class="GtkMenu" id="explogplanmenu">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogplanopen">
+                    <property name="label">gtk-open</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparatorMenuItem" id="separatormenuitem4">
+                    <property name="visible">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkMenuItem" id="explogchecklistmenuitem">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_Checklist</property>
+            <property name="use_underline">True</property>
+            <child type="submenu">
+              <object class="GtkMenu" id="explogchecklistmenu">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogchecklistopen">
+                    <property name="label">gtk-open</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem" id="explogchecklists">
+                    <property name="visible">True</property>
+                    <property name="label">Checklists...</property>
+                    <property name="use_underline">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparatorMenuItem" id="separatormenuitem3">
+                    <property name="visible">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkMenuItem" id="exploghelpmenuitem">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_Help</property>
+            <property name="use_underline">True</property>
+            <child type="submenu">
+              <object class="GtkMenu" id="exploghelpmenu">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogaboutmenu">
+                    <property name="label">gtk-about</property>
+                    <property name="visible">True</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkHBox" id="ParamBox">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkVBox" id="MeasnumBox">
+            <property name="visible">True</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel" id="MeasnumLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Measnum</property>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="adjustparamreadout" id="MeasnumEntry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="invisible_char">&#x25CF;</property>
+                <property name="width_chars">12</property>
+                <property name="paramname">measnum</property>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
+          <object class="GtkVBox" id="PerfbyBox">
+            <property name="visible">True</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel" id="PerfbyLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Perfby</property>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="adjustparamreadout" id="PerfbyEntry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="invisible_char">&#x25CF;</property>
+                <property name="width_chars">12</property>
+                <property name="paramname">perfby</property>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkVBox" id="DateBox">
+            <property name="visible">True</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel" id="DateLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Date</property>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="adjustparamreadout" id="DateEntry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="invisible_char">&#x25CF;</property>
+                <property name="width_chars">12</property>
+                <property name="paramname">date</property>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">3</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkFrame" id="goalframe">
+        <property name="visible">True</property>
+        <property name="label_xalign">0</property>
+        <property name="shadow_type">none</property>
+        <child>
+          <object class="GtkAlignment" id="goalframealignment">
+            <property name="visible">True</property>
+            <property name="left_padding">12</property>
+            <child>
+              <object class="paragraphparam" id="goalentry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
+                <property name="paramname">goal</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child type="label">
+          <object class="GtkLabel" id="goallabel">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Goal</property>
+            <property name="use_markup">True</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="position">2</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkFrame" id="photosframe">
+        <property name="visible">True</property>
+        <property name="label_xalign">0</property>
+        <property name="shadow_type">none</property>
+        <child>
+          <object class="GtkAlignment" id="photosalignment">
+            <property name="visible">True</property>
+            <property name="left_padding">12</property>
+            <child>
+              <object class="paragraphparam" id="photosentry">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
+                <property name="paramname">expphotos</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child type="label">
+          <object class="GtkLabel" id="photoslabel">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Photos</property>
+            <property name="use_markup">True</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="position">3</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkFrame" id="notesframe">
+        <property name="visible">True</property>
+        <property name="label_xalign">0</property>
+        <property name="shadow_type">none</property>
+        <child>
+          <object class="GtkAlignment" id="notesalignment">
+            <property name="visible">True</property>
+            <property name="left_padding">12</property>
+            <child>
+              <object class="paragraphparam" id="notesentry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
+                <property name="paramname">expnotes</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child type="label">
+          <object class="GtkLabel" id="notes">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Notes</property>
+            <property name="use_markup">True</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="position">4</property>
+      </packing>
+    </child>
+  </object>
+  <object class="GtkVBox" id="SpecBox">
+    <property name="visible">True</property>
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkLabel" id="SpecLabel">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Specimen</property>
+      </object>
+      <packing>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="adjustparamreadout" id="SpecEntry">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="invisible_char">&#x25CF;</property>
+        <property name="width_chars">12</property>
+        <property name="paramname">specimen</property>
+      </object>
+      <packing>
+        <property name="position">1</property>
+      </packing>
+    </child>
+  </object>
+  <object class="GtkButton" id="ResetSpecimenButton">
+    <property name="label" translatable="yes">Reset Specimen</property>
+    <property name="visible">True</property>
+    <property name="can_focus">True</property>
+    <property name="receives_default">True</property>
+  </object>
+  <object class="GtkAboutDialog" id="aboutdialog">
+    <property name="border_width">5</property>
+    <property name="type_hint">normal</property>
+    <property name="program_name">Datacollect 2</property>
+    <child internal-child="vbox">
+      <object class="GtkVBox" id="aboutdialogvbox">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkScrolledWindow" id="aboutdialogscrolledwindow">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="vscrollbar_policy">automatic</property>
+            <child>
+              <object class="GtkTextView" id="aboutdialogtext">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child internal-child="action_area">
+          <object class="GtkHButtonBox" id="dialog-action_area1">
+            <property name="visible">True</property>
+            <property name="layout_style">end</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="stock">gtk-open</property>
+  </object>
+</interface>
