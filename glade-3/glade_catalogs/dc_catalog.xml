@@ -1,0 +1,157 @@
+<glade-catalog name="dc_widgets" library="gladepython" domain="glade-3" depends="gtk+" language="python">
+<!-- see http://git.gnome.org./cgit/glade3/tree/doc/gladepython.sgml -->
+<!-- be sure to install glade3-libgladeui-devel -->
+  <init-function>glade_python_init</init-function>
+
+  <glade-widget-classes>
+
+
+    <glade-widget-class name="adjustparamreadout" generic-name="adjustparamreadout" title="Set adjustable parameter readout (using paramdb2)">
+      <properties>
+
+        <property id="paramname" query="True" default="" name="paramdb2 entry to set">
+	  <spec>glade_standard_string_spec</spec>
+ 	  <tooltip>paramdb2 entry to set</tooltip>
+        </property>
+
+	<!-- adjust superclass (GtkEntry) properties -->
+	<property id="editable" default="True"/>
+	<property id="can_focus" default="True"/>
+      </properties>
+    </glade-widget-class>
+
+    <glade-widget-class name="labelled_adjustparamreadout" generic-name="labelled_adjustparamreadout" title="Labelled adjustable parameter readout (using paramdb2)">
+     <properties>
+       
+       <property query="False" id="size" default="2"/> <!-- disable asking for size! -->
+       
+       <property id="paramname" query="True" default="" name="paramdb2 entry to set">
+	 <spec>glade_standard_string_spec</spec>
+ 	 <tooltip>paramdb2 entry to set</tooltip>
+       </property>
+       <property id="editable" query="True" default="True" name="Should this be editable?">
+	 <parameter-spec>
+	   <type>GParamBoolean</type>
+	 </parameter-spec>
+ 	 <tooltip>Set editable to false to prevent this from being adjusted</tooltip>
+       </property>
+       
+       <property id="labelmarkup" query="True" default="" name="Markup for the label">
+	 <spec>glade_standard_string_spec</spec>
+ 	 <tooltip>HTML-like markup for the label</tooltip>
+       </property>
+       
+      </properties>
+    </glade-widget-class>
+    
+
+    <glade-widget-class name="selectableparamreadout" generic-name="selectableparamreadout" title="Set selectable parameter readout (using paramdb2)">
+      <properties>
+
+        <property id="paramname" query="True" default="" name="paramdb2 entry to set">
+	  <spec>glade_standard_string_spec</spec>
+ 	  <tooltip>paramdb2 entry to set</tooltip>
+        </property>
+
+	<!-- adjust superclass (GtkEntry) properties -->
+	<property id="editable" default="True"/>
+	<property id="can_focus" default="True"/>
+      </properties>
+    </glade-widget-class>
+
+    <glade-widget-class name="labelled_selectableparamreadout" generic-name="labelled_selectableparamreadout" title="Labelled selectable parameter readout (using paramdb2)">
+     <properties>
+       
+       <property query="False" id="size" default="2"/> <!-- disable asking for size! -->
+       
+       <property id="paramname" query="True" default="" name="paramdb2 entry to set">
+	 <spec>glade_standard_string_spec</spec>
+ 	 <tooltip>paramdb2 entry to set</tooltip>
+       </property>
+       <property id="editable" query="True" default="True" name="Should this be editable?">
+	 <parameter-spec>
+	   <type>GParamBoolean</type>
+	 </parameter-spec>
+ 	 <tooltip>Set editable to false to prevent this from being adjusted</tooltip>
+       </property>
+       
+       <property id="labelmarkup" query="True" default="" name="Markup for the label">
+	 <spec>glade_standard_string_spec</spec>
+ 	 <tooltip>HTML-like markup for the label</tooltip>
+       </property>
+       
+      </properties>
+    </glade-widget-class>
+    
+
+
+    <glade-widget-class name="paragraphparam" generic-name="paragraphparam" title="Set paragraph text parameter readout (using paramdb2)">
+      <properties>
+
+        <property id="paramname" query="True" default="" name="paramdb2 entry to set">
+	  <spec>glade_standard_string_spec</spec>
+ 	  <tooltip>paramdb2 entry to set</tooltip>
+        </property>
+
+
+      </properties>
+    </glade-widget-class>
+
+        <glade-widget-class name="excitationparam" generic-name="excitationparam" title="Set excitation parameter (using paramdb2)">
+      <properties>
+
+        <property id="paramname" query="True" default="" name="paramdb2 entry to set">
+	  <spec>glade_standard_string_spec</spec>
+ 	  <tooltip>paramdb2 entry to set</tooltip>
+        </property>
+
+        <property id="labelmarkup" query="True" default="" name="html-ish markup for the label">
+	  <spec>glade_standard_string_spec</spec>
+ 	  <tooltip>html-ish markup for the label</tooltip>
+        </property>
+
+
+	<property id="hide-type" default="False"/>
+	<property id="hide-wfm" default="False"/>
+	<property id="hide-f0" default="False"/>
+	<property id="hide-f1" default="False"/>
+	<property id="hide-t0" default="False"/>
+	<property id="hide-t1" default="False"/>
+	<property id="hide-t2" default="False"/>
+	<property id="hide-t3" default="False"/>
+	<property id="size" default="1"/>
+      </properties>
+    </glade-widget-class>
+
+    <!-- <glade-widget-class name="explogmethodbutton" generic-name="explogmethodbutton" title="Trigger a method invocation on the experiment log">
+      <properties>
+
+        <property id="methodname" query="True" default="" name="method to call">
+	  <spec>glade_standard_string_spec</spec>
+ 	  <tooltip>method to call</tooltip>
+        </property>
+
+
+      </properties>
+    </glade-widget-class>
+    -->
+
+
+
+    <!-- ... more  widget classes go here -->
+
+  </glade-widget-classes>
+
+  <glade-widget-group name="datacollect_widgets" title="Datacollect Widgets (operate against paramdb entries)">
+    <glade-widget-class-ref name="adjustparamreadout"/>
+    <glade-widget-class-ref name="labelled_adjustparamreadout"/>
+    <glade-widget-class-ref name="selectableparamreadout"/>
+    <glade-widget-class-ref name="labelled_selectableparamreadout"/>
+    <glade-widget-class-ref name="paragraphparam"/>
+    <glade-widget-class-ref name="excitationparam"/>
+    <!-- <glade-widget-class-ref name="explogmethodbutton"/> -->
+
+
+  </glade-widget-group>
+
+</glade-catalog>
