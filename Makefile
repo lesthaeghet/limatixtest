@@ -25,6 +25,10 @@
 PREFIX=/usr/local
 PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
+DIST_FILES=.
+
+EXPORTEXCLUDE=--exclude gui2/conf/dataguzzler_vibrotherm.gui --exclude gui2/trash --exclude gui2/checklists/vibro_neworientation.chx --exclude gui2/checklists/vibro_testfreq.chx --exclude gui2/checklists/vibro_setup.chx --exclude gui2/conf/vibrotherm_simulation_experiment_rectangularbar.dcc --exclude gui2/conf/vibrotherm_experiment.dcc --exclude gui2/conf/vibrotherm_experiment_rectangularbar.dcc --exclude gui2/conf/vibrotherm_rectangularbar.dcc --exclude gui2/conf/vibrotherm_experiment_rectangularbar.glade --exclude gui2/conf/vibrotherm_simulation.dcc --exclude gui2/conf/vibrotherm_simulation_rectangularbar.dcc --exclude gui2/conf/rectangularbar_specimendb.dcc --exclude gui2/conf/rectangularbar_manualgeom.dcc
+
 VERSION=$(shell if [ -f VERSION ] ; then cat VERSION ; elif [ -f ../VERSION ] ; then cat ../VERSION ; elif [ -f ../../VERSION ] ; then cat ../../VERSION ; elif [ -f ../../../VERSION ] ; then cat ../../../VERSION ; fi )
 
 DCINSTDIR=$(PREFIX)/datacollect2-$(VERSION)
@@ -126,13 +130,11 @@ dist:
 	$(MAKE) $(MFLAGS) realclean
 	hg tag -f `cat VERSION`
 
-	$(MAKE) $(MFLAGS) -C lib dg_config.h
-	tar -cvzf /tmp/realclean-dataguzzler-filelib-`cat VERSION`.tar.gz $(FILELIB_FILES)
-	tar -cvzf /tmp/realclean-dataguzzler-lib-`cat VERSION`.tar.gz $(FULLLIB_FILES)
-	tar $(EXPORTEXCLUDE) -cvzf /tmp/realclean-dataguzzler-lib-export-`cat VERSION`.tar.gz $(FULLLIB_FILES)
-	rm -f lib/dg_config.h
+	tar -cvzf /tmp/realclean-datacollect2-`cat VERSION`.tar.gz $(DIST_FILES)
 
-	@for archive in  dataguzzler-filelib-`cat VERSION` dataguzzler-lib-`cat VERSION` dataguzzler-lib-export-`cat VERSION`  ; do mkdir /tmp/$$archive ; tar -C /tmp/$$archive  -x -f /tmp/realclean-$$archive.tar.gz ; make -C /tmp/$$archive all ; make -C /tmp/$$archive distclean ; tar -C /tmp -c -v -z -f /home/sdh4/research/$$archive.tar.gz $$archive ; done
+	tar $(EXPORTEXCLUDE) -cvzf /tmp/realclean-datacollect2-export-`cat VERSION`.tar.gz $(DIST_FILES)
+
+	@for archive in  datacollect2-`cat VERSION` datacollect2-export-`cat VERSION`  ; do mkdir /tmp/$$archive ; tar -C /tmp/$$archive  -x -f /tmp/realclean-$$archive.tar.gz ; make -C /tmp/$$archive all ; make -C /tmp/$$archive distclean ; tar -C /tmp -c -v -z -f /home/sdh4/research/$$archive.tar.gz $$archive ; done
 
 	mv VERSION VERSIONtmp
 	awk -F . '{ print $$1 "." $$2 "." $$3+1 "-devel"}' <VERSIONtmp >VERSION  # increment version number and add trailing-devel
