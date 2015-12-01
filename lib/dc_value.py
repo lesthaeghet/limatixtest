@@ -40,6 +40,9 @@ if not hasattr(builtins,"basestring"):
 
 __pychecker__="no-argsused no-override"
 
+
+DCV="{http://thermal.cnde.iastate.edu/dcvalue}"
+
 # *** IMPORTANT *** 
 # Need to add distinction between strings and identifiers, and deal with escaping, etc. 
 # Deal with unicode? 
@@ -276,7 +279,7 @@ class xmltreevalue(value):
         
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del element.attrib[oldattr]
                 pass
             pass
@@ -468,7 +471,7 @@ class stringvalue(value):
         # clear out any old attributes in the dcvalue namespace
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del element.attrib[oldattr]
                 pass
             pass
@@ -662,7 +665,7 @@ class hrefvalue(stringvalue):
         # clear out any old attributes in the dcvalue namespace
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del element.attrib[oldattr]
                 pass
             pass
@@ -1006,8 +1009,8 @@ class complexunitsvalue(value) :
             pass
 
 
-        if "{http://thermal.cnde.iastate.edu/dcvalue}units" in element.attrib:
-            return cls(elementtext,element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"],defunits=defunits)
+        if DCV+"units" in element.attrib:
+            return cls(elementtext,element.attrib[DCV+"units"],defunits=defunits)
         elif "units" in element.attrib:
             return cls(elementtext,element.attrib["units"],defunits=defunits)
         else :
@@ -1021,7 +1024,7 @@ class complexunitsvalue(value) :
         # clear out any old attributes
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del element.attrib[oldattr]
                 pass
             pass
@@ -1044,11 +1047,11 @@ class complexunitsvalue(value) :
                 if unitfactor != 0.0:
                     if self.val is not None:
                         elementtext=repr(self.val*unitfactor)
-                        element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=str(defunit)
+                        element.attrib[DCV+"units"]=str(defunit)
                         pass
                     else :
                         elementtext=""
-                        element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=str(defunit)
+                        element.attrib[DCV+"units"]=str(defunit)
                         pass
                     pass
                 else :
@@ -1057,7 +1060,7 @@ class complexunitsvalue(value) :
                 pass
             else :
                 elementtext="NaN"
-                element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=str(defunits)
+                element.attrib[DCV+"units"]=str(defunits)
                 
                 pass
             
@@ -1070,7 +1073,7 @@ class complexunitsvalue(value) :
                 elementtext="NaN"
                 pass
             
-            element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=str(self.unit)
+            element.attrib[DCV+"units"]=str(self.unit)
             
             pass
 
@@ -1421,8 +1424,8 @@ class numericunitsvalue(value) :
             pass
 
         # Check if we have a units attribute
-        if "{http://thermal.cnde.iastate.edu/dcvalue}units" in element.attrib:
-            return cls(elementtext,element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"],defunits=defunits)
+        if DCV+"units" in element.attrib:
+            return cls(elementtext,element.attrib[DCV+"units"],defunits=defunits)
         elif "units" in element.attrib:
             return cls(elementtext,element.attrib["units"],defunits=defunits)
         else :
@@ -1436,7 +1439,7 @@ class numericunitsvalue(value) :
         # clear out any old attributes
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del element.attrib[oldattr]
                 pass
             pass
@@ -1459,11 +1462,11 @@ class numericunitsvalue(value) :
                 if unitfactor != 0.0:
                     if self.val is not None:
                         elementtext=repr(self.val*unitfactor)
-                        element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=str(defunit)
+                        element.attrib[DCV+"units"]=str(defunit)
                         pass
                     else :
                         elementtext=""
-                        element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=str(defunit)
+                        element.attrib[DCV+"units"]=str(defunit)
                         pass
                     pass
                 else :
@@ -1472,7 +1475,7 @@ class numericunitsvalue(value) :
                 pass
             else :
                 elementtext="NaN"
-                element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=str(defunits)
+                element.attrib[DCV+"units"]=str(defunits)
                 
                 pass
             
@@ -1485,7 +1488,7 @@ class numericunitsvalue(value) :
                 elementtext="NaN"
                 pass
             
-            element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=str(self.unit)
+            element.attrib[DCV+"units"]=str(self.unit)
             
             pass
 
@@ -1745,7 +1748,7 @@ class integervalue(value) :
         # clear out any old attributes
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del element.attrib[oldattr]
                 pass
             pass
@@ -1940,18 +1943,18 @@ class excitationparamsvalue(value) :
             provenance.xmldocelementaccessed(xmldocu,element)
             pass
 
-        vals["type"]=element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}exctype"]
+        vals["type"]=element.attrib[DCV+"exctype"]
         
 
         for subel in element:
-            if (subel.tag != "{http://thermal.cnde.iastate.edu/dcvalue}f0" and 
-                subel.tag != "{http://thermal.cnde.iastate.edu/dcvalue}f1" and
-                subel.tag != "{http://thermal.cnde.iastate.edu/dcvalue}t0" and
-                subel.tag != "{http://thermal.cnde.iastate.edu/dcvalue}t1" and
-                subel.tag != "{http://thermal.cnde.iastate.edu/dcvalue}t2" and
-                subel.tag != "{http://thermal.cnde.iastate.edu/dcvalue}t3"):
+            if (subel.tag != DCV+"f0" and 
+                subel.tag != DCV+"f1" and
+                subel.tag != DCV+"t0" and
+                subel.tag != DCV+"t1" and
+                subel.tag != DCV+"t2" and
+                subel.tag != DCV+"t3"):
                 raise ValueError("excitationparamsvalue found invalid tag: %s" % (subel.tag))
-            tag=subel.tag.split("{http://thermal.cnde.iastate.edu/dcvalue}")[1]
+            tag=subel.tag.split(DCV)[1]
             if tag[0]=='f':
                 defunits="Hz"
                 pass
@@ -1959,7 +1962,7 @@ class excitationparamsvalue(value) :
                 defunits="s"
                 pass
             
-            vals[tag]=numericunitsvalue(subel.text,units=subel.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"],defunits=defunits).valuedefunits()
+            vals[tag]=numericunitsvalue(subel.text,units=subel.attrib[DCV+"units"],defunits=defunits).valuedefunits()
             pass
         
         return cls(vals)
@@ -1972,7 +1975,7 @@ class excitationparamsvalue(value) :
         # clear out any attributes in the dcvalue namespace
         oldattrs=tag.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del tag.attrib[oldattr]
                 pass
             pass
@@ -1984,42 +1987,42 @@ class excitationparamsvalue(value) :
         
         if self.type is not None:
 
-            tag.attrib["{http://thermal.cnde.iastate.edu/dcvalue}exctype"]=self.type.lower()
+            tag.attrib[DCV+"exctype"]=self.type.lower()
             
-            f0el=etree.Element("{http://thermal.cnde.iastate.edu/dcvalue}f0")
+            f0el=etree.Element(DCV+"f0")
             f0el.text=str(self.f0)
-            f0el.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]="Hz"
+            f0el.attrib[DCV+"units"]="Hz"
             tag.append(f0el)
             
             if self.type == "SWEEP":
-                f1el=etree.Element("{http://thermal.cnde.iastate.edu/dcvalue}f1")
+                f1el=etree.Element(DCV+"f1")
                 f1el.text=str(self.f1)
-                f1el.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]="Hz"
+                f1el.attrib[DCV+"units"]="Hz"
                 tag.append(f1el)
                 pass
             
-            t0el=etree.Element("{http://thermal.cnde.iastate.edu/dcvalue}t0")
+            t0el=etree.Element(DCV+"t0")
             t0el.text=str(self.t0)
-            t0el.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]="s"
+            t0el.attrib[DCV+"units"]="s"
             tag.append(t0el)
             
-            t1el=etree.Element("{http://thermal.cnde.iastate.edu/dcvalue}t1")
+            t1el=etree.Element(DCV+"t1")
             t1el.text=str(self.t1)
-            t1el.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]="s"
+            t1el.attrib[DCV+"units"]="s"
             tag.append(t1el)
             
-            t2el=etree.Element("{http://thermal.cnde.iastate.edu/dcvalue}t2")
+            t2el=etree.Element(DCV+"t2")
             t2el.text=str(self.t2)
-            t2el.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]="s"
+            t2el.attrib[DCV+"units"]="s"
             tag.append(t2el)
             
-            t3el=etree.Element("{http://thermal.cnde.iastate.edu/dcvalue}t3")
+            t3el=etree.Element(DCV+"t3")
             t3el.text=str(self.t3)
-            t3el.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]="s"
+            t3el.attrib[DCV+"units"]="s"
             tag.append(t3el)
             pass
         else : # type is None 
-            tag.attrib["{http://thermal.cnde.iastate.edu/dcvalue}exctype"]="INVALID"
+            tag.attrib[DCV+"exctype"]="INVALID"
             pass
         if xmldocu is not None:
             xmldocu.modified=True
@@ -2072,7 +2075,7 @@ class photosvalue(value):
             pass
         tmp=[]
         for subel in element:
-            if subel.tag != "{http://thermal.cnde.iastate.edu/dcvalue}photo":
+            if subel.tag != DCV+"photo":
                 raise ValueError("Photosvalue found non-dcv:photo tag: %s" % (subel.tag))
             tmp.append(urllib.url2pathname(subel.attrib["{http://www.w3.org/1999/xlink}href"]))
             
@@ -2087,7 +2090,7 @@ class photosvalue(value):
         # clear out any attributes in the dcvalue namespace
         oldattrs=tag.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del tag.attrib[oldattr]
                 pass
             pass
@@ -2098,7 +2101,7 @@ class photosvalue(value):
             pass
         
         for photo in self.photolist:
-            newel=etree.Element("{http://thermal.cnde.iastate.edu/dcvalue}photo")
+            newel=etree.Element(DCV+"photo")
             newel.attrib["{http://www.w3.org/1999/xlink}href"]=urllib.pathname2url(photo)
             tag.append(newel)
             pass
@@ -2337,7 +2340,7 @@ class integersetvalue(value) :
         # clear out any old attributes
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
-            if oldattr.startswith("{http://thermal.cnde.iastate.edu/dcvalue}"):
+            if oldattr.startswith(DCV):
                 del element.attrib[oldattr]
                 pass
             pass
@@ -2416,3 +2419,80 @@ class accumulatingintegersetvalue(integersetvalue):
                 pass
             pass
         return cls(accum)
+
+    pass
+# This class is for matrices that may be read/written from XML files
+# it is not intended for particularly large matrices. 
+class arrayvalue(value):
+    array=None  # Numpy array
+    
+    def __init__(self,array,defunits=None):
+        self.array=copy.copy(array)
+        pass
+    
+    def __str__(self):
+        return str(self.array)
+
+    def xmlrepr(self,xmldocu,element,defunits=None):
+        oldattrs=element.attrib.keys()
+        for oldattr in oldattrs:
+            if oldattr.startswith(DCV):
+                del element.attrib[oldattr]
+                pass
+            pass
+        oldchildren=element.getchildren()
+        for child in oldchildren:
+            element.remove(child)
+            pass
+        
+        element.attrib[DCV+"arraystorageorder"]='C'
+        
+        nrows_element=etree.Element(DCV+"arrayshape")
+        nrows_element.text=" ".join([str(axislen) for axislen in self.array.shape])
+        element.append(nrows_element)
+        data_element=etree.Element(DCV+"arraydata")
+        data_element.text=" ".join(["%15.15g" % (arrayval) for arrayval in self.array.ravel(order="C")])
+        element.append(data_element)
+
+        xmldocu.modified=True
+        provenance.elementgenerated(xmldocu.doc,element)
+        
+        pass
+    
+    @classmethod
+    def fromxml(cls,xmldocu,element,defunits=None):
+        if xmldocu is not None:
+            provenance.xmldocelementaccessed(xmldocu,element)
+            pass
+        
+        arraystorageorder=element.attrib[DCV+"arraystorageorder"]
+        shapeel=element.find(DCV+"arrayshape")
+        shape=[int(axislen) for axislen in shapeel.text.split()]
+        
+        data_element=element.find(DCV+"arraydata")
+        data=[float(dataval) for dataval in data_element.text.split()]
+
+        array=np.array(data,dtype='d').reshape(*shape)
+        return cls(array)
+    pass
+
+    def isblank(self):
+        if np.prod(self.array.shape)==0:
+            return True
+        return False
+    
+    def value(self):
+        return copy.copy(self.array)
+
+    def __eq__(self,other):
+        if isinstance(other,arrayvalue):
+            return self.array==other.array
+        else:
+            return self.array==other
+        pass
+
+    pass
+
+
+    
+    
