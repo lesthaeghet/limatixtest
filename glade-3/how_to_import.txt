@@ -1,0 +1,8 @@
+import sys
+
+import gtk
+sys.path.append("glade_modules")
+import dg_gui_widgets   # somehow this allows gtk.builder to find the widgets (?)
+
+builder = gtk.Builder()
+builder.add_from_file("test.glade")

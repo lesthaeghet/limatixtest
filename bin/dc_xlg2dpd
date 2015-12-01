@@ -1,0 +1,251 @@
+#! /usr/bin/env python
+
+import sys
+import os
+import os.path
+import string
+import datetime
+import socket
+import json
+
+import subprocess
+from lxml import etree
+
+import dg_units
+dg_units.units_config("insert_basic_units")
+
+
+
+class dummy(object):
+    pass
+
+# trace symbolic link to find installed directory
+thisfile=sys.modules[dummy.__module__].__file__
+if os.path.islink(thisfile):
+    installedfile=os.readlink(thisfile)
+    if not os.path.isabs(installedfile):
+        installedfile=os.path.join(os.path.dirname(thisfile),installedfile)
+        pass
+    pass
+else:
+    installedfile=thisfile
+    pass
+
+installeddir=os.path.dirname(installedfile)
+
+if os.path.exists(os.path.join(installeddir,"../lib/checklist.py")):
+    installeddir=os.path.join(installeddir,"../")
+    pass
+elif os.path.exists(os.path.join(installeddir,"../gui2/lib/checklist.py")):
+    installeddir=os.path.join(installeddir,"../gui2")
+    pass
+
+sys.path.append(installeddir)
+sys.path.append(os.path.join(installeddir,"lib/"))
+
+import xmldoc
+import canonicalize_path
+import paramdbfile
+
+
+x2d_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://thermal.cnde.iastate.edu/checklist"}
+
+positionals=[]
+argc=1
+
+xlg2dpd_xsl=r"""<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dcv="http://thermal.cnde.iastate.edu/dcvalue" xmlns:chx="http://thermal.cnde.iastate.edu/checklist">
+  <xsl:output method="xml"/>
+
+  <xsl:template match="dc:experiment">
+    <xsl:apply-templates select="dc:configstr|dc:summary|((dc:measurement)[last()])"/>
+  </xsl:template>
+
+  <xsl:template match="dc:summary">
+    <dc:paramdb>
+      <xsl:apply-templates mode="paramdb"/>
+    </dc:paramdb>
+  </xsl:template>
+
+  <xsl:template match="dc:measurement">
+    <dc:paramdb>
+      <xsl:apply-templates mode="paramdb"/>     
+    </dc:paramdb>
+  </xsl:template>
+
+  <!-- ignore dc:configstr -->
+  <xsl:template match="dc:configstr"/>
+
+  <xsl:template match="/">
+    <dc:params>
+      <xsl:apply-templates/> <!-- select="dc:configstr|dc:summary|((dc:measurement)[last()])"/> -->
+    </dc:params>
+  </xsl:template>
+
+  <!-- Copying paramdb elements -->
+  <xsl:template match="dc:checklists" mode="paramdb"/> <!-- ignore dc:checklists tag -->
+  <xsl:template match="dc:plans" mode="paramdb"/> <!-- ignore dc:plans tag -->
+  <xsl:template match="dc:recordmeastimestamp" mode="paramdb"/> <!-- ignore dc:recordmeastimestamp tag -->
+  <xsl:template match="chx:clinfo" mode="paramdb"/> <!-- ignore chx:clinfo tags -->
+  <xsl:template match="chx:cltitle" mode="paramdb"/> <!-- ignore chx:cltitle tags -->
+
+  <xsl:template match="@*|node()" mode="paramdb">
+    <xsl:copy>
+      <xsl:apply-templates select="@*|node()"/>
+    </xsl:copy>
+  </xsl:template>
+
+  <xsl:template match="*" mode="paramdb">
+    <!-- <xsl:copy-of select="."/> --> <!-- This causes excess xmlns:xxx entries -->
+    <xsl:element name="{name()}" namespace="{namespace-uri()}">
+      <xsl:apply-templates select="@*|node()" mode="paramdb"/>
+    </xsl:element>
+  </xsl:template>
+
+
+</xsl:stylesheet>
+"""
+
+
+while argc < len(sys.argv):
+    arg=sys.argv[argc]
+
+    if arg=="-h" or arg=="--help":	
+        print("""Usage: %s input.xlg [output.dpd]""" % (sys.argv[0]))
+        sys.exit(0)
+        pass
+    elif arg.startswith("-"):
+        raise ValueError("Unknown flag: %s" % (arg))
+    else: 
+        positionals.append(arg)
+        pass
+    argc+=1
+    pass
+
+if len(positionals) > 2:
+    raise ValueError("Too many positional parameters (see -h for command line help")
+    
+if len(positionals) < 1:
+    raise ValueError("Not enough positional parameters (see -h for command line help")
+    
+if len(positionals)==1:
+    xlgfile=positionals[0]
+    dpdfile=os.path.splitext(xlgfile)[0]+".dpd"
+
+    pass
+else:
+    assert(len(positionals)==2)
+    xlgfile=positionals[0]
+    dpdfile=positionals[1]
+    pass
+
+    
+if dpdfile==xlgfile:
+    raise ValueError("xlg file %s must not match dpd file %s" % (xlgfile,dpdfile))
+
+
+# Use XSLT to transform paramdb entries
+xlgdoc=xmldoc.xmldoc.loadfile(xlgfile,x2d_nsmap,readonly=True)
+
+xlg2dpd_transform=etree.XSLT(etree.XML(xlg2dpd_xsl))
+initialdpdfile=xlg2dpd_transform(xlgdoc.doc)
+
+dpddoc=xmldoc.xmldoc.frometree(initialdpdfile,nsmap=x2d_nsmap)
+
+# fixups: go through configfiles
+
+configfnames=[]
+
+configstrs=xlgdoc.xpath("dc:configstr")
+for configstr in configstrs: 
+    # each configstr tag has an fnames attribute that 
+    # can be interpreted as a json list of strings
+    try: 
+        fnames=json.loads(xlgdoc.getattr(configstr,"fnames"))
+        pass
+    except ValueError:
+        # probably an old .xlgfile that uses single-quoted strings
+        # try again, converting to double-quoted strings
+        fnames=json.loads(str(xlgdoc.getattr(configstr,"fnames")).replace("'",'"'))
+        pass
+    configfnames.extend(fnames)
+    pass
+
+# canonicalize list of configfiles
+canonicalize_path.canonicalize_filelist(os.path.split(xlgfile)[0],configfnames)
+
+# configfpaths are the paths from the perspective of the dpdfile
+configfpaths=[ canonicalize_path.rel_or_abs_path(os.path.split(dpdfile)[0],configf) for configf in configfnames ]
+
+# insert dc:configfiles tag and generate dc:configfile tags within 
+configfilesel=dpddoc.insertelement(None,0,"dc:configfiles")
+for configfpath in configfpaths: 
+    configfileel=dpddoc.addelement(configfilesel,"dc:configfile")
+    dpddoc.setattr(configfileel,"xlink:href",configfpath)
+    pass
+
+# insert dc:explog tag
+explogel=dpddoc.insertelement(None,1,"dc:explog")
+dpddoc.setattr(explogel,"xlink:href", canonicalize_path.rel_or_abs_path(os.path.split(dpdfile)[0],xlgfile))
+
+# go through checklists
+checklistset=set([]) # set of canonical filenames
+origfilenameset=set([]) # set of canonicalize origfilenames
+
+reldest=xlgdoc.xpath("string(dc:summary/dc:reldest)")
+#sys.stderr.write("reldest=%s\n" % (reldest))
+checklists=xlgdoc.xpath("dc:summary/dc:checklists/dc:checklist")
+for checklist in checklists:
+    if not xlgdoc.hasattr(checklist,"xlink:href"):
+        # old-style file with link being tag content
+        # old-style file implicitly included reldest
+        href=os.path.join(reldest,checklist.text)
+        #sys.stderr.write("href=%s\n" % (href))
+        pass
+    else: 
+        href=xlgdoc.getattr(checklist,"xlink:href")
+        #sys.stderr.write("new-style href=%s\n" % (href))
+        pass
+
+    if href.startswith("mem://"):
+        # ignore and do nothing
+        continue
+    elif os.path.isabs(href):
+        href=canonicalize_path.canonicalize_path(href)
+        pass
+    else:
+        href=canonicalize_path.canonicalize_path(os.path.join(os.path.split(xlgfile)[0],href))
+        pass
+    checklistset.add(href)
+    pass
+
+for checklistfname in checklistset:
+    chxdoc=xmldoc.xmldoc.loadfile(checklistfname,x2d_nsmap,readonly=True)
+    if len(chxdoc.getattr(None,"parent","")) == 0: 
+        # has no (or empty) parent attribute... look up origfilename
+        if len(chxdoc.getattr(None,"origfilename","")) > 0:
+            # got origfilename
+            origfilename=chxdoc.getattr(None,"origfilename","")
+            if os.path.isabs(origfilename):
+                origfilename=canonicalize_path.canonicalize_path(origfilename)
+                pass
+            else: 
+                origfilename=canonicalize_path.canonicalize_path(os.path.join(os.path.split(checklistfname)[0],origfilename))
+                pass                
+            origfilenameset.add(origfilename)
+            pass
+        pass
+    chxdoc.close()
+    pass
+
+# Now add everything in origfilenameset to a dc:chxs tag
+# and generate dc:chx tags within
+chxsel=dpddoc.insertelement(None,0,"dc:chxs")
+for origfilename in origfilenameset: 
+    chxel=dpddoc.addelement(chxsel,"dc:chx")
+    dpddoc.setattr(chxel,"xlink:href",canonicalize_path.rel_or_abs_path(os.path.split(dpdfile)[0],origfilename))
+    pass
+
+# Write out the resulting dpdfile
+dpddoc.setfilename(dpdfile)
+dpddoc.close()

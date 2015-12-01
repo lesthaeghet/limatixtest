@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<interface>
+  <requires lib="gtk+" version="2.16"/>
+  <!-- interface-requires dg_gui_widgets 0.0 -->
+  <!-- interface-naming-policy project-wide -->
+  <object class="GtkHBox" id="multiparamstep">
+    <property name="visible">True</property>
+    <child>
+      <object class="dc_wraplabel" id="step_descr_label">
+        <property name="visible">True</property>
+        <property name="xalign">0</property>
+        <property name="xpad">12</property>
+        <property name="label" translatable="yes">STEP DESCRIPTION </property>
+        <property name="max_width_chars">50</property>
+      </object>
+      <packing>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="param_label1">
+        <property name="visible">True</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">PARAM</property>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkVBox" id="vbox1">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="dg_setparam" id="setparam1">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="invisible_char">&#x25CF;</property>
+            <property name="dg_param">PARAM</property>
+            <property name="dg_paramdefault">PARAMDEFAULT</property>
+          </object>
+          <packing>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="dg_readout" id="readout1">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="editable">False</property>
+            <property name="invisible_char">&#x25CF;</property>
+            <property name="dg_param">PARAM</property>
+          </object>
+          <packing>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="position">2</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="param_label2">
+        <property name="visible">True</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">PARAM</property>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="position">3</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkVBox" id="vbox2">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="dg_setparam" id="setparam2">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="invisible_char">&#x25CF;</property>
+            <property name="dg_param">PARAM</property>
+            <property name="dg_paramdefault">PARAMDEFAULT</property>
+          </object>
+          <packing>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="dg_readout" id="readout2">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="editable">False</property>
+            <property name="invisible_char">&#x25CF;</property>
+            <property name="dg_param">PARAM</property>
+          </object>
+          <packing>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="position">4</property>
+      </packing>
+    </child>
+  </object>
+</interface>
