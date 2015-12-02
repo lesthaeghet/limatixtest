@@ -2874,23 +2874,23 @@ class xmldoc(object):
     
         return clarktag==element.tag
 
-    def tostring(self,element=None):
+    def tostring(self,element=None,pretty_print=False):
         # Convert to unicode string... see also tobytes()
 
         self.element_in_doc(element)
 
         # Serialize entire document or tree within one element to a string
         if element is None:
-            return etree.tostring(self.doc,encoding='utf-8').decode("utf-8")
+            return etree.tostring(self.doc,encoding='utf-8',pretty_print=pretty_print).decode("utf-8")
         else : 
             # !!! Should we mark the provenance of the entire tree under this? 
             provenance.elementaccessed(self.filename,self.doc,element)
-            return etree.tostring(element,encoding='utf-8').decode("utf-8")
+            return etree.tostring(element,encoding='utf-8',pretty_print=pretty_print).decode("utf-8")
 
         pass
 
 
-    def tobytes(self,element=None,encoding='utf-8'):
+    def tobytes(self,element=None,encoding='utf-8',pretty_print=False):
         # Convert to utf-8 bytes
         # can specify encoding=None to generate ascii (and use entities
         # for higher characters)
@@ -2899,11 +2899,11 @@ class xmldoc(object):
 
         # Serialize entire document or tree within one element to a string
         if element is None:
-            return etree.tostring(self.doc,encoding=encoding)
+            return etree.tostring(self.doc,encoding=encoding,pretty_print=pretty_print)
         else : 
             # !!! Should we mark the provenance of the entire tree under this? 
             provenance.elementaccessed(self.filename,self.doc,element)
-            return etree.tostring(element,encoding=encoding)
+            return etree.tostring(element,encoding=encoding,pretty_print=pretty_print)
 
         pass
 
