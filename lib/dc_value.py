@@ -1470,8 +1470,7 @@ class numericunitsvalue(value) :
                         pass
                     pass
                 else :
-                    sys.stderr.write("Warning: unit mismatch in %s tag: %s vs %s\n" % (element.tag,str(self),str(defunits)))
-                    pass
+                    raise ValueError("Warning: unit mismatch in %s tag: %s vs %s\n" % (element.tag,str(self),str(defunits)))
                 pass
             else :
                 elementtext="NaN"
