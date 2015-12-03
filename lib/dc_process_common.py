@@ -8,7 +8,7 @@ def findstep(prxdoc,stepname):
         if name==stepname:
             return step
         pass
-    return ValueError("step %s not found" % (stepname))
+    raise ValueError("step %s not found" % (stepname))
 
 
 
