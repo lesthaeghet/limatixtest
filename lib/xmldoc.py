@@ -2175,8 +2175,8 @@ class xmldoc(object):
         return None
 
 
-    def children(self,context,tag,namespaces=None,noprovenanceupdate=False):
-        """Find context children specified by tag. Return list
+    def children(self,context,tag=None,namespaces=None,noprovenanceupdate=False):
+        """Find context children specified by tag or all children. Return list
         """
         
         self.element_in_doc(context)
@@ -2189,24 +2189,38 @@ class xmldoc(object):
             usenamespaces=self.namespaces
             pass
 
-        if ":" in tag: # colon in tag name means this is in a namespace
-            # apply namespace from nsmap
-            colonoffset=tag.find(':')
-            namespaceuri=usenamespaces[tag[:colonoffset]]
-            clarktag="{%s}%s" % (namespaceuri,tag[(colonoffset+1):])
+        if tag is not None:
+            if ":" in tag: # colon in tag name means this is in a namespace
+                # apply namespace from nsmap
+                colonoffset=tag.find(':')
+                namespaceuri=usenamespaces[tag[:colonoffset]]
+                clarktag="{%s}%s" % (namespaceuri,tag[(colonoffset+1):])
+                pass
+            else : 
+                clarktag=tag
+                pass
+            
+            children=[]
+            for child in context.iterchildren():
+                if child.tag==clarktag:
+                    if not noprovenanceupdate:
+                        provenance.elementaccessed(self.filename,self.doc,child)
+                        pass
+                    children.append(child)
+                    pass
+                pass
             pass
-        else : 
-            clarktag=tag
-            pass
-
-        children=[]
-        for child in context.iterchildren():
-            if child.tag==clarktag:
+        else:
+            # tag is none
+            children=[]
+            for child in context.iterchildren():
                 if not noprovenanceupdate:
                     provenance.elementaccessed(self.filename,self.doc,child)
                     pass
                 children.append(child)
+                pass
             pass
+        
         return children
         
     
