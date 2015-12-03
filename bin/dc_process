@@ -1213,6 +1213,8 @@ if __name__=="__main__":
         sys.exit(0)
         pass
 
+    #print("steps=%s" % str(steps))
+
     for argv_inputfile in argv_inputfiles:
         if argv_inputfile not in [ prxdoc.gettext(inputfile_el) for inputfile_el in inputfiles ] and argv_inputfile not in [ prxdoc.getattr(inputfile_el,"xlink:href") for inputfile_el in inputfiles ]:
             sys.stderr.write("Specified input file %s is not listed in %s\nTry listing available files with --files.\n" % (argv_inputfile,prxfile))
