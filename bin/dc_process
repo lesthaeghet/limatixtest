@@ -1003,7 +1003,7 @@ def procstep(scriptdir,prxdoc,output,steptag,processpath,defaultelementmatch,def
             elif prxdoc.tag_is(child,"prx:strvalue"):
                 value=stepparamvalue(strvalue=prxdoc.gettext(child))
                 pass
-            elif prxdoc.tag_is(child,"prx:href"):
+            elif prxdoc.tag_is(child,"prx:hrefvalue"):
                 value=stepparamvalue(hrefvalue=prxdoc.get_href(child),xpathnsmap=child.nsmap)
                 pass
             elif prxdoc.tag_is(child,"prx:xpath"):
