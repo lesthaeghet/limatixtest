@@ -727,8 +727,8 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
     (argnames, varargs, keywords, defaults)=inspect.getargspec(execfunc)        
     
     argsdefaults={}
-    numdefaults=len(defaults)
     if defaults is not None:
+        numdefaults=len(defaults)
         argsdefaults=dict(zip(argnames[-numdefaults:],defaults))
         # argsdefaults is a dictionary by argname of default values.
         pass
