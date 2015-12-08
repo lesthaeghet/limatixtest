@@ -194,6 +194,7 @@ def find_script_in_path(scriptdir,scriptname):
 class stepparamvalue(object):
     numvalue=None
     strvalue=None
+    hrefvalue=None
     xpath=None
     xpathnsmap=None
     condition=None
@@ -237,6 +238,8 @@ class stepparamvalue(object):
             return self.numvalue
         elif self.strvalue is not None:
             return self.strvalue
+        elif self.hrefvalue is not None:
+            return self.hrefvalue
         else : 
             assert(self.xpath is not None)
             namespaces=copy.copy(self.xpathnsmap)
@@ -1000,8 +1003,12 @@ def procstep(scriptdir,prxdoc,output,steptag,processpath,defaultelementmatch,def
             elif prxdoc.tag_is(child,"prx:strvalue"):
                 value=stepparamvalue(strvalue=prxdoc.gettext(child))
                 pass
+            elif prxdoc.tag_is(child,"prx:href"):
+                value=stepparamvalue(hrefvalue=prxdoc.get_href(child),xpathnsmap=child.nsmap)
+                pass
             elif prxdoc.tag_is(child,"prx:xpath"):
                 value=stepparamvalue(xpath=child.text,xpathnsmap=child.nsmap)
+                pass
             else :
                 raise ValueError("Parameter element %s contains unknown value tag %s" % (prxdoc.tostring(paramel),child.tag))
             
