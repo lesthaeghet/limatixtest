@@ -619,7 +619,7 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
         pass
     pass
 
-def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,stepprocesspath,elementpath,stepglobals,argnames,params,cwd_fd,inputfilename,ipythonmodelist,execfunc,action,scriptpath,pycode_text,pycode_lineno):
+def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,stepprocesspath,elementpath,stepglobals,argnames,argsdefaults,params,cwd_fd,inputfilename,ipythonmodelist,execfunc,action,scriptpath,pycode_text,pycode_lineno):
     # *** output should be rwlock'd exactly ONCE when this is called
     # *** Output will be rwlock'd exactly ONCE on return
     #     (but may have been unlocked in the interim)
@@ -659,7 +659,17 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
                 argkw[argname]=element
                 pass
             else : 
-                argkw[argname]=findparam(prxnsmap,output,element,argname).evaluate(output,element)
+                try : 
+                    argkw[argname]=findparam(prxnsmap,output,element,argname).evaluate(output,element)
+                    pass
+                except (NameError,KeyError):
+                    # if there is a default, use that
+                    if argname in argsdefaults:
+                        argkw[argname]=argsdefaults[argname]
+                        pass
+                    else:
+                        raise  # Let user know we can't find this!
+                    pass
                 pass
             pass
         
@@ -716,7 +726,12 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
     
     (argnames, varargs, keywords, defaults)=inspect.getargspec(execfunc)        
     
-
+    argsdefaults={}
+    numdefaults=len(defaults)
+    if defaults is not None:
+        argsdefaults=dict(zip(argnames[-numdefaults:],defaults))
+        # argsdefaults is a dictionary by argname of default values.
+        pass
     if None in elementmatch_nsmap:
         del elementmatch_nsmap[None]  # Can not pass None entry
         pass
@@ -760,7 +775,7 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
         output.should_be_rwlocked_once()
 
         try : 
-            (modified_elements,referenced_elements)=procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,stepprocesspath,elementpath,stepglobals,argnames,params,cwd_fd,inputfilename,ipythonmodelist,execfunc,action,scriptpath,pycode_text,pycode_lineno)
+            (modified_elements,referenced_elements)=procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,stepprocesspath,elementpath,stepglobals,argnames,argsdefaults,params,cwd_fd,inputfilename,ipythonmodelist,execfunc,action,scriptpath,pycode_text,pycode_lineno)
             pass
         except KeyboardInterrupt: 
             # Don't want to hold off keyboard interrupts!
