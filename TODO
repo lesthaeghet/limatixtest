@@ -1,0 +1,18 @@
+Bugs:
+
+- Second experiment photograph
+
+- Multiple parameters in the same checklist (Slow Behavior)
+
+- Double check the measchecklist parameter
+
++ dc:process hostname bug
+    "Fixed" on 1/6 TL - This wasn't a bug as much as a confusion.  The code that validates hostname
+      only does so when <prx:hostname> is not None, but the output at the propmt says the value is
+      None rather than "" because of the split command in the format string, leading to confusion.
+      Clarified in the error message that the correct way to eliminate hostname requirement is to 
+      completely remove or comment out the <prx:hostname> tag.
+
+Features:
+
+- COMSOL from Python

@@ -1182,7 +1182,7 @@ if __name__=="__main__":
     hostname=prxdoc.xpathsinglestr("prx:hostname",default=None)
 
     if hostname is not None and hostname.split(".")[0] != provenance.determinehostname().split(".")[0]:
-        sys.stderr.write("Hostname mismatch: %s in <prx:hostname> tag vs. this computer is %s.\nPlease adjust <prx:hostname> tag to match if you really want to run on this computer.\n" % (hostname.split(".")[0],provenance.determinehostname().split(".")[0]))
+        sys.stderr.write("Hostname mismatch: %s in <prx:hostname> tag vs. this computer is %s.\nPlease adjust <prx:hostname> tag to match if you really want to run on this computer.\nRemove <prx:hostname> completely if this should be allowed to run on any computer.\n" % (hostname.split(".")[0],provenance.determinehostname().split(".")[0]))
         sys.exit(1)
         pass
 
