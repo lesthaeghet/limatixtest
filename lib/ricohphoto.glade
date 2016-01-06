@@ -166,7 +166,7 @@
       </packing>
     </child>
     <child>
-      <object class="dg_wraplabel" id="QRtextlabel">
+      <object class="dc_wraplabel" id="QRtextlabel">
         <property name="visible">True</property>
         <property name="xalign">0</property>
         <property name="yalign">0</property>

@@ -1,6 +1,15 @@
 Bugs:
 
 - Second experiment photograph
+    Uploading a second photo results in the following error message:
+
+    Traceback (most recent call last):
+	  File "./../lib/xmldoc.py", line 3445, in requestvalcallback
+	    self.synchronize(dest,requestedvalue=newvalue)
+	  File "./../lib/xmldoc.py", line 3335, in synchronize
+	    raise ValueError("Error merging information for parameter %s from file %s: %s" % (self.controlparam.xmlname, str(filename),str(e)))
+	ValueError: Error merging information for parameter expphotos from file /tmp/tylertest/XLG/2016-01-06.xlg: Cannot merge values: Orig=2016-01-06_expphoto-001.jpg; descendents 2016-01-06_expphoto-001.jpg
+	2016-01-06_expphoto-002.jpg and 2016-01-06_expphoto-001.jpg
 
 - Multiple parameters in the same checklist (Slow Behavior)
 
