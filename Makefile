@@ -20,26 +20,18 @@
 #    of the operating system; therefore the special exception in GPLV2,
 #    section 3 applies to them.
 
-# stuff from defs.make:
-# Installation prefix
-PREFIX=/usr/local
-PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 DIST_FILES=.
 
 EXPORTEXCLUDE=--exclude gui2/conf/dataguzzler_vibrotherm.gui --exclude gui2/trash --exclude gui2/checklists/vibro_neworientation.chx --exclude gui2/checklists/vibro_testfreq.chx --exclude gui2/checklists/vibro_setup.chx --exclude gui2/conf/vibrotherm_simulation_experiment_rectangularbar.dcc --exclude gui2/conf/vibrotherm_experiment.dcc --exclude gui2/conf/vibrotherm_experiment_rectangularbar.dcc --exclude gui2/conf/vibrotherm_rectangularbar.dcc --exclude gui2/conf/vibrotherm_experiment_rectangularbar.glade --exclude gui2/conf/vibrotherm_simulation.dcc --exclude gui2/conf/vibrotherm_simulation_rectangularbar.dcc --exclude gui2/conf/rectangularbar_specimendb.dcc --exclude gui2/conf/rectangularbar_manualgeom.dcc
 
-VERSION=$(shell if [ -f VERSION ] ; then cat VERSION ; elif [ -f ../VERSION ] ; then cat ../VERSION ; elif [ -f ../../VERSION ] ; then cat ../../VERSION ; elif [ -f ../../../VERSION ] ; then cat ../../../VERSION ; fi )
-
-DCINSTDIR=$(PREFIX)/datacollect2-$(VERSION)
 
 
 PYSUBDIRS=widgets steps
 CHXSUBDIRS=checklists
 
-INSTALL=/usr/bin/install
 
-SUBDIRS=  #matlab
+SUBDIRS=dcp_steps  #matlab
 
 
 
