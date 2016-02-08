@@ -96,6 +96,9 @@ def searchforchecklist(fname):
     # return (chklistobj,canonfname)
  
     checklists=checklistdb.getchecklists(None,None,None,None,allchecklists=True,allplans=True)
+
+    #sys.stderr.write("dc2_misc/searchforchecklist: Available checklists: %s\n" % (str([checklist.canonicalpath for checklist in checklists])))
+
     if fname.startswith("mem://"):
         canonfname=fname
         pass

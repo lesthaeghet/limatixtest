@@ -15,6 +15,8 @@ else :
 from dc_gtksupp import build_from_file
 from dc_gtksupp import dc_initialize_widgets
 
+from dc_value import hrefvalue as hrefv
+
 
 class steptemplate(gtk.HBox):
     __gtype_name__="steptemplate"
@@ -77,7 +79,13 @@ class steptemplate(gtk.HBox):
         # print "%s\n%s" % (stepdescr,self.execcode)
         #exec("if True:\n%s" % (self.execcode),globals(),self.execlocaldict)
         for key in self.params:
-            self.stepobj.set_property(key,params[key])
+            if isinstance(self.params[key],hrefv):
+                # Set as string according to path from current directory
+                self.stepobj.set_property(key,self.params[key].getpath(contextdir="."))
+                pass
+            else : 
+                self.stepobj.set_property(key,self.params[key])
+                pass
             pass
 
         pass
@@ -91,7 +99,7 @@ class steptemplate(gtk.HBox):
         
         self.dc_gui_io=guistate.io
 
-        dc_gui_initialize_widgets(self.gladeobjdict,guistate)
+        dc_initialize_widgets(self.gladeobjdict,guistate)
         self.stepobj.dc_gui_init(guistate)
 
         pass

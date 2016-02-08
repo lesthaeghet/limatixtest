@@ -743,7 +743,7 @@ class explogwindow(gtk.Window):
     def open_gui(self,fname):
         
         (gladeobjdict,builder)=build_from_file(fname)
-        dc_gui_initialize_widgets(gladeobjdict,self.guistate)
+        dc_initialize_widgets(gladeobjdict,self.guistate)
         
         
         win=gladeobjdict["guiwindow"]

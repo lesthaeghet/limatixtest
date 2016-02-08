@@ -337,13 +337,16 @@ class rundatacollectstep(gtk.HBox):
 
                 if self.plfparsed is None or self.xlgparsed is None:
                     status="corrupt or changing files"
+                    #sys.stderr.write("corrupt or changing files: self.plfparsed=%s; self.xlgparsed=%s\n" % (str(self.plfparsed),str(self.xlgparsed)))
                     pass
-                plfchecked=self.plfparsed.xpath('count(/chx:checklist/chx:checkitem[@checked="true"])',namespaces={'chx':'http://thermal.cnde.iastate.edu/checklist'})
-                plftotal=self.plfparsed.xpath('count(/chx:checklist/chx:checkitem)',namespaces={'chx':'http://thermal.cnde.iastate.edu/checklist'})
+                else : 
+                    plfchecked=self.plfparsed.xpath('count(/chx:checklist/chx:checkitem[@checked="true"])',namespaces={'chx':'http://thermal.cnde.iastate.edu/checklist'})
+                    plftotal=self.plfparsed.xpath('count(/chx:checklist/chx:checkitem)',namespaces={'chx':'http://thermal.cnde.iastate.edu/checklist'})
 
-                xlgmeas=self.xlgparsed.xpath('count(/dc:experiment/dc:measurement)',namespaces={'dc':'http://thermal.cnde.iastate.edu/datacollect'})
-                
-                status="%d/%d steps; %d meas." % (plfchecked,plftotal,xlgmeas)
+                    xlgmeas=self.xlgparsed.xpath('count(/dc:experiment/dc:measurement)',namespaces={'dc':'http://thermal.cnde.iastate.edu/datacollect'})
+                    
+                    status="%d/%d steps; %d meas." % (plfchecked,plftotal,xlgmeas)
+                    pass
                 pass
             pass
         

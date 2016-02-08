@@ -164,7 +164,7 @@ def open_checklist_parent(chklist,paramdb,iohandler):
         
         if parentclobj is None:
             # if not, open the parent checklist
-            self.open_checklist(parentcanonfname,paramdb,iohandler)
+            open_checklist(parentcanonfname,paramdb,iohandler)
             pass
         pass
     pass

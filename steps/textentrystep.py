@@ -21,7 +21,7 @@ from lxml import etree
 import dc_value
 
 from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_gui_initialize_widgets
+from dc_gtksupp import dc_initialize_widgets
 
 __pychecker__="no-import no-argsused"
 

@@ -332,6 +332,7 @@ explogwin.dc_gui_init(guistate)
 
 # load config files
 for configfile in configfiles: 
+    #sys.stderr.write("datacollect2: Loading config file %s\n" % (configfile))
     explogwin.load_config(configfile)
     pass
 

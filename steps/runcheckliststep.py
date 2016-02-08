@@ -639,7 +639,7 @@ class runcheckliststep(gtk.HBox):
 
         if self.checklist.xmldoc.filename is None:
             nofiledialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
-            nofiledialog.set_markup("Error: This checklist needs a filename before a subchecklist can be opened.")
+            nofiledialog.set_markup("Error: This checklist needs a filename before a subchecklist can be opened. Please use \"Save\" button to give it a filename (if applicable).")
             nofiledialog.run()
             nofiledialog.destroy()
             return

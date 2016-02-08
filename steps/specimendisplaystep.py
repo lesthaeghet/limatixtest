@@ -88,7 +88,7 @@ class specimendisplaystep(gtk.HBox):
         
         self.guistate=guistate
         
-        dc_gui_initialize_widgets(self.gladeobjdict,guistate)
+        dc_initialize_widgets(self.gladeobjdict,guistate)
 
 
         self.changedcallback(None,None) #  update xml

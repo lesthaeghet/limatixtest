@@ -456,9 +456,43 @@ class checklist(object):
             else :
                 # Not datacollectmode
                 if self.xmldoc.filename is not None: 
-                    self.gladeobjdict["SaveButton"].set_property("label","Save")                
+                    # If checklist already has a filename, then 
+                    # Save button replaced with Done button
+                    self.gladeobjdict["SaveButton"].set_property("label","Done")                
+                    
                     self.private_paramdb["defaultfilename"].requestvalstr_sync(self.xmldoc.filename)
+        
+                    
                     pass
+                else: 
+                    # self.xmldoc.filename is None
+                    try:
+                        # Put this in a "try...except" because requestedfilename() does not seem to have much in terms of error handling
+                        self.private_paramdb["defaultfilename"].requestvalstr_sync(self.requestedfilename())
+                        pass
+                    except:
+                        (exctype, excvalue) = sys.exc_info()[:2] 
+                        sys.stderr.write("checklist.py: warning: exception requesting default filename: %s, %s\n" % (exctype,excvalue))
+                        pass
+                    pass
+
+                if len(self.private_paramdb["defaultfilename"].dcvalue.value())==0:
+                    # still blank...
+                    # Create default filename from original name, ".chx" -> ".chf"
+                    if self.origfilename.endswith(".chx"):
+                        self.private_paramdb["defaultfilename"].requestvalstr_sync(sys.path.splitext(origfilename)[0]+".chf")
+                        pass
+                    elif self.origfilename.endswith(".plx"):
+                        self.private_paramdb["defaultfilename"].requestvalstr_sync(sys.path.splitext(origfilename)[0]+".plf")
+                        pass
+                    pass
+                
+                ## if default filename has no folder, put it relative to the current directory
+                #if len(os.path.split(self.private_paramdb["defaultfilename"].dcvalue.value())[0])==0:
+                #    # no first path component... join './defaultfilename'
+                #    self.private_paramdb["defaultfilename"].requestvalstr_sync(os.path.join('.',self.private_paramdb["defaultfilename"].dcvalue.value()))
+                #     
+                #    pass
 
 
                 self.gladeobjdict["SaveButton"].set_sensitive(True)
@@ -572,7 +606,7 @@ class checklist(object):
                             params[paramname]=paramval
                             pass
                         elif paramtype is hrefv: # dc_value.hrefvalue
-                            params[paramname].fromxml(self.xmldoc,parameter,contextdir=self.xmldoc.getcontextdir())
+                            params[paramname]=paramtype.fromxml(self.xmldoc,parameter,contextdir=self.xmldoc.getcontextdir())
                         else : 
 
                             params[paramname]=paramtype(self.xmldoc.xpathcontext(parameter,"string(.)").strip())
@@ -636,7 +670,11 @@ class checklist(object):
             if self.xmldoc.xpathsinglestr("chx:specimen")=="disabled":
                 self.gladeobjdict["SpecBox"].hide()
                 self.gladeobjdict["SpecBox"].set_no_show_all(True)
+                del self.gladeobjdict["SpecEntry"]
+                del self.gladeobjdict["SpecLabel"]
+                del self.gladeobjdict["SpecBox"]
                 self.specimen_disabled=True
+                # sys.stderr.write("specimen is disabled!\n")
                 pass
 
             
@@ -681,6 +719,11 @@ class checklist(object):
             
             is_done = self.xmldoc.getattr(self.xmldoc.getroot(),"done",defaultvalue="false")=="true"
             if is_done:
+
+                # If checklist is marked as "Done", gray out the "Done" button
+                # (which is the same button as the save button) 
+
+                self.gladeobjdict["SaveButton"].set_sensitive(False)        
                 # if checklist is done, specimen, perfby, and date are 
                 # in private paramdb and widgets are grayed out 
                 self.specimen_perfby_date_in_private_paramdb=True
@@ -690,8 +733,10 @@ class checklist(object):
                     pass
                 
                 # Tell widget to use private paramdb
-                self.gladeobjdict["SpecEntry"].paramdb=self.private_paramdb
-                self.gladeobjdict["SpecEntry"].set_sensitive(False)
+                if not self.specimen_disabled: 
+                    self.gladeobjdict["SpecEntry"].paramdb=self.private_paramdb
+                    self.gladeobjdict["SpecEntry"].set_sensitive(False)
+                    pass
 
                 self.private_paramdb.addparam("perfby",stringv,build=lambda param: xmldoc.synced(param))
                 self.private_paramdb["perfby"].controller.adddoc(self.xmldoc,destval,"chx:perfby",logfunc=self.addlogentry)
@@ -1371,6 +1416,8 @@ class checklist(object):
             if self.done_is_save_measurement or self.has_save_measurement_step:
                 # clear name of checklist file in paramdb
                 ###!!!*** possible bug: Should measchecklist param be private? 
+                ### No it shouldn't.... There is one and only one checklist
+                ### for which the save measurement button is clicked. 
                 self.paramdb["measchecklist"].requestvalstr_sync("")         
                 pass
             
@@ -1441,6 +1488,9 @@ class checklist(object):
             return
             
 
+        if self.xmldoc.filename is None: 
+            raise ValueError("Checklist save_measurement() called on checklist that does not have a filename set.... Need to check at least one box prior to saving measurement")
+
         self.xmldoc.lock_rw()
         try:
             clinfo_ns=self.xmldoc.xpath("chx:clinfo")
@@ -1455,12 +1505,17 @@ class checklist(object):
         
             # store name of this checklist file in paramdb
             # self.paramdb["measchecklist"].requestvalstr_sync(self.chklistfile)         
-            if os.path.isabs(self.origfilename):
-                measchecklist_context=None # use absolute path
-            else: 
-                measchecklist_context=self.xmldoc.getcontextdir()
-                pass
-            self.paramdb["measchecklist"].requestval_sync(hrefv.frompath(measchecklist_context,self.origfilename))
+            #if os.path.isabs(self.origfilename):
+            #    measchecklist_context=None # use absolute path
+            #else: 
+            measchecklist_context=self.xmldoc.getcontextdir()
+
+            #if self.xmldoc.filename is None:
+            #    self.paramdb["measchecklist"].requestval_sync(checklistdb.generate_inmemory_id(self))
+            #    pass
+            #else : 
+
+            self.paramdb["measchecklist"].requestval_sync(hrefv.frompath(measchecklist_context,self.xmldoc.filename))
             
             autoexps=[]
             for autoexp in self.xmldoc.xpath("chx:checkitem/dc:autoexp"):
@@ -1623,7 +1678,9 @@ class checklist(object):
             pass
 
         Chooser.set_modal(True)
-        Chooser.set_current_name(str(self.private_paramdb["defaultfilename"].dcvalue))
+        #sys.stderr.write("checklist set_current_name(%s)\n" % (str(self.private_paramdb["defaultfilename"].dcvalue)))
+        Chooser.set_current_name(os.path.split(str(self.private_paramdb["defaultfilename"].dcvalue))[1])
+        Chooser.set_current_folder(os.path.join(os.path.split(str(self.private_paramdb["defaultfilename"].dcvalue))[0],'.'))
         Chooser.set_do_overwrite_confirmation(True)
 
         if self.origfilename.endswith(".plx") or self.origfilename.endswith(".plf"):
@@ -1677,7 +1734,8 @@ class checklist(object):
                 filenamenotify(self,self.origfilename,dest,name,oldfilename,*fnargs,**fnkwargs)
                 pass
             
-            
+            # Now that we have a filename, "Save" button should be a "Done" button
+            self.gladeobjdict["SaveButton"].set_property("label","Done")
 
             # set window title
             self.gladeobjdict["CheckListWindow"].set_title(os.path.split(name)[-1])
@@ -2031,10 +2089,10 @@ class checklist(object):
                 # enable save button
                 self.gladeobjdict["SaveButton"].set_sensitive(True)
                 
-                if self.done_is_save_measurement or self.has_save_measurement_step:
-                    # store name of this checklist file in paramdb
-                    self.paramdb["measchecklist"].requestval_sync(hrefv.frompath(self.xmldoc.getcontextdir(),chklistfile))
-                    pass
+                #if self.done_is_save_measurement or self.has_save_measurement_step:
+                    ## store name of this checklist file in paramdb
+                    #self.paramdb["measchecklist"].requestval_sync(hrefv.frompath(self.xmldoc.getcontextdir(),chklistfile))
+                #    pass
                 self.chklistfile=chklistfile  # store for convenience
                 
                 # set window title 

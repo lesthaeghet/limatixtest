@@ -172,7 +172,7 @@ class textgraphicstep(gtk.HBox):
         self.set_image(self.myprops["image"])
 
 
-        dc_gui_initialize_widgets(self.gladeobjdict,guistate)
+        dc_initialize_widgets(self.gladeobjdict,guistate)
 
         pass
 
