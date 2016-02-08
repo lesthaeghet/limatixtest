@@ -1,0 +1,6 @@
+
+ALWAYS INSTALL DATAGUZZLER-LIB PACKAGE FIRST!
+
+To install:
+  "make"
+  "sudo make install"

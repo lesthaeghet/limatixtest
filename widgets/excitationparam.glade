@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<interface>
+  <!-- interface-requires dg_gui_widgets 0.0 -->
+  <requires lib="gtk+" version="2.16"/>
+  <!-- interface-naming-policy project-wide -->
+  <object class="GtkHBox" id="excitationparam">
+    <property name="visible">True</property>
+    <child>
+      <object class="labelled_selectableparamreadout" id="type">
+        <property name="visible">True</property>
+        <property name="labelmarkup">label </property>
+        <property name="paramname">type</property>
+      </object>
+      <packing>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="labelled_adjustparamreadout" id="wfm">
+        <property name="visible">True</property>
+        <property name="paramname">wfm</property>
+      </object>
+      <packing>
+        <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="labelled_adjustparamreadout" id="f0">
+        <property name="visible">True</property>
+        <property name="labelmarkup">f0</property>
+        <property name="paramname">f0</property>
+      </object>
+      <packing>
+        <property name="position">2</property>
+      </packing>
+    </child>
+    <child>
+      <object class="labelled_adjustparamreadout" id="f1">
+        <property name="visible">True</property>
+        <property name="labelmarkup">f1</property>
+        <property name="paramname">f1</property>
+      </object>
+      <packing>
+        <property name="position">3</property>
+      </packing>
+    </child>
+    <child>
+      <object class="labelled_adjustparamreadout" id="t0">
+        <property name="visible">True</property>
+        <property name="labelmarkup">t0</property>
+        <property name="paramname">t0</property>
+      </object>
+      <packing>
+        <property name="position">4</property>
+      </packing>
+    </child>
+    <child>
+      <object class="labelled_adjustparamreadout" id="t1">
+        <property name="visible">True</property>
+        <property name="labelmarkup">t1</property>
+        <property name="paramname">t1</property>
+      </object>
+      <packing>
+        <property name="position">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="labelled_adjustparamreadout" id="t2">
+        <property name="visible">True</property>
+        <property name="labelmarkup">t2</property>
+        <property name="paramname">t2</property>
+      </object>
+      <packing>
+        <property name="position">6</property>
+      </packing>
+    </child>
+    <child>
+      <object class="labelled_adjustparamreadout" id="t3">
+        <property name="visible">True</property>
+        <property name="labelmarkup">t3</property>
+        <property name="paramname">t3</property>
+      </object>
+      <packing>
+        <property name="position">7</property>
+      </packing>
+    </child>
+  </object>
+</interface>
