@@ -1,5 +1,21 @@
 
-ALWAYS INSTALL DATAGUZZLER-LIB PACKAGE FIRST!
+Prerequisites:
+  python (version 2.7 or 3.x... 3.x is a bit of a work in progress)
+  python-lxml (often distributed with operating system or Python distribution)
+  numpy (often distributed with operating system or Python distribution)
+  gtk2 and pygtk2 (on python2;  required to use GUI components)
+  gtk3 and python bindings (on python3;  required to use GUI components)
+  python-pillow (required for Ricoh camera support)
+  glade-3.6.7 (required for interative gtk2 widget layout; not needed for
+               general use)
+
+  canonicalize_path
+  dc_lxml_treesync
+  dataguzzler-lib
+  datacollect2-QAutils (not used directly, but documents checklist
+                        format/structure and can render checklists as PDF)
+  
+
 
 To install:
   "make"
