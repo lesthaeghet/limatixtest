@@ -89,6 +89,7 @@ else :  # gtk2
 
 import shutil
 import datetime
+import subprocess
 
 import dg_units
 dg_units.units_config("insert_basic_units")
@@ -1293,18 +1294,56 @@ if __name__=="__main__":
                 outputfile=os.path.splitext(inputfile)[0]+".xlp"
                 pass
 
-            if not(os.path.isabs(outputfile)):
-                outputfile=os.path.join(scriptdir,outputfile)
-                pass
+            # if not(os.path.isabs(outputfile)):
+            #    outputfile=os.path.join(scriptdir,outputfile)
+            #    pass
         
         
         
         print("\n\nProcessing input file %s to output file %s." % (inputfile,outputfile)) 
 
         copiedfile=False
+        inputfilter=None
         if not os.path.exists(outputfile):
+            # Need to create outputfile by copying or running inputfilter
             cf_starttime=dg_timestamp.now().isoformat()
-            shutil.copyfile(inputfile,outputfile)
+
+            # Do we have an input filter? ... stored as xlink:href in <inputfilter> tag
+            inputfilters=prxdoc.xpath("inputfilter")
+            if len(inputfilters) > 1:
+                raise ValueError("Maximum of one <inputfilter> element permitted in .prx file")
+            if len(inputfilters) > 0:
+                # have an input filter
+                inputfilter=inputfilters[0]
+
+                # run input filter
+                # Get path from xlink:href
+                inputfilterpath=prxdoc.get_href_fullpath(inputfilter)
+
+                # build arguments
+                inputfilterargs=[inputfilterpath]
+
+                # pull attributes named param1, param2, etc. from inputfilter tag
+                cnt=1
+                while "param"+cnt in inputfilter.attrib:
+                    inputfilterargs.append(inputfilter.attrib["param"+cnt])
+                    cnt+=1
+                    pass
+
+                # add input and output filenames as params to filter
+                inputfilterargs.append(inputfile)
+                inputfilterargs.append(outputfile)
+
+                # Call input filter... will raise
+                # exception if input filter fails. 
+                subprocess.check_call(*inputfilterargs)
+                
+                pass
+            else:
+                # use shutil to copy input to output
+                shutil.copyfile(inputfile,outputfile)
+                pass
+            
             # Will mark provenance of each element of output file
             copiedfile=True
             

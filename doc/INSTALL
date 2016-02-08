@@ -1,8 +1,0 @@
-Required packages
------------------
-numpy
-lxml
-gtk2 or gtk3 with python bindings
-setuptools
-canonicalize_path
-pillow (Python imaging library)
