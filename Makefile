@@ -128,7 +128,7 @@ dist:
 
 	tar $(PUBEXCLUDE) -cvzf /tmp/realclean-datacollect2-pub-`cat VERSION`.tar.gz $(DIST_FILES)
 
-	@for archive in  datacollect2-`cat VERSION` datacollect2-pub-`cat VERSION`  ; do mkdir /tmp/$$archive ; tar -C /tmp/$$archive  -x -f /tmp/realclean-$$archive.tar.gz ; make -C /tmp/$$archive all ; make -C /tmp/$$archive distclean ; tar -C /tmp -c -v -z -f /home/sdh4/research/$$archive.tar.gz $$archive ; done
+	@for archive in  datacollect2-`cat VERSION` datacollect2-pub-`cat VERSION`  ; do mkdir /tmp/$$archive ; tar -C /tmp/$$archive  -x -f /tmp/realclean-$$archive.tar.gz ; make -C /tmp/$$archive all ; make -C /tmp/$$archive distclean ; tar -C /tmp -c -v -z -f /home/sdh4/research/software/archives/$$archive.tar.gz $$archive ; done
 
 	mv VERSION VERSIONtmp
 	awk -F . '{ print $$1 "." $$2 "." $$3+1 "-devel"}' <VERSIONtmp >VERSION  # increment version number and add trailing-devel
