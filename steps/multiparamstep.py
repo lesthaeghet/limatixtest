@@ -4,7 +4,10 @@
 import os
 import sys
 import traceback
-if not "gtk" in sys.modules:  # gtk3
+
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     pass
@@ -104,7 +107,6 @@ class multiparamstep(gtk.HBox):
     # "dg-param" might be TRIG:MODE
     
                       
-    dc_gui_io=None
     gladeobjdict=None
     
     def __init__(self,checklist,step,xmlpath):
@@ -211,7 +213,6 @@ class multiparamstep(gtk.HBox):
         self.gladeobjdict["setparam2"].set_property("dg-paramdefault",self.myprops["dg-paramdefault2"])
 
 
-        self.dc_gui_io=guistate.io
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
 

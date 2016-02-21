@@ -4,7 +4,9 @@ import shutil
 from lxml import etree
 import traceback
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     
     pass
@@ -22,6 +24,8 @@ import dbus.mainloop.glib
 import xml.sax.saxutils
 
 __pychecker__="no-argsused"
+
+import dc_value
 
 dbus_camera_name="edu.iastate.cnde.thermal.RicohCamera"
 dbus_camera_path="/edu/iastate/cnde/thermal/RicohCamera"
@@ -118,13 +122,13 @@ class dbus_camera(object):
                 while exists:
                     filepath=os.path.join(dest,reqfilename % (num))
 
-                    abspath=os.path.abspath(filepath)
+                    # abspath=os.path.abspath(filepath)
                     
-                    if not abspath.endswith(".jpg"):
+                    if not filepath.endswith(".jpg"):
                         raise ValueError("Invalid file extension")
                     
-                    newpmdpath=os.path.splitext(abspath)[0]+".pmd"
-                    if not os.path.exists(abspath) and not os.path.exists(newpmdpath):
+                    newpmdpath=os.path.splitext(filepath)[0]+".pmd"
+                    if not os.path.exists(filepath) and not os.path.exists(newpmdpath):
                         exists=False
                         pass
                     num+=1
@@ -133,9 +137,9 @@ class dbus_camera(object):
                     pass
                 
                 photofilenameel=XMLtree.xpath("/dc:photometadata/dc:photofilename",namespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect"})[0]
-                photofilenameel.text=os.path.split(abspath)[1]
+                photofilenameel.text=os.path.split(filepath)[1]
                 
-                shutil.move(photopath,abspath)
+                shutil.move(photopath,filepath)
                 
                 # Write out PMD
                 outfh=open(newpmdpath,"wb")
@@ -144,11 +148,11 @@ class dbus_camera(object):
                                 
                 # Add photo into paramdb element specified by dc:paramname element in XMLtree
                 paramname=XMLtree.xpath("/dc:photometadata/dc:paramname",namespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect"})[0].text
-                self.explogwindow.paramdb[paramname].requestval_sync(self.explogwindow.paramdb[paramname].dcvalue.copyandappend(os.path.split(abspath)[1]))
+                self.explogwindow.paramdb[paramname].requestval_sync(self.explogwindow.paramdb[paramname].dcvalue.copyandappend(dc_value.hrefvalue.from_rel_or_abs_path(".",filepath)))
                 
 
                 msgdialog=gtk.MessageDialog(type=gtk.MESSAGE_INFO,buttons=gtk.BUTTONS_CLOSE)
-                msgdialog.set_markup(xml.sax.saxutils.escape("Received photo %s\nhash: %s" % (os.path.split(abspath)[1],hashstr)))
+                msgdialog.set_markup(xml.sax.saxutils.escape("Received photo %s\nhash: %s" % (os.path.split(filepath)[1],hashstr)))
                 msgdialog.connect("response",destroy_widget)
                 msgdialog.show()
 

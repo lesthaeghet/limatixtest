@@ -4,7 +4,9 @@
 import os
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     pass
@@ -38,7 +40,7 @@ class specimendisplaystep(gtk.HBox):
     __proplist = ["description"]
     
     myprops=None
-
+    step=None
     xmlpath=None  # savedpath
     checklist=None
 
@@ -50,7 +52,8 @@ class specimendisplaystep(gtk.HBox):
         # paramhandler.__init__(self,super(adjustparamstep,self),self.__proplist)# .__gproperties__)
         # gtk.HBox.__init__(self) # Not supposed to call superclass __init__ method, just gobject __init__ according to    http://www.pygtk.org/articles/subclassing-gobject/sub-classing-gobject-in-python.htm  
         gobject.GObject.__init__(self)
-
+        self.step=step
+        
         self.myprops={"description": None}
 
         (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"specimendisplaystep.glade"))   
@@ -88,6 +91,7 @@ class specimendisplaystep(gtk.HBox):
         
         self.guistate=guistate
         
+        self.set_fixed()  # set to fixed value from xml file if appropriate
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
 
@@ -102,11 +106,69 @@ class specimendisplaystep(gtk.HBox):
         self.guistate.paramdb.remnotify("specimen",self.paramnotify)
         self.paramnotify=None
         pass
+
+    def is_fixed(self):
+        # param readout is fixed when checklist is marked as
+        # readonly or when checkbox is checked. 
+        return self.checklist.readonly or self.step.gladeobjdict["checkbutton"].get_property("active")
     
 
+    def set_fixed(self):
+        fixed=self.is_fixed()
+        # ironically enough, specimendisplaystep does not
+        # currently display the specimen id.... just length, width, etc....
+        # even though the specimen id is what it writes into the file
+        
+        #self.gladeobjdict["step_adjustparam"].set_fixed(fixed,self.value_from_xml())
+        pass
+    
+    def handle_check(self,checked):
+        # automagically called by steptemplate when checkbox is checked or unchecked
+        self.set_fixed()
+        pass
+
+    
+    def set_readonly(self,readonly):
+        # automagically called by step when checklist readonly state
+        # changes.
+        self.set_fixed()
+        pass
+        
+
+
     def changedcallback(self,param,condition):
+        if not self.is_fixed():
+            self.update_xml()
+            pass
+        pass
+
+    def value_from_xml(self):
+        gotvalue=None
+        # xml_attribute=self.guistate.paramdb["specimen"].xml_attribute
+
+        self.checklist.xmldoc.lock_ro()
+        try: 
+            xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
+            for child in xmltag:
+                childtag=self.checklist.xmldoc.gettag(child)
+                if childtag=="dc:specimen" or childtag=="specimen":
+                    gotvalue=self.guistate.paramdb["specimen"].paramtype.fromxml(self.checklist.xmldoc,child) # xml_attribute=xml_attribute)
+                    break
+                pass
+            pass
+        except: 
+            raise
+        finally:
+            self.checklist.xmldoc.unlock_ro()
+            pass
+        return gotvalue
+
+    def update_xml(self):
+        if self.is_fixed():
+            return
+        
         newvalue=self.guistate.paramdb["specimen"].dcvalue
-        xml_attribute=self.guistate.paramdb["specimen"].xml_attribute
+        #xml_attribute=self.guistate.paramdb["specimen"].xml_attribute
         gottag=False
         
         if self.checklist.xmldoc is None:
@@ -135,14 +197,14 @@ class specimendisplaystep(gtk.HBox):
             for child in xmltag:
                 childtag=self.checklist.xmldoc.gettag(child)
                 if childtag=="dc:specimen" or childtag=="specimen":
-                    newvalue.xmlrepr(self.checklist.xmldoc,child,xml_attribute=xml_attribute)
+                    newvalue.xmlrepr(self.checklist.xmldoc,child) # xml_attribute=xml_attribute)
                     gottag=True
                     break
                 pass
             if not gottag: 
                 # need to create tag
                 newchild=self.checklist.xmldoc.addelement(xmltag,"dc:specimen")
-                newvalue.xmlrepr(self.checklist.xmldoc,newchild,xml_attribute=xml_attribute)
+                newvalue.xmlrepr(self.checklist.xmldoc,newchild) # xml_attribute=xml_attribute)
                 pass
             pass
         except: 

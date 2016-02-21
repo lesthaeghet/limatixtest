@@ -4,7 +4,9 @@ import glob
 import copy
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     pass
 else : 
@@ -20,12 +22,12 @@ import widgets
 __pychecker__="no-import"
 
 class guistate(object):
-    io=None
+    iohandlers=None
     paramdb=None
     searchdirs=None  # list of directories to search for things like images
 
-    def __init__(self,io,paramdb,searchdirs=None):
-        self.io=io
+    def __init__(self,iohandlers,paramdb,searchdirs=None):
+        self.iohandlers=iohandlers
         self.paramdb=paramdb
         if searchdirs is None:
             self.searchdirs=[]
@@ -97,6 +99,7 @@ def build_from_file(gladefilename):
     # load specified glade file, build a set of objects, 
 
     builder=gtk.Builder()
+    #sys.stderr.write("gladefilename=%s\n" % (gladefilename))
     builder.add_from_file(gladefilename)
     
     doc=etree.parse(gladefilename)

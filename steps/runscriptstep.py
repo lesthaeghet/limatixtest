@@ -9,13 +9,17 @@ import threading
 import subprocess
 import viewautoexp
 
+import dc_value
+
 try:
     from Queue import Queue, Empty
 except ImportError:
     from queue import Queue, Empty  # python 3.x
 
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk as gdk
     from gi.repository import GObject as gobject
@@ -113,6 +117,7 @@ class runscriptstep(buttontextareastep):
     xmlpath=None
     scriptlog=None
     command=None
+    readonlydialogrunning=None
     queue=None  # Queue for lines coming in from subprocess
     subprocess_pobj=None # valid only in STATE_RUNNING
 
@@ -128,7 +133,7 @@ class runscriptstep(buttontextareastep):
     STATE_RUNNING=1 # subprocess is running
     STATE_DONE=2    # subprocess has run; ready for reset
 
-    # self.paramdb and self.dc_gui_io defined by buttontextareastep, set by buttontextareastep's dc_gui_init()
+    # self.paramdb  defined by buttontextareastep, set by buttontextareastep's dc_gui_init()
 
                       
     def __init__(self,checklist,step,xmlpath):
@@ -138,6 +143,7 @@ class runscriptstep(buttontextareastep):
 
         self.checklist=checklist
         self.xmlpath=xmlpath
+        self.readonlydialogrunning=False
         if self.scriptlog is None:
             self.scriptlog=""
             pass
@@ -176,8 +182,85 @@ class runscriptstep(buttontextareastep):
             self.addviewautoexpbutton()
             pass
 
-        pass    
+        pass
 
+
+    def dc_gui_init(self,guistate):
+
+        self.set_fixed()  # set to fixed value if we are readonly if appropriate
+
+        # call superclass (buttontextareastep) dc_gui_init
+        super(runscriptstep,self).dc_gui_init(guistate)
+
+        
+        pass
+    
+
+
+    def is_fixed(self):
+        # param readout is fixed when checklist is marked as
+        # readonly or when checkbox is checked.
+        if self.state==self.STATE_RUNNING and self.checklist.readonly and not(self.readonlydialogrunning):
+            # warn user that script is running but checklist marked readonly!
+            if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
+                # gtk3
+                Dialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.OK)
+                pass
+            else : 
+                Dialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
+                pass
+            
+            Dialog.set_markup("Error: runscriptstep: Checklist marked read-only while script still running!. Please wait for script to complete and then click 'OK'")
+            self.readonlydialogrunning=True
+            Dialog.run()
+            Dialog.destroy()
+            self.readonlydialogrunning=False
+                        
+            pass
+        
+        return (self.checklist.readonly or self.step.gladeobjdict["checkbutton"].get_property("active")) and self.state != self.STATE_RUNNING
+    
+
+    def value_from_xml(self):
+        value=dc_value.stringvalue("")
+        self.checklist.xmldoc.lock_ro()
+        try: 
+            xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
+            
+            scriptoutputparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:parameter[@name='scriptlog']")
+            if len(scriptoutputparamnodes) >= 1:
+                scriptoutputparamnode=scriptoutputparamnodes[0]
+                value=dc_value.stringvalue.fromxml(self.checklist.xmldoc,scriptoutputparamnode)
+                gotdisplayfmt=dc_value.xmlextractdisplayfmt(self.checklist.xmldoc,scriptoutputparamnode)
+
+                pass
+            pass
+        finally:
+            self.checklist.xmldoc.unlock_ro()
+            pass
+        
+        
+        return (value,gotdisplayfmt)
+    
+    def set_fixed(self):
+        fixed=self.is_fixed()
+        (value,displayfmt)=self.value_from_xml()
+        self.gladeobjdict["textarea"].set_fixed(fixed,value,displayfmt)
+        pass
+    
+    def handle_check(self,checked):
+        # automagically called by steptemplate when checkbox is checked or unchecked
+        self.set_fixed()
+        pass
+
+    
+    def set_readonly(self,readonly):
+        # automagically called by step when checklist readonly state
+        # changes.
+        self.set_fixed()
+        pass
+        
+        
     def addviewautoexpbutton(self):
         if self.viewautoexpbutton is None:
             self.viewautoexpbutton=gtk.Button("View result table")
@@ -398,10 +481,10 @@ class runscriptstep(buttontextareastep):
         self.readqueue()
 
         if self.subprocess_pobj is subprocess_pobj and subprocess_pobj is not None: # only if something else hasn't done cleanup
-            self.state=self.STATE_DONE
 
             # wait for subprocess to finish
             retcode=self.subprocess_pobj.wait()
+
             self.subprocess_pobj=None
             
             # Set the button label to "reset"
@@ -409,14 +492,52 @@ class runscriptstep(buttontextareastep):
         
             # Finalize the text input if there is no error. This will pass it off to the param handler.
             if retcode==0:
-                self.gladeobjdict["textarea"].pp_activate(None)
+                # call scriptresultassignedcallback once result is assigned
+                self.gladeobjdict["textarea"].pp_activate(self.scriptresultassignedcallback)
                 pass
-            pass
-        
-        
+            else:
+                self.state=self.STATE_DONE
+                pass
+            
+            pass        
         
         return False
 
+    def scriptresultassignedcallback(self,paragraphparam,result):
+
+        if result is not None and not(self.is_fixed()):
+            # assign result into xml
+
+            self.checklist.xmldoc.lock_rw()
+            try: 
+                xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
+
+                scriptoutputparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:parameter[@name='scriptoutput']")
+                if len(scriptoutputparamnodes) < 1:
+                    # need to add a node
+                    scriptoutputparamnode=self.checklist.xmldoc.addelement(xmltag,"chx:parameter")
+                    self.checklist.xmldoc.setattr("name","scriptlog")
+                    self.checklist.xmldoc.setattr("type","str")
+                    pass
+                else:
+                    scriptoutputparamnode=scriptoutputparamnodes[0]
+                    pass
+                #dc_value.xmlstoredisplayfmt(self.checklist.xmldoc,scriptoutputparamnode,)
+                
+                self.checklist.xmldoc.settext(scriptoutputparamnode,result.value())
+                
+                pass
+            finally:
+                self.checklist.xmldoc.unlock_rw()
+                pass
+            
+
+            pass
+        self.state=self.STATE_DONE
+        
+        
+        pass
+    
     def do_reset(self):
         if self.state == self.STATE_RUNNING or self.subprocess_pobj is not None:
             self.subprocess_pobj.kill()

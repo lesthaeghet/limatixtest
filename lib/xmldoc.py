@@ -50,9 +50,11 @@ import dc_value
 
 try: 
     from canonicalize_path import canonicalize_path
+    from canonicalize_path import relative_path_to
     pass
 except ImportError:
     from os.path import realpath as canonicalize_path
+    relative_path_to=lambda start,path: os.path.relpath(path,start)
     pass
 
 try: 
@@ -115,7 +117,9 @@ class fileinfo(object):
 def loadgtk():
     global gtk
     if gtk is None:
-        if not "gobject" in sys.modules and not "gtk" in sys.modules:  # gtk3
+        if "gi" in sys.modules:  # gtk3
+            import gi
+            gi.require_version('Gtk','3.0')
             from gi.repository import Gtk as gtk
             pass
         else : 
@@ -171,12 +175,12 @@ def _xlinkcontextfixuptree(ETree,oldcontextdir,newcontextdir,force_abs_href=Fals
                     if not force_abs_href: 
                         sys.stderr.write("xmldoc._xlinkcontextfixuptree warning: Cannot fixup path %s from old context %s to new context because new context is blank. Converting to absolute reference.\n" % (URL,oldcontextdir))
                         pass
-                    newpath=canonicalize_path.canonicalize_path(os.path.join(oldcontextdir,URLPath))
+                    newpath=canonicalize_path(os.path.join(oldcontextdir,URLPath))
                     pass
                 else: 
                     # determine relative path
                     # oldcontextdir and newcontextdir are both valid
-                    newpath=canonicalize_path.relative_path_to(newcontextdir,os.path.join(oldcontextdir,URLPath))
+                    newpath=relative_path_to(newcontextdir,os.path.join(oldcontextdir,URLPath))
                     pass
                 
                 newlink=urllib.pathname2url(newpath)
@@ -276,7 +280,7 @@ class xmldoc(object):
 
     doc=None  # lxml etree document representation !!! private!!!
     olddoc=None # when unlocked, doc is none, olddoc is reference to old, unused document
-    filename=None  # Currently set filename -- canonical path, or None
+    filename=None  # Currently set filename, or None
     contextdir=None # If filename is None, this directory is the contextual
                     # location. 
                     
@@ -485,12 +489,13 @@ class xmldoc(object):
         self.use_databrowse=use_databrowse
         if filename is not None:
             assert(contextdir is None)
-            if canonicalize_path is not None:
-                self.filename=canonicalize_path(filename)
-                pass
-            else : 
-                self.filename=os.path.realpath(self.filename)
-                pass
+            #if canonicalize_path is not None:
+            #    self.filename=canonicalize_path(filename)
+            #    pass
+            #else : 
+            #    self.filename=os.path.realpath(self.filename)
+            #    pass
+            self.filename=filename
             pass
         else: 
             self.contextdir=contextdir
@@ -631,13 +636,19 @@ class xmldoc(object):
             pass
         pass
 
+    def suggest_namespace_rootnode(self,prefix,url):
+        """Add a namespace prefix definition to the root 
+        element (if that prefix is not already used)
+        NOTE: Invalidates references to document root!
+        (document must be locked for read/write access if applicable)"""
+        
+        self._merge_rootnode_namespaces({prefix: url})
+        self.modified=True
+        
 
     def merge_namespace(self,prefix,url):
         """Add (or replace) namespace prefix definition in internal 
-        table. Also add a namespace prefix definition to the root 
-        element (if that prefix is not already used)
-        NOTE: Invalidates references to document root!
-
+        table. 
         prefix:    prefix to add/replace
         url:       New definition
         """
@@ -646,8 +657,6 @@ class xmldoc(object):
         if prefix is not None:
             self.namespaces[prefix]=url
             pass
-        self._merge_rootnode_namespaces({prefix: url})
-        self.modified=True
         
         pass
     
@@ -836,10 +845,14 @@ class xmldoc(object):
         oldfilename=self.filename
 
         if self.filename is None:
+            oldcanonname=None
             oldcontextdir=self.contextdir
+            #oldcanoncontextdir=canonicalize_path(self.contextdir)
             pass
-        else: 
+        else:
+            oldcanonname=canonicalize_path(oldfilename)
             oldcontextdir=os.path.split(self.filename)[0]
+            #oldcanoncontextdir=canonicalize_path(oldcontextdir)
             pass
             
         if filename is None:
@@ -858,15 +871,10 @@ class xmldoc(object):
             canonfilename=None
             pass
         else : 
-            if canonicalize_path is not None:
-                canonfilename=canonicalize_path(filename)
-                pass
-            else: 
-                canonfilename=os.path.realpath(filename)
-                pass
+            canonfilename=canonicalize_path(filename)
             pass
-
-        if oldfilename != canonfilename:
+        
+        if oldcanonname != canonfilename:
             
             # start by flushing (if necessary) and unlocking the old file
             if oldfilename is not None:
@@ -895,7 +903,7 @@ class xmldoc(object):
             assert(self.lockfd < 0)
 
             # update the filename
-            self.filename=canonfilename
+            self.filename=filename
 
             # do xlink:href fixups for moving from old location to new location
             if self.doc is not None:
@@ -962,6 +970,30 @@ class xmldoc(object):
             
         self.readonly=readonly
 
+        pass
+
+    def set_readonly(self,readonly):
+        """Set readonly status... If locking is used, must be fully unlocked."""
+
+        #if self.use_locking and (self.ro_lockcount > 0 or self.rw_lockcount > 0):
+        #    raise ValueError("May not set readonly flag of xmldoc %s while locked (ro_lockcount=%d; rw_lockcount=%d" % (str(self.filename),self.ro_lockcount,self.rw_lockcount))
+        if self.rw_lockcount > 0:
+            assert(not self.readonly)
+            # flush out any changes...
+            if self.filename is not None:
+                assert(self.lockfd >= 0)
+                self._flush()
+                pass
+            pass
+        
+        if self.use_databrowse and not readonly:
+            raise ValueError("read/write mode on xmldoc %s incompatible with use_databrowse" % (str(self.filename)))
+        
+            
+        
+        self.readonly=readonly
+        
+        
         pass
     
 
@@ -1109,7 +1141,8 @@ class xmldoc(object):
         backward compatibility."""
         return self.xpathsingle(xpath)
 
-    def postexcdialog(self,exctype,value,initialload=False,cantretry=False):
+
+    def postexcdialog(self,exctype,value,tback,initialload=False,cantretry=False):
         """ This routine is called when a resynchronization fails. If
             gtk2/gtk3 are loaded, it brings up a modal error/warning 
             dialog with the exception info. Otherwise it writes to stderr.
@@ -1162,12 +1195,20 @@ class xmldoc(object):
         if initialload:  # disable in-memory recovery on initial load
             recoverbutton.set_sensitive(False)
             pass
+        warningdialog.add_button("Debug",3)
+
         warningdialogval=warningdialog.run()
         warningdialog.destroy()
         if warningdialogval==1:
             return "retry"
         elif warningdialogval==2:
             return "recover"
+        elif warningdialogval==3:
+            import pdb as pythondb
+            print("exception: %s: %s" % (exctype.__name__,str(value)))
+            sys.stderr.write(tback)
+            pythondb.post_mortem()
+            pass
         else:
             return "cancel"
         pass
@@ -1374,8 +1415,8 @@ class xmldoc(object):
                         # Don't bring up a dialog on initialload if 
                         # we had an IOerror. Just raise the exception back up
                         raise
-
-                    result=self.postexcdialog(exctype,value,initialload,cantretry=(FileObj is not None))
+                    tback=traceback.format_exc()
+                    result=self.postexcdialog(exctype,value,tback,initialload,cantretry=(FileObj is not None))
 
                     if lockfd != -1: 
                         # We left something locked... see also _unlock_ro() and _unlock_rw()
@@ -1526,7 +1567,7 @@ class xmldoc(object):
         """This routine creates and inserts a new empty element to the document.
            parent:  a path (find()-style) or an element, or None to 
                     represent the main tag.
-           position: Position within parent... 0 means first.
+           position: Position within parent... 0 means first, -1 means last.
            elname:  name of the element prefix, with namespace prefix if
                     appropriate 
         """
@@ -1560,7 +1601,7 @@ class xmldoc(object):
             # explicit prefix
             newnode=etree.Element("{%s}%s" % (self.nsmap[nspre_elname[0]],nspre_elname[1]),nsmap=self.nsmap)
             pass
-        parent.append(newnode);
+        parent.insert(position,newnode)
 
         # notify provenance engine. !!! Should also check to see if any 
         # provenance points at following elements, in case they need new 
@@ -1963,7 +2004,7 @@ class xmldoc(object):
         off the filesystem root for the specified element within
         doc. The document must have a filename for this to work. 
         """
-        assert(canonicalize_path is not None) # if this fails, you need to install the canonicalize_path package!
+        assert(canonicalize_etxpath is not None) # if this fails, you need to install the canonicalize_path package!
 
         self.element_in_doc(element)
 
@@ -2567,6 +2608,8 @@ class xmldoc(object):
         # NOTE: This takes ownership of fd and will close it on unlock
         assert(self.lockfd==-1)
         self.lockfd=fd
+        # !!!*** bug: Should handle receipt of signal
+        # during flock() call...
         fcntl.flock(self.lockfd,fcntl.LOCK_SH)
         pass
         
@@ -2575,6 +2618,11 @@ class xmldoc(object):
         assert(self.lockfd > 0)
         fcntl.flock(self.lockfd,fcntl.LOCK_UN)
         # Somebody else could modifiy the file right now!!!
+        # (according to man page we don't actually need to unlock it first
+        #  .... should probably fix this)
+
+        # !!!*** bug: Should handle receipt of signal
+        # during flock() call...
         fcntl.flock(self.lockfd,fcntl.LOCK_SH)
         pass
         
@@ -2592,6 +2640,8 @@ class xmldoc(object):
         # NOTE: This takes ownership of fd and will close it on unlock
         assert(self.lockfd==-1)
         self.lockfd=fd
+        # !!!*** bug: Should handle receipt of signal
+        # during flock() call
         fcntl.flock(self.lockfd,fcntl.LOCK_EX)
         pass
 
@@ -2653,6 +2703,9 @@ class xmldoc(object):
         if not self.use_locking:
             return
 
+        if self.readonly:
+            raise ValueError("Cannot add read/write lock on read only file")
+        
         if self.rw_lockcount > 0:
             self.rw_lockcount+=1
             pass
@@ -2921,6 +2974,11 @@ class xmldoc(object):
 
         pass
 
+    def getparent(self,element):
+        parent=element.getparent()
+        provenance.elementaccessed(self.filename,self.doc,element)
+        return parent
+    
     
     def close(self):
         """Close and empty this document. Flush to disk first if modified"""
@@ -2950,7 +3008,7 @@ class xmldoc(object):
 class synced(object):
     # This class represents a paramdb2 entry that is sync'd with an element within one or more xmldoc's
     # it functions as a controller for paramdb2
-    doclist=None  # A list; elements are (xmldoc,dest,xmlpath,ETxmlpath,logfunc)  
+    doclist=None  # A list; elements are (xmldoc,xmlpath,ETxmlpath,logfunc)  
                   # where xmldoc is the class xmldoc, once fully set up
                   # xmlpath is The path of the element within xmldoc
 
@@ -2978,6 +3036,25 @@ class synced(object):
         
 
         pass
+
+    def find_a_context_dir(self):
+        # find a suitable context dir for xml synchronization
+
+        # First look for anything with a filename set
+        for (xmldocu,xmlpath,ETxmlpath,logfunc) in self.doclist:
+            if xmldocu is not None and xmldoc.filename is not None:
+                return xmldocu.getcontextdir()
+            pass
+
+        # Now look for anything 
+        for (xmldocu,xmlpath,ETxmlpath,logfunc) in self.doclist:
+            if xmldocu is not None:
+                return xmldocu.getcontextdir()
+            pass
+        
+        # worst-case fallthrough
+        return "."
+        
     
     # adddoc: Add a document that will have a synchronized element. 
     # xmlpath is the xpath to the element (which should already exist)
@@ -2986,43 +3063,68 @@ class synced(object):
     # then "item", "action", and "value" as optional parameters
     # if xmlpath is None then ETxmlpath can be an ETXPath to locate the
     # element instead.
+    # autocreate_parentxpath if not None indicates that we should autocreate a blank element, and gives the xpath of the parent element
+    # autocreate_tagname gives the tag to create if necessary, and autocreate_insertpos gives where to insert the new element
+    #  (autocreate_insertpos=-1 means add to then end, otherwise gives position in the element)
+    def adddoc(self,xmldocobj,xmlpath,ETxmlpath=None,logfunc=None,autocreate_parentxpath=None,autocreate_tagname=None,autocreate_insertpos=-1):
 
-    def adddoc(self,xmldocobj,dest,xmlpath,ETxmlpath=None,logfunc=None):
-        # dest is needed so we can figure out the target paths for paremeters with is_file_in_dest=True
+        try : 
+            retry=True
+            while retry:
+                retry=False
 
-        retry=True
-        while retry:
-            retry=False
-
-            xmldocobj.lock_rw()
-            try :
-                # sys.stderr.write("%s %s: %s\n" % (xmldocobj.filename,self.controlparam.xmlname,str(self.controlparam.dcvalue)))
-                self.xmlresync(xmldocobj,dest,xmlpath,ETxmlpath,logfunc=logfunc,initialload=True)
-                pass
-            except:
-                (exctype,value)=sys.exc_info()[:2]
-                result=xmldocobj.postexcdialog(exctype,value,initialload=True,cantretry=False)
-                if result=="retry":
-                    retry=True
-                    continue
-                else : 
-                    raise
-                pass
+                xmldocobj.lock_rw()
+                try :
+                    if autocreate_parentxpath is not None:
+                        if ETxmlpath is not None:
+                            ETXobj=etree.ETXPath(ETxmlpath)
+                            xmlellist=ETXobj(xmldocobj.doc)
+                            pass
+                        else: 
+                            xmlellist=xmldocobj.xpath(xmlpath)
+                            pass
+                        if len(xmlellist)==0:
+                            # need to autocreate
+                            autocreate_parentlist=xmldocobj.xpath(autocreate_parentxpath)
+                            if len(autocreate_parentlist) < 1:
+                                raise ValueError("Could not find parent path %s to autocreate element" % (autocreate_parentxpath))
+                            xmldocobj.insertelement(autocreate_parentlist[0],autocreate_insertpos,autocreate_tagname)
+                            pass
+                        pass
+                        
+                    # sys.stderr.write("%s %s: %s\n" % (xmldocobj.filename,self.controlparam.xmlname,str(self.controlparam.dcvalue)))
+                    self.xmlresync(xmldocobj,xmlpath,ETxmlpath,logfunc=logfunc,initialload=True)
+                    pass
+                except:
+                    (exctype,value)=sys.exc_info()[:2]
+                    tback=traceback.format_exc()
+                    result=xmldocobj.postexcdialog(exctype,value,tback,initialload=True,cantretry=False)
+                    if result=="retry":
+                        retry=True
+                        continue
+                    else : 
+                        raise
+                    pass
                 
-            finally: 
-                xmldocobj.unlock_rw()
+                finally: 
+                    xmldocobj.unlock_rw()
+                    pass
                 pass
-            pass
             
-        self.doclist.append((xmldocobj,dest,xmlpath,ETxmlpath,logfunc))
-        xmldocobj.addresyncnotify(self.xmlresync,dest,xmlpath,ETxmlpath,logfunc=logfunc)
+            self.doclist.append((xmldocobj,xmlpath,ETxmlpath,logfunc))
+            xmldocobj.addresyncnotify(self.xmlresync,xmlpath,ETxmlpath,logfunc=logfunc)
+            pass
 
-        pass
+        except:
+            # some kind of exception. Do precautionary remdoc and then raise
+            self.remdoc(xmldocobj,xmlpath,ETxmlpath,logfunc,precautionary=True)
+            raise
+        return (xmldocobj,xmlpath,ETxmlpath,logfunc)
 
-    def remdoc(self,xmldocobj,dest,xmlpath,ETxmlpath=None,logfunc=None,precautionary=False):
+    def remdoc(self,xmldocobj,xmlpath,ETxmlpath=None,logfunc=None,precautionary=False):
         entry=None
         for doc in self.doclist:
-            if doc[0] is xmldocobj and doc[1]==dest and doc[2]==xmlpath and doc[3]==ETxmlpath and doc[4]==logfunc:
+            if doc[0] is xmldocobj and doc[1]==xmlpath and doc[2]==ETxmlpath and doc[3]==logfunc:
                 entry=doc
                 break
             pass
@@ -3031,8 +3133,9 @@ class synced(object):
         
         if entry is not None: 
             self.doclist.remove(entry)
-
-        xmldocobj.remresyncnotify(self.xmlresync,precautionary,entry[1],entry[2],entry[3],logfunc=logfunc)
+            xmldocobj.remresyncnotify(self.xmlresync,precautionary,entry[1],entry[2],logfunc=logfunc)
+            pass
+        
         
         pass
 
@@ -3050,9 +3153,101 @@ class synced(object):
     #    # this is a separate method so it can be overridden by derived 
     #    # class for implementing expanding date class
     #    return newval == self.controlparam.dcvalue
-        
 
-    def domerge(self,parent,descendentlist,contextdir=None,**kwargs):
+    def manualmergedialog(self,humanpath,paramtype,parent,parentsource,descendentlist,descendentsourcelist,contextdir,kwargs):
+        # Something else must have made sure gtk is loaded!
+        
+        dialog=gtk.Dialog(title="Manual merge: %s" % (humanpath),buttons=("Cancel and raise error",0,
+                                                        "Apply",1))
+        box=dialog.get_content_area()
+
+        ScrolledWindow=gtk.ScrolledWindow()
+        if "gi" in sys.modules:  # gtk3
+            ScrolledWindow.set_policy(gtk.PolicyType.NEVER,gtk.PolicyType.ALWAYS)
+            pass
+        else:
+            ScrolledWindow.set_policy(gtk.POLICY_NEVER,gtk.POLICY_ALWAYS)
+            pass
+        
+        box.add(ScrolledWindow)
+        Viewport=gtk.Viewport()
+        ScrolledWindow.add(Viewport)
+        VBox=gtk.VBox()
+        Viewport.add(VBox)
+        
+        if parent is not None:
+            ParentFrame=gtk.Frame()
+            ParentFrame.set_label("Parent: from %s" % (str(parentsource)))
+            ParentTextView=gtk.TextView()
+            ParentTextBuffer=gtk.TextBuffer()
+            parentdoc=xmldoc.fromstring("<parent/>")
+            parent.xmlrepr(parentdoc.getroot())
+            ParentTextBuffer.set_text(parentdoc.tostring(pretty_print=True))
+            ParentTextView.set_buffer(ParentTextBuffer)
+            if "gi" in sys.modules:  # gtk3
+                ParentTextView.set_wrap_mode(gtk.WrapMode.WORD_CHAR)
+                pass
+            else:
+                ParentTextView.set_wrap_mode(gtk.WRAP_WORD_CHAR)
+                pass
+            ParentTextView.set_property('editable',False)
+            ParentFrame.add(ParentTextView)
+            VBox.add(ParentFrame)
+            pass
+        
+        for deccnt in range(len(descendentlist)):
+            descendent=descendentlist[deccnt]
+            desc_src=descendentsourcelist[deccnt]
+            
+            DescendentFrame=gtk.Frame()
+            DescendentFrame.set_label("Descendent %d: from %s" % (deccnt+1,str(parentsource)))
+            DescendentTextView=gtk.TextView()
+            DescendentTextBuffer=gtk.TextBuffer()
+            descendentdoc=xmldoc.fromstring("<descendent/>")
+            descendent.xmlrepr(descendentdoc,descendentdoc.getroot())
+            DescendentTextBuffer.set_text(descendentdoc.tostring(pretty_print=True))
+            DescendentTextView.set_buffer(DescendentTextBuffer)
+            if "gi" in sys.modules:  # gtk3
+                DescendentTextView.set_wrap_mode(gtk.WrapMode.WORD_CHAR)
+                pass
+            else:
+                DescendentTextView.set_wrap_mode(gtk.WRAP_WORD_CHAR)
+                pass
+            DescendentTextView.set_property('editable',False)
+            DescendentFrame.add(DescendentTextView)
+            VBox.add(DescendentFrame)
+            pass
+        MergedFrame=gtk.Frame()
+        MergedFrame.set_label("Merged")
+        
+        MergedTextView=gtk.TextView()
+        MergedTextBuffer=gtk.TextBuffer()
+        MergedTextBuffer.set_text("")
+        MergedTextView.set_buffer(MergedTextBuffer)
+        if "gi" in sys.modules:  # gtk3
+            MergedTextView.set_wrap_mode(gtk.WrapMode.WORD_CHAR)
+            pass
+        else:
+            MergedTextView.set_wrap_mode(gtk.WRAP_WORD_CHAR)
+            pass
+        MergedFrame.add(MergedTextView)
+        VBox.add(MergedFrame)
+
+        dialog.show_all()
+
+        dialogval=dialog.run()
+
+        if dialogval==1:
+            mergeddoc=xmldoc.fromstring(MergedTextBuffer.get_text(MergedTextBuffer.get_start_iter(),MergedTextBuffer.get_end_iter()))
+            mergedvalue=paramtype.fromxml(mergeddoc,mergeddoc.getroot())
+            
+            dialog.destroy()
+            return mergedvalue
+        dialog.destroy()
+        return None
+
+
+    def domerge(self,humanpath,parent,parentsource,descendentlist,descendentsourcelist,contextdir=None,manualmerge=False,**kwargs):
         # this is a separate method so it can be overridden by derived 
         # class for implementing expanding date class
         #print self.controlparam.paramtype
@@ -3064,8 +3259,31 @@ class synced(object):
         #        sys.stderr.write("parent=%s\n\n\ndescendentlist[0]=%s\n\n\ndescendentlist[1]=%s\n\n\n" % (etree.tostring(parent._xmltreevalue__xmldoc.doc,pretty_print=True),etree.tostring(descendentlist[0]._xmltreevalue__xmldoc.doc,pretty_print=True),etree.tostring(descendentlist[1]._xmltreevalue__xmldoc.doc,pretty_print=True)))
         #        pass
         #import pdb as pythondb
-        #try: 
-        result=self.controlparam.paramtype.merge(parent,descendentlist,contextdir=contextdir,**kwargs)
+        #try:
+
+        try : 
+            result=self.controlparam.paramtype.merge(parent,descendentlist,contextdir=contextdir,**kwargs)
+            pass
+        except:
+            (exctype,value)=sys.exc_info()[:2]
+            if manualmerge:
+                if not "gtk" in sys.modules and not ("gi" in sys.modules and hasattr(sys.modules["gi"],"repository") and hasattr(sys.modules["gi"].repository,"Gtk")):
+                    # if nothing else has loaded gtk2 or gtk3
+                    # Just raise it
+                    raise
+                else:
+                    loadgtk()
+                    result=self.manualmergedialog(humanpath,self.controlparam.paramtype,parent,parentsource,descendentlist,descendentsourcelist,contextdir,kwargs)
+
+                    if result is None:
+                        raise
+                    
+                    pass
+                pass
+            else:
+                raise
+            
+            pass
         #except:
         #    pythondb.set_trace()
         #    if parent is not None and "xmltreevalue" in str(type(parent)) and "fubar" in etree.tostring(result._xmltreevalue__xmldoc.doc):
@@ -3077,7 +3295,7 @@ class synced(object):
         #pass
 
 
-    def _get_dcvalue_from_file(self,xmldocobj,dest,xmlpath,ETxmlpath):
+    def _get_dcvalue_from_file(self,xmldocobj,xmlpath,ETxmlpath):
         # xmldocobj must be locked during this process
         
         #sys.stderr.write("get_dcvalue_from_file: filename=%s xmlpath=%s ETxmlpath=%s\n" % (xmldocobj.filename,xmlpath,ETxmlpath))
@@ -3156,13 +3374,14 @@ class synced(object):
         # newvalue=xmlel.text  # raw new value
         # newval=None  # new value as calculated from dc_value class
 
-        newval=self.controlparam.paramtype.fromxml(xmldocobj,xmlel,self.controlparam.defunits,xml_attribute=self.controlparam.xml_attribute,contextdir=dest)
+        #newval=self.controlparam.paramtype.fromxml(xmldocobj,xmlel,self.controlparam.defunits,xml_attribute=self.controlparam.xml_attribute,contextdir=".")
+        newval=self.controlparam.paramtype.fromxml(xmldocobj,xmlel,self.controlparam.defunits,contextdir=".")
         #newval=self.valueobjfromxml(xmldocobj,xmlel)
         
         return newval
 
     # xmlresync loads in new data that has already been read in from the xml file
-    def xmlresync(self,xmldocobj,dest,xmlpath,ETxmlpath,logfunc=None,initialload=False):
+    def xmlresync(self,xmldocobj,xmlpath,ETxmlpath,logfunc=None,initialload=False):
         # NOTE: xmldocobj MUST be locked (or must be in the process of being locked)!!!
 
         #sys.stderr.write("xmlresync: %s doc=%s xp=%s etxp=%s in_synchronize=%s\n" % (xmldocobj.filename,str(xmldocobj.doc),xmlpath,ETxmlpath,str(self.in_synchronize)))
@@ -3170,7 +3389,7 @@ class synced(object):
         # print "this document: ", xmldocobj,xmlpath,logfunc
         # print self.doclist
         if not initialload: 
-            assert(any([doc[0] is xmldocobj and doc[1]==dest and doc[2]==xmlpath and doc[3]==ETxmlpath and doc[4]==logfunc for doc in self.doclist]))
+            assert(any([doc[0] is xmldocobj and doc[1]==xmlpath and doc[2]==ETxmlpath and doc[3]==logfunc for doc in self.doclist]))
             pass
 
         if self.in_synchronize: 
@@ -3179,7 +3398,7 @@ class synced(object):
 
         # it is actually _get_dcvalue_from_file that guarantees that
         # referenced nodes actually exist in the file...
-        newval=self._get_dcvalue_from_file(xmldocobj,dest,xmlpath,ETxmlpath)
+        newval=self._get_dcvalue_from_file(xmldocobj,xmlpath,ETxmlpath)
  
         
         # print xmldocobj.extensions
@@ -3211,10 +3430,10 @@ class synced(object):
 
         if newval != self.controlparam.dcvalue:
             if initialload:
-                self.synchronizeinitialload(initialloadvalue=newval,initialloadparams=(xmldocobj,dest,xmlpath,ETxmlpath,logfunc))
+                self.synchronizeinitialload(initialloadvalue=newval,initialloadparams=(xmldocobj,xmlpath,ETxmlpath,logfunc))
                 pass
             else: 
-                self.synchronize(dest)
+                self.synchronize()
                 pass
             pass
         pass
@@ -3224,7 +3443,7 @@ class synced(object):
         #sys.stderr.write("no-parent merge for %s: %s and %s\n" % (self.controlparam.xmlname,str(newval),str(self.controlparam.dcvalue)))
             
 
-        (xmldocobj,dest,xmlpath,ETxmlpath,logfunc)=initialloadparams
+        (xmldocobj,xmlpath,ETxmlpath,logfunc)=initialloadparams
         
         #import pdb as pythondb
         #if self.controlparam.xmlname=="specimen" and len(str(newval))==0 and len(str(self.controlparam.dcvalue))==0:
@@ -3233,12 +3452,18 @@ class synced(object):
 
         # for synced accumulating date support: 
         #initialloadvalue=self.createvalueobj(initialloadvalue)
-                
+        contextdir=self.find_a_context_dir()
+
+        humanpath=xmlpath
+        if xmlpath is None:
+            humanpath=canonicalize_path.etxpath2human(ETxmlpath,xmldocobj.nsmap)
+            pass
+        
         try: 
             # sys.stderr.write("initialloadvalue=%s %s; self.controlparam.dcvalue=%s %s\n" % (initialloadvalue.__class__.__name__,str(initialloadvalue),self.controlparam.dcvalue.__class__.__name__,str(self.controlparam.dcvalue)))
 
             # domerge enforces the correct value class by using that class to do the merge 
-            mergedval=self.domerge(None,[ initialloadvalue, self.controlparam.dcvalue ],contextdir=dest,**self.mergekwargs)
+            mergedval=self.domerge(humanpath,None,"None",[ initialloadvalue, self.controlparam.dcvalue ],[xmldocobj.filename,"in memory"],contextdir=contextdir,manualmerge=True,**self.mergekwargs)
             #sys.stderr.write("mergedval=%s\n\n" % (str(mergedval)))
             pass
         except ValueError as e: 
@@ -3247,19 +3472,19 @@ class synced(object):
 
         if mergedval != initialloadvalue: 
             # need to update file we just loaded
-            self.update_file(xmldocobj,dest,xmlpath,ETxmlpath,mergedval,logfunc,"Text Field %s Updated on file initial load" % (self.controlparam.xmlname))
+            self.update_file(xmldocobj,xmlpath,ETxmlpath,mergedval,logfunc,"Text Field %s Updated on file initial load" % (self.controlparam.xmlname))
             pass
 
         if mergedval != self.controlparam.dcvalue:
             # need to update everything else
-            self.synchronize(dest,mergedval)
+            self.synchronize(mergedval)
             pass
 
 
         pass
             
 
-    def synchronize(self,dest,requestedvalue=None):
+    def synchronize(self,requestedvalue=None):
         # prevent nested synchronization attempts
         # as we lock files
         self.in_synchronize=True
@@ -3271,7 +3496,10 @@ class synced(object):
             # attempt a real merge, with our in-memory value as the old value
             
             # lock all files
-            for (xmldocobj,docdest,xmlpath,ETxmlpath,logfunc) in self.doclist:
+            # ***BUG*** Opportunity for deadlock with another process
+            # working on the same files because our doclists aren't
+            # necessarily in the sam e order!!!
+            for (xmldocobj,xmlpath,ETxmlpath,logfunc) in self.doclist:
                 xmldocobj.lock_rw()
                 locklist.append(xmldocobj)
                 pass
@@ -3279,13 +3507,25 @@ class synced(object):
             oldvalue=self.controlparam.dcvalue
             
             mergevalues=[]
+            mergesources=[]
             if requestedvalue is not None:
                 mergevalues.append(requestedvalue)
+                mergesources.append("requested change")
                 pass
-                
+
+            humanpath=None
             # read in values of all copies
-            for (xmldocobj,docdest,xmlpath,ETxmlpath,logfunc) in self.doclist:
-                mergevalues.append(self._get_dcvalue_from_file(xmldocobj,docdest,xmlpath,ETxmlpath))
+            for (xmldocobj,xmlpath,ETxmlpath,logfunc) in self.doclist:
+
+                if humanpath is None:
+                    humanpath=xmlpath
+                    if xmlpath is None:
+                        humanpath=canonicalize_path.etxpath2human(ETxmlpath,xmldocobj.nsmap)
+                        pass
+                    pass
+                
+                mergevalues.append(self._get_dcvalue_from_file(xmldocobj,xmlpath,ETxmlpath))
+                mergesources.append(xmldocobj.filename)
                 pass
             #sys.stderr.write("mergevalues=%s\n" % (str(mergevalues)))
             # sys.stderr.write("parent merge for %s: %s and %s\n" % (self.controlparam.xmlname,str(newval),str(self.controlparam.dcvalue)))
@@ -3294,9 +3534,11 @@ class synced(object):
             #sys.stderr.write("oldvalue=%s %s\n" % (oldvalue.__class__.__name__,str(oldvalue)))
             #for mv in mergevalues:
             #    sys.stderr.write("mv=%s %s\n" % (mv.__class__.__name__,str(mv)))
-                
+
+            contextdir=self.find_a_context_dir()
+            
             # domerge enforces the correct value class by using that class to do the merge 
-            mergedval=self.domerge(oldvalue,mergevalues,contextdir=dest,**self.mergekwargs)
+            mergedval=self.domerge(humanpath,oldvalue,"in memory",mergevalues,mergesources,contextdir=contextdir,**self.mergekwargs)
             # sys.stderr.write("mergedval=%s\n\n" % (str(mergedval)))
 
             # createvalueobj can be overridden by derived class (used for current implemenetation of expanding date -- probably should be redone with some kind of merge override instead)
@@ -3311,8 +3553,8 @@ class synced(object):
                 pass
             
             # Write to files if necessary
-            for (xmldocobj,docdest,xmlpath,ETxmlpath,logfunc) in self.doclist:
-                self.update_file(xmldocobj,dest,xmlpath,ETxmlpath,mergedval,logfunc=logfunc,logfuncmsg=logfuncmsg) 
+            for (xmldocobj,xmlpath,ETxmlpath,logfunc) in self.doclist:
+                self.update_file(xmldocobj,xmlpath,ETxmlpath,mergedval,logfunc=logfunc,logfuncmsg=logfuncmsg) 
                 pass
                     
             # Update param if necessary
@@ -3378,7 +3620,7 @@ class synced(object):
         pass
         
     
-    def update_file(self,xmldocobj,dest,xmlpath,ETxmlpath,valueobj,logfunc,logfuncmsg):
+    def update_file(self,xmldocobj,xmlpath,ETxmlpath,valueobj,logfunc,logfuncmsg):
         # xmldocobj MUST be locked when making this call
         # sys.stderr.write("Updating file: %s %s %s\n" % (xmlpath,ETxmlpath,str(valueobj)))
         # sys.stderr.write("lock count: %d %d\n" % (xmldocobj.ro_lockcount,xmldocobj.rw_lockcount))
@@ -3394,10 +3636,10 @@ class synced(object):
             xmltag=xmldocobj.xpathsingle(xmlpath)
             pass
             
-
-        # we use dest as contextdir when comparing these objects
-        # as different sync'd files may be in different directories
-        filevalue=self.controlparam.paramtype.fromxml(xmldocobj,xmltag,defunits=self.controlparam.defunits,xml_attribute=self.controlparam.xml_attribute,contextdir=dest)
+        contextdir=self.find_a_context_dir()
+        
+        #filevalue=self.controlparam.paramtype.fromxml(xmldocobj,xmltag,defunits=self.controlparam.defunits,xml_attribute=self.controlparam.xml_attribute,contextdir=contextdir)
+        filevalue=self.controlparam.paramtype.fromxml(xmldocobj,xmltag,defunits=self.controlparam.defunits,contextdir=contextdir)
         if filevalue != valueobj: # update needed
             # sys.stderr.write("Upddate needed: %s != %s\n" % (str(filevalue),str(valueobj)))
 
@@ -3408,12 +3650,12 @@ class synced(object):
             
             if self.controlparam.defunits is not None:            
                 # write representation into XML element
-                valueobj.xmlrepr(xmldocobj,xmltag,defunits=self.controlparam.defunits,xml_attribute=self.controlparam.xml_attribute)
+                valueobj.xmlrepr(xmldocobj,xmltag,defunits=self.controlparam.defunits) # ,xml_attribute=self.controlparam.xml_attribute)
                 pass
             else : 
                 # print type(self.controlparam.paramtype)
                 # print "id=%x autoflush=%s" % (id(xmldocobj),str(xmldocobj.autoflush))
-                valueobj.xmlrepr(xmldocobj,xmltag,xml_attribute=self.controlparam.xml_attribute)
+                valueobj.xmlrepr(xmldocobj,xmltag) # xml_attribute=self.controlparam.xml_attribute)
                 pass
 
             provenance.elementgenerated(xmldocobj.doc,xmltag)
@@ -3436,13 +3678,7 @@ class synced(object):
 
         # print "doclist=%s" % (str(self.doclist))
         
-        if len(self.doclist) > 0:
-            dest=self.doclist[0][1] # use dest out of first doclist element
-            pass
-        else:
-            dest="."  # just use current directory as reference if we have nothing else yet. 
-            pass
-        self.synchronize(dest,requestedvalue=newvalue)
+        self.synchronize(requestedvalue=newvalue)
         #oldvalue=self.controlparam.dcvalue
 
 

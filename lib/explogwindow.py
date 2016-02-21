@@ -20,7 +20,9 @@ else:
 
 import traceback
 # import imp
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     from gi.repository import Gdk as gdk
@@ -54,6 +56,7 @@ import checklistdbwin
 
 import ricohcamera
 
+chx_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://thermal.cnde.iastate.edu/checklist"}
 
 if hasattr(gtk,"ResponseType") and hasattr(gtk.ResponseType,"OK"):
     # gtk3
@@ -87,7 +90,7 @@ class explogwindow(gtk.Window):
 
     gladeobjdict=None
     builder=None
-    dc_gui_io=None
+    dc_gui_iohandlers=None
     about_dialog=None
     guistate=None
 
@@ -99,8 +102,8 @@ class explogwindow(gtk.Window):
 
     paramserver=None  # dc_dbus_paramserver.dc_dbus_paramserver object
 
-    configfnames=None # list of loaded config files
-    configstr=None # archive of the config file as we read it .
+    configfhrefs=None # list of loaded config files (dcv.hrefvalue)
+    configfstrs=None # list of archives of the config file as we read it .
 
     dest=None # destination directory for dgs, settings, chf files, etc. 
 
@@ -119,18 +122,19 @@ class explogwindow(gtk.Window):
         # self.autoflush=True
         # self.autoresync=True
 
-        self.configfnames=[]
-        self.configstr=""
+        self.configfhrefs=[]
+        self.configfstrs=[]
         self.guis=[]
         self.checklistmenushortcuts={}
 
-        self.explog=xmlexplog.explog(None,self.dc_gui_io,self.paramdb,use_locking=True,debug=False) # ,autoflush=self.autoflush,autoresync=self.autoresync)
-        try: 
-            self.syncexplog()
-            pass
-        finally:
-            self.explog.unlock_rw() # free-up automatic log on open
-            pass
+        self.explog=None
+        #self.explog=xmlexplog.explog(None,self.dc_gui_iohandlers,self.paramdb,use_locking=True,debug=False) # ,autoflush=self.autoflush,autoresync=self.autoresync)
+        #try: 
+        #    self.syncexplog()
+        #    pass
+        #finally:
+        #    self.explog.unlock_rw() # free-up automatic log on open
+        #    pass
 
         (self.gladeobjdict,self.builder)=build_from_file(self.gladefile)
         self.checklistmenuorigentries=len(self.gladeobjdict["explogchecklistmenu"].get_children())
@@ -138,19 +142,11 @@ class explogwindow(gtk.Window):
         # Add reset specimen button or specimen textentry, depending 
         # on whether we are in single specimen mode
 
-        if SingleSpecimen:
-            SpecimenWidget=self.gladeobjdict["SpecBox"]
-            pass
-        else :
-            SpecimenWidget=self.gladeobjdict["ResetSpecimenButton"]
-            pass
-        self.gladeobjdict["ParamBox"].pack_start(SpecimenWidget,True,True,0)
-        self.gladeobjdict["ParamBox"].reorder_child(SpecimenWidget,1)
         
         self.add(self.gladeobjdict["explog"])
 
         self.about_dialog=self.gladeobjdict["aboutdialog"]
-
+        self.SetSingleSpecimenGui()
 
         self.experiment=None
         self.checklists=[]
@@ -158,11 +154,12 @@ class explogwindow(gtk.Window):
 
         # disable opening gui
         # self.gladeobjdict["explogguiopen"].set_sensitive(False)
-        self.gladeobjdict["explogchecklistopen"].set_sensitive(False)
+        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(False)
+        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(False)
 
         # disable file picking until config loaded
         self.gladeobjdict["explogfilenew"].set_sensitive(False)
-        self.gladeobjdict["explogfileopen"].set_sensitive(False)
+        #self.gladeobjdict["explogfileopen"].set_sensitive(False)
 
         
         
@@ -170,7 +167,8 @@ class explogwindow(gtk.Window):
         # self.builder.connect_signals(self)
         self.gladeobjdict["explogfilenew"].connect("activate",self.choose_newexplog)
         self.gladeobjdict["explogfileopen"].connect("activate",self.choose_openexplog)
-        self.gladeobjdict["explogfileloadconfig"].connect("activate",self.choose_loadconfig)
+        self.gladeobjdict["explogfileloadcentralconfig"].connect("activate",self.choose_loadcentralconfig)
+        self.gladeobjdict["explogfileloadcustomconfig"].connect("activate",self.choose_loadcustomconfig)
         self.gladeobjdict["explogfilesaveparams"].connect("activate",self.choose_saveparams)
         self.gladeobjdict["explogquit"].connect("activate",self.quit)
         self.connect("delete-event",self.closehandler)
@@ -178,11 +176,13 @@ class explogwindow(gtk.Window):
         self.gladeobjdict["explogguiopenparamdbeditor"].connect("activate",self.openparamdbeditor)
         self.gladeobjdict["explogguiexpphotograph"].connect("activate",self.expphotograph)
         self.gladeobjdict["explogguimeasphotograph"].connect("activate",self.measphotograph)
-        self.gladeobjdict["explogchecklistopen"].connect("activate",self.choose_openchecklist)
+        self.gladeobjdict["explogcentralchecklistopen"].connect("activate",self.choose_opencentralchecklist)
+        self.gladeobjdict["explogcustomchecklistopen"].connect("activate",self.choose_opencustomchecklist)
         self.gladeobjdict["explogchecklists"].connect("activate",self.choose_openchecklists)
 
         self.gladeobjdict["explogplanopen"].connect("activate",self.choose_openplan)
         self.gladeobjdict["explogaboutmenu"].connect("activate",self.aboutdialog)
+        self.gladeobjdict["explogdebugmenu"].connect("activate",self.debug_pm)
         self.gladeobjdict["aboutdialog"].connect("delete-event",self.hideaboutdialog)
         self.gladeobjdict["aboutdialog"].connect("response",self.hideaboutdialog)
         self.gladeobjdict["ResetSpecimenButton"].connect("clicked",self.reset_specimen)
@@ -191,6 +191,7 @@ class explogwindow(gtk.Window):
         # request notifications when a new checklist is opened or reset, so we can rebuild our menu
         checklistdb.requestopennotify(self.rebuildchecklistrealtimemenu)
         checklistdb.requestresetnotify(self.rebuildchecklistrealtimemenu)
+        checklistdb.requestfilenamenotify(self.rebuildchecklistrealtimemenu)
         checklistdb.requestclosenotify(self.rebuildchecklistrealtimemenu)
 
         self.assign_title()
@@ -198,8 +199,55 @@ class explogwindow(gtk.Window):
 
         pass
 
+    def ChooseSingleSpecimen(self):
+        if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
+            # gtk3
+            specimenchoice=gtk.MessageDialog(type=gtk.MessageType.QUESTION,buttons=gtk.ButtonsType.NONE)
+            pass
+        else : 
+            specimenchoice=gtk.MessageDialog(type=gtk.MESSAGE_QUESTION,buttons=gtk.BUTTONS_NONE)
+            pass
+        specimenchoice.set_markup("Will the experiment involve a single specimen or multiple specimens?")
+        specimenchoice.add_button("Single specimen",1)
+        specimenchoice.add_button("Multiple specimens", 2)
+        specimenchoiceval=specimenchoice.run()
+        specimenchoice.destroy()
+    
+        if specimenchoiceval==1:
+            self.SingleSpecimen=True
+            pass
+        elif specimenchoiceval==2:
+            self.SingleSpecimen=False
+            pass
+        else :
+            raise ValueError("Invalid response from specimen choice dialog")
+
+        pass
+    
+    def SetSingleSpecimenGui(self):
+        SBParent=self.gladeobjdict["SpecBox"].get_parent()
+        if SBParent is self.gladeobjdict["ParamBox"]:
+            self.gladeobjdict["ParamBox"].remove(self.gladeobjdict["SpecBox"])
+            pass
+
+        RSBParent=self.gladeobjdict["ResetSpecimenButton"].get_parent()
+        if RSBParent is self.gladeobjdict["ParamBox"]:
+            self.gladeobjdict["ParamBox"].remove(self.gladeobjdict["ResetSpecimenButton"])
+            pass
+
+        
+        if self.SingleSpecimen is None or self.SingleSpecimen:
+            SpecimenWidget=self.gladeobjdict["SpecBox"]
+            pass
+        else :
+            SpecimenWidget=self.gladeobjdict["ResetSpecimenButton"]
+            pass
+        self.gladeobjdict["ParamBox"].pack_start(SpecimenWidget,True,True,0)
+        self.gladeobjdict["ParamBox"].reorder_child(SpecimenWidget,1)
+
+
     def reset_specimen(self,*args):
-        sys.stderr.write("Got reset_specimen()\n")
+        #sys.stderr.write("Got reset_specimen()\n")
         self.paramdb["specimen"].requestvalstr_sync("")
         
         return True
@@ -213,23 +261,24 @@ class explogwindow(gtk.Window):
     def syncexplog(self):
 
         # pythondb.set_trace()
-        dest=self.paramdb["dest"].dcvalue.value()
         if self.SingleSpecimen:
-            self.paramdb["specimen"].controller.adddoc(self.explog,dest,"dc:summary/dc:specimen")
+            self.paramdb["specimen"].controller.adddoc(self.explog,"dc:summary/dc:specimen")
             pass
 
         # put selected parameters in the summary
+        # controllers are instantiated in datacollect2
+        # also update "not synced" in paramdbfile.py if this list changes
         # don't forget to put parallel remdoc entries in unsyncexplog
-        self.paramdb["perfby"].controller.adddoc(self.explog,dest,"dc:summary/dc:perfby")
-        self.paramdb["date"].controller.adddoc(self.explog,dest,"dc:summary/dc:date")
-        self.paramdb["expnotes"].controller.adddoc(self.explog,dest,"dc:summary/dc:expnotes")
-        self.paramdb["goal"].controller.adddoc(self.explog,dest,"dc:summary/dc:goal")
-        self.paramdb["reldest"].controller.adddoc(self.explog,dest,"dc:summary/dc:reldest")
-        self.paramdb["expphotos"].controller.adddoc(self.explog,dest,"dc:summary/dc:expphotos")
-        self.paramdb["hostname"].controller.adddoc(self.explog,dest,"dc:summary/dc:hostname")
-        self.paramdb["measnum"].controller.adddoc(self.explog,dest,"dc:summary/dc:measnum")
-        self.paramdb["checklists"].controller.adddoc(self.explog,dest,"dc:summary/dc:checklists")
-        self.paramdb["plans"].controller.adddoc(self.explog,dest,"dc:summary/dc:plans")
+        self.paramdb["perfby"].controller.adddoc(self.explog,"dc:summary/dc:perfby")
+        self.paramdb["date"].controller.adddoc(self.explog,"dc:summary/dc:date")
+        self.paramdb["dest"].controller.adddoc(self.explog,"dc:summary/dc:dest")
+        self.paramdb["expnotes"].controller.adddoc(self.explog,"dc:summary/dc:expnotes")
+        self.paramdb["goal"].controller.adddoc(self.explog,"dc:summary/dc:goal")
+        self.paramdb["expphotos"].controller.adddoc(self.explog,"dc:summary/dc:expphotos")
+        self.paramdb["hostname"].controller.adddoc(self.explog,"dc:summary/dc:hostname")
+        self.paramdb["measnum"].controller.adddoc(self.explog,"dc:summary/dc:measnum")
+        self.paramdb["checklists"].controller.adddoc(self.explog,"dc:summary/dc:checklists")
+        self.paramdb["plans"].controller.adddoc(self.explog,"dc:summary/dc:plans")
 
         if self.explog.filename is not None:
             # Re-register checklists and plans with checklistdb, with contextdir set
@@ -240,22 +289,21 @@ class explogwindow(gtk.Window):
 
     def unsyncexplog(self,ignoreerror=False):
         try : 
-            dest=self.paramdb["dest"].dcvalue.value()
 
             if self.SingleSpecimen:
-                self.paramdb["specimen"].controller.remdoc(self.explog,dest,"dc:summary/dc:specimen")
+                self.paramdb["specimen"].controller.remdoc(self.explog,"dc:summary/dc:specimen")
                 pass
             
-            self.paramdb["perfby"].controller.remdoc(self.explog,dest,"dc:summary/dc:perfby")
-            self.paramdb["date"].controller.remdoc(self.explog,dest,"dc:summary/dc:date")
-            self.paramdb["expnotes"].controller.remdoc(self.explog,dest,"dc:summary/dc:expnotes")
-            self.paramdb["goal"].controller.remdoc(self.explog,dest,"dc:summary/dc:goal")
-            self.paramdb["reldest"].controller.remdoc(self.explog,dest,"dc:summary/dc:reldest")
-            self.paramdb["expphotos"].controller.remdoc(self.explog,dest,"dc:summary/dc:expphotos")
-            self.paramdb["hostname"].controller.remdoc(self.explog,dest,"dc:summary/dc:hostname")
-            self.paramdb["measnum"].controller.remdoc(self.explog,dest,"dc:summary/dc:measnum")
-            self.paramdb["checklists"].controller.remdoc(self.explog,dest,"dc:summary/dc:checklists")
-            self.paramdb["plans"].controller.remdoc(self.explog,dest,"dc:summary/dc:plans")
+            self.paramdb["perfby"].controller.remdoc(self.explog,"dc:summary/dc:perfby")
+            self.paramdb["date"].controller.remdoc(self.explog,"dc:summary/dc:date")
+            self.paramdb["dest"].controller.remdoc(self.explog,"dc:summary/dc:dest")
+            self.paramdb["expnotes"].controller.remdoc(self.explog,"dc:summary/dc:expnotes")
+            self.paramdb["goal"].controller.remdoc(self.explog,"dc:summary/dc:goal")
+            self.paramdb["expphotos"].controller.remdoc(self.explog,"dc:summary/dc:expphotos")
+            self.paramdb["hostname"].controller.remdoc(self.explog,"dc:summary/dc:hostname")
+            self.paramdb["measnum"].controller.remdoc(self.explog,"dc:summary/dc:measnum")
+            self.paramdb["checklists"].controller.remdoc(self.explog,"dc:summary/dc:checklists")
+            self.paramdb["plans"].controller.remdoc(self.explog,"dc:summary/dc:plans")
 
             pass
         except:
@@ -267,7 +315,7 @@ class explogwindow(gtk.Window):
     
 
     def assign_title(self):
-        if self.explog.filename is None:
+        if self.explog is None or self.explog.filename is None:
             self.set_title("Experiment log (no file)")
             pass
         else:
@@ -282,8 +330,10 @@ class explogwindow(gtk.Window):
         
         self.guistate=guistate
         
-        self.dc_gui_io=guistate.io
-        self.explog.set_dgio(self.dc_gui_io)
+        self.dc_gui_iohandlers=guistate.iohandlers
+        if self.explog is not None:
+            self.explog.set_iohandlers(self.dc_gui_iohandlers)
+            pass
         
         dc_initialize_widgets(self.gladeobjdict,guistate)
         
@@ -321,13 +371,15 @@ class explogwindow(gtk.Window):
         (direc,fname)=os.path.split(self.explog.filename)
         (fbase,ext)=os.path.splitext(fname)
 
-        self.paramdb["reldest"].requestvalstr_sync(fbase+"_files")
-        self.paramdb["dest"].requestvalstr_sync(os.path.join(direc,fbase+"_files"))
-        if not os.path.exists(str(self.paramdb["dest"].dcvalue)):
-            os.mkdir(str(self.paramdb["dest"].dcvalue))
+        self.paramdb["dest"].requestval_sync(dcv.hrefvalue.from_rel_or_abs_path(".",os.path.join(direc,fbase+"_files")))
+        physdir=self.paramdb["dest"].dcvalue.getpath(contextdir=".")
+        if not os.path.exists(physdir):
+            os.mkdir(physdir)
             pass
         
         pass
+
+    
 
     def choose_newexplog(self,event):
         if hasattr(gtk,"FileChooserAction") and hasattr(gtk.FileChooserAction,"OPEN"):
@@ -339,6 +391,7 @@ class explogwindow(gtk.Window):
             pass
 
         newexplogchooser.set_current_name(self.suggestname())
+        newexplogchooser.set_current_folder(".")
         xlgfilter=gtk.FileFilter()
         xlgfilter.set_name("Experiment log files")
         xlgfilter.add_pattern("*.xlg")
@@ -373,11 +426,25 @@ class explogwindow(gtk.Window):
             existsdialog.destroy()
             return
 
-        self.explog.setfilename(fname)
+        if self.SingleSpecimen is None:
+            # Need to choose Single Specimen/Multi-Specimen mode
+            self.ChooseSingleSpecimen()
+            pass
+        
+        # self.explog.setfilename(fname)
         # self.explog.shouldbeunlocked()
+        
+        # self.unsyncexplog()  # need to restart synchronization once dest has changed
 
-        self.unsyncexplog()  # need to restart synchronization once dest has changed
+        self.explog=xmlexplog.explog(fname,self.dc_gui_iohandlers,self.paramdb,use_locking=True,debug=False) # ,autoflush=self.autoflush,autoresync=self.autoresync)
+        try: 
+            pass
+        finally:
+            self.explog.unlock_rw() # free-up automatic log on open
+            pass
 
+        self.explog.set_iohandlers(self.dc_gui_iohandlers)
+        
         self.set_dest()
 
         self.syncexplog()
@@ -396,7 +463,8 @@ class explogwindow(gtk.Window):
         
         # turn on experiment and checklist menu items 
         self.gladeobjdict["explogguiopen"].set_sensitive(True)
-        self.gladeobjdict["explogchecklistopen"].set_sensitive(True)
+        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
+        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
         
         # turn off file new/open menu items
         self.gladeobjdict["explogfilenew"].set_sensitive(False)
@@ -431,7 +499,91 @@ class explogwindow(gtk.Window):
         
 
         pass
+
+
+    def load_params_from_latest_explog_measurement(self):
+        # Yes, we should load parameters
+        toassign=[]  # assign parameters as (paramdbname,dcvalue,log message) to a list
+        # so we can run the assignment later, without the experiment log locked
+        self.explog.lock_ro()
+        try:
+            measelements=self.explog.xpath("dc:measurement[last()]")
+            if len(measelements) > 0:
+                measelement=measelements[0]
+                
+                # iterate over all children of the dc:measurement tag
+                for meastag in self.explog.children(measelement):
+                    tag=self.explog.gettag(meastag)
+                    (prefix,dctag)=tag.split(":")
+                    if prefix != "dc":
+                        continue # silently ignore prefixes not in the dc: namespace
+
+                    if dctag=="measnum" or dctag=="recordmeastimestamp" or dctag=="hostname" or dctag=="measchecklist" or dctag=="date":
+                        # silently ignore measnum, timestamp, hostname, measchecklist, and date
+                        continue
+
+                    if not dctag in self.paramdb:
+                        toassign.append((None,None,"Tag %s not in the parameter database (ignored)" % (tag)))
+                        continue
+                    
+                    if self.paramdb[dctag].dangerous:
+                        dangerousvalue=self.paramdb[dctag].paramtype.fromxml(self.explog,meastag,defunits=self.paramdb[dctag].defunits)
+                        toassign.append((None,None,"Tag %s not assigned value %s because parameter database entry marked as dangerous (ignored)" % (tag,str(dangerousvalue))))
+                        continue
+                    
+                    
+                    dcvalue=self.paramdb[dctag].paramtype.fromxml(self.explog,meastag,defunits=self.paramdb[dctag].defunits)
+                    toassign.append((dctag,dcvalue,"Assigning \"%s\" to parameter %s..." % (str(dcvalue),dctag)))
+                    pass
+                
+                            
+                pass
+            pass
+        finally:
+            self.explog.unlock_ro()
+            pass
+        
+        loadparamsmsg=""
+        # perform assignments and generate message
+        for (dctag,dcvalue,message) in toassign:
+            if dctag is None:
+                loadparamsmsg += message+"\n"
+                pass
+            else:
+                loadparamsmsg += message
+                try: 
+                    self.paramdb[dctag].requestval_sync(dcvalue)
+                    loadparamsmsg+=" value \"%s\" " % (str(self.paramdb[dctag].dcvalue))
+                    if self.paramdb[dctag].dcvalue==dcvalue:
+                        loadparamsmsg+="(match)\n"
+                        pass
+                    else:
+                        loadparamsmsg+="<b>(mismatch)</b>\n"
+                        pass
+                    pass
+                except:
+                    (exctype,excvalue)=sys.exc_info()[:2]
+                    loadparamsmsg+="%s in requestval: %s\n" % (str(exctype.__name__),str(excvalue))
+                    loadparamsmsg+=xml.sax.saxutils.escape(traceback.format_exc())
+                    pass
+                
+                pass
+            
+            pass
+        if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
+            # gtk3            
+            infodialog=gtk.MessageDialog(type=gtk.MessageType.INFO,buttons=gtk.ButtonsType.OK)
+            pass
+        else:
+            infodialog=gtk.MessageDialog(type=gtk.MESSAGE_INFO,buttons=gtk.BUTTONS_OK)
+            pass
+        infodialog.set_markup(loadparamsmsg)
+        infodialog.run()
+        infodialog.destroy()
+        
+        pass
     
+                    
 
     def choose_openexplog(self,event):
         if hasattr(gtk,"FileChooserAction") and hasattr(gtk.FileChooserAction,"OPEN"):
@@ -453,11 +605,16 @@ class explogwindow(gtk.Window):
         openexplogchooser.destroy()
         
         if result==RESPONSE_OK:
-            self.open_explog(fname)
+
+            # if no config files loaded, then autoloadconfig
+            autoloadconfig=len(self.configfhrefs)==0
+            
+            
+            self.open_explog(fname,autoloadconfig=autoloadconfig)
             pass
         pass
 
-    def open_explog(self,fname):
+    def open_explog(self,fname,autoloadconfig=False):
         
         if (not os.path.exists(fname)) :
             if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
@@ -471,21 +628,96 @@ class explogwindow(gtk.Window):
             existsdialog.run()
             existsdialog.destroy()
             return
-        try : 
-            self.unsyncexplog()
-            self.explog.close()
-            self.explog=xmlexplog.explog(fname,self.dc_gui_io,self.paramdb,oldfile=True,use_locking=True) # autoflush=self.autoflush,autoresync=self.autoresync)            
 
-            self.set_dest()
+        if self.SingleSpecimen is None and not autoloadconfig:
+            # Need to choose Single Specimen/Multi-Specimen mode
+            self.ChooseSingleSpecimen()
+            pass
+        
+        try :
+            if self.explog is not None:
+                self.unsyncexplog()
+                self.explog.close()
+                pass
+            self.explog=xmlexplog.explog(fname,self.dc_gui_iohandlers,self.paramdb,oldfile=True,use_locking=True) # autoflush=self.autoflush,autoresync=self.autoresync)            
 
             try: 
+                # self.set_dest()  -- since dest will already exist from prior call, sync operation below will set dest. 
+                self.explog.set_iohandlers(self.dc_gui_iohandlers)
+
+                # attempt to auto-load config, if applicable
+                if autoloadconfig:
+                    if self.SingleSpecimen is None:
+                        # identify Single specimen mode based on file
+                        summaryspecimens=self.explog.xpath("dc:summary/dc:specimen")
+                        # if dc:specimen specified in summary: SingleSpecimen=True
+                        self.SingleSpecimen = len(summaryspecimens)!=0
+                        self.SetSingleSpecimenGui()
+                        pass
+                    
+                    dc_configfiles=self.explog.xpath("dc:config[last()]/dc:configfile")
+                    for dc_configfile in dc_configfiles:
+                        configfhref=dcv.hrefvalue.fromxml(self.explog,dc_configfile)
+                        self.load_config(configfhref.getpath(contextdir="."))
+                        pass
+
+                    has_measelements = len(self.explog.xpath("dc:measurement[last()]")) > 0
+
+                    pass
+
                 self.syncexplog()
                 pass
             finally:
                 self.explog.unlock_rw() # free-up automatic log on open
                 pass
 
+            # Go through all checklists and plans, find those not marked 'done', and open them if possible
+            checklistentries=checklistdb.getchecklists(self.explog.getcontextdir(),self.paramdb,"checklists",None,allchecklists=True)
+            planentries=checklistdb.getchecklists(self.explog.getcontextdir(),self.paramdb,"plans",None,allplans=True)
+
+            allentries=[]
+            allentries.extend(checklistentries)
+            allentries.extend(planentries)
+            for entry in allentries:
+                if not entry.is_open and entry.path is not None:
+                    chxdoc=xmldoc.xmldoc.loadfile(entry.path,chx_nsmap,readonly=True)
+                    is_done = chxdoc.getattr(chxdoc.getroot(),"done",defaultvalue="false")=="true"
+                    if not is_done:
+                        if entry in planentries:
+                            self.open_plan(entry.path)
+                            pass
+                        else:
+                            self.open_checklist(entry.path)
+                            pass
+                        pass
+                    pass
+                pass
             self.paramdb["explogname"].requestvalstr_sync(os.path.split(fname)[-1])
+            
+                
+                
+
+            if autoloadconfig and has_measelements:
+                # offer to load parameters from most recent experiment log entry
+                if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
+                    # gtk3
+                    loadparamsdialog=gtk.MessageDialog(type=gtk.MessageType.QUESTION,buttons=gtk.ButtonsType.YES_NO)
+                    pass
+                else:
+                    loadparamsdialog=gtk.MessageDialog(type=gtk.MESSAGE_QUESTION,buttons=gtk.BUTTONS_YES_NO)
+                    pass
+                loadparamsdialog.set_markup("Loaded experiment log %s.\nAttempt to load non-dangerous parameters from most recent experiment log entry?" % (fname))
+                loadparamsanswer=loadparamsdialog.run()
+                loadparamsdialog.destroy()
+                
+                if ((hasattr(gtk,"ResponseType") and hasattr(gtk.ResponseType,"YES")
+                    and loadparamsanswer==gtk.ResponseType.YES) or # gtk3
+                    (hasattr(gtk,"RESPONSE_YES") and loadparamsanswer==gtk.RESPONSE_YES)):
+
+                    self.load_params_from_latest_explog_measurement()
+                    pass
+                
+                pass
 
 
             pass
@@ -496,21 +728,31 @@ class explogwindow(gtk.Window):
             (exctype,excvalue)=sys.exc_info()[:2]
             if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
                 # gtk3
-                exceptdialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.OK)
+                exceptdialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.NONE)
                 pass
             else : 
-                exceptdialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
+                exceptdialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_NONE)
                 pass
 
             exceptdialog.set_markup("<b>Error opening/syncing with file %s.</b>\n%s: %s\n%s\nMust exit." % (xml.sax.saxutils.escape(fname),xml.sax.saxutils.escape(str(exctype.__name__)),xml.sax.saxutils.escape(str(excvalue)),xml.sax.saxutils.escape(str(traceback.format_exc()))))
-            exceptdialog.run()
+            exceptdialog.add_button("Debug",1)
+            exceptdialog.add_button("Exit",0)
+            exceptdialogval=exceptdialog.run()
             exceptdialog.destroy()
+            if exceptdialogval > 0:
+                import pdb as pythondb
+                print("exception: %s: %s" % (exctype.__name__,str(excvalue)))
+                sys.stderr.write(traceback.format_exc())
+                pythondb.post_mortem()
+
+                pass
             sys.exit(1)
             pass
         
         # turn on experiment and checklist menu items 
         self.gladeobjdict["explogguiopen"].set_sensitive(True)
-        self.gladeobjdict["explogchecklistopen"].set_sensitive(True)
+        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
+        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
         
         # turn off file new/open menu items
         self.gladeobjdict["explogfilenew"].set_sensitive(False)
@@ -528,10 +770,17 @@ class explogwindow(gtk.Window):
     def log_config(self):
         self.explog.lock_rw()
         try: 
-            configel=self.explog.addelement(None,"dc:configstr")
-            configel.attrib["fnames"]=json.dumps(self.configfnames)
-            
-            self.explog.settext(configel,self.configstr)
+            configel=self.explog.addelement(None,"dc:config")
+            # save hrefvalues for configfiles in dc:configfile tag
+            for cnt in range(len(self.configfhrefs)):
+                configfhref=self.configfhrefs[cnt]
+                configfstr=self.configfstrs[cnt]
+                configftag=self.explog.addelement(configel,"dc:configfile")
+                configfhref.xmlrepr(self.explog,configftag)
+                self.explog.settext(configftag,configfstr)
+                pass
+            ## Save entire config str
+            #configstrel=self.explog.addelement(configel,"dc:configstr")
             pass
         except:
             raise
@@ -541,7 +790,13 @@ class explogwindow(gtk.Window):
 
         pass
 
-    def choose_loadconfig(self,event):
+    def choose_loadcustomconfig(self,event):
+        return self.choose_loadconfig(event,central=False)
+
+    def choose_loadcentralconfig(self,event):
+        return self.choose_loadconfig(event,central=True)
+    
+    def choose_loadconfig(self,event,central):
         if hasattr(gtk,"FileChooserAction") and hasattr(gtk.FileChooserAction,"OPEN"):
             # gtk3
             loadconfigchooser=gtk.FileChooserDialog(title="Load config file",action=gtk.FileChooserAction.OPEN,buttons=(gtk.STOCK_CANCEL,gtk.ResponseType.CANCEL,gtk.STOCK_OPEN,gtk.ResponseType.OK))
@@ -550,7 +805,18 @@ class explogwindow(gtk.Window):
             loadconfigchooser=gtk.FileChooserDialog(title="Load config file",action=gtk.FILE_CHOOSER_ACTION_OPEN,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
             pass
         #openexplogchooser.set_current_name(self.suggestname())
-        loadconfigchooser.set_current_folder(os.path.abspath(os.path.join(thisdir, '..', 'conf')))
+        if central: 
+            loadconfigchooser.set_current_folder(os.path.abspath(os.path.join(thisdir, '..', 'conf')))
+            pass
+        else:
+            if self.explog is not None:
+                loadconfigchooser.set_current_folder(self.explog.getcontextdir())
+                pass
+            else:
+                loadconfigchooser.set_current_folder(".")
+                pass
+            
+            pass
         dccfilter=gtk.FileFilter()
         dccfilter.set_name("Datacollect config (*.dcc) files")
         dccfilter.add_pattern("*.dcc")
@@ -577,6 +843,22 @@ class explogwindow(gtk.Window):
                 return
             # load config file here...
             # imp.load_source("datacollect_config",fname)
+
+            # sys.stderr.write("fname=%s" % (fname))
+            
+            if central:
+                # central config files are always referred to
+                # via absolute path
+                fname=canonicalize_path.canonicalize_path(fname)
+                pass
+            else:
+                # custom config files are always referred to
+                # via relative path
+                fname=canonicalize_path.relative_path_to(".",fname)
+                pass
+            
+            #sys.stderr.write("fname=%s" % (fname))
+            
             self.load_config(fname)
 
             pass
@@ -619,6 +901,10 @@ class explogwindow(gtk.Window):
         xlgcheckbox.set_active(True)
         checkboxvbox.pack_start(xlgcheckbox)
 
+        syncedcheckbox=gtk.CheckButton("Include parameters synced to experiment log")
+        syncedcheckbox.set_active(False)
+        checkboxvbox.pack_start(syncedcheckbox)
+
         saveparamschooser.set_extra_widget(checkboxvbox)
         
         checkboxvbox.show_all()
@@ -632,7 +918,7 @@ class explogwindow(gtk.Window):
 
             # load config file here...
             # imp.load_source("datacollect_config",fname)
-            paramdbfile.save_params(self.configfnames, [gui[3] for gui in self.guis],self.paramdb,fname,self.explog.filename,self.SingleSpecimen,non_settable=nonsettablecheckbox.get_active(),dcc=dcccheckbox.get_active(),gui=guicheckbox.get_active(),chx=chxcheckbox.get_active(),xlg=xlgcheckbox.get_active())
+            paramdbfile.save_params(self.configfhrefs, [gui[3] for gui in self.guis],self.paramdb,fname,self.explog.filename,self.SingleSpecimen,non_settable=nonsettablecheckbox.get_active(),dcc=dcccheckbox.get_active(),gui=guicheckbox.get_active(),chx=chxcheckbox.get_active(),xlg=xlgcheckbox.get_active(),synced=syncedcheckbox.get_active())
             
 
             pass
@@ -650,9 +936,8 @@ class explogwindow(gtk.Window):
 
     def load_config(self,fname):
         
-        output=dc2_misc.load_config(fname,self.paramdb,self.dc_gui_io,self.createparamserver)
+        output=dc2_misc.load_config(fname,self.paramdb,self.dc_gui_iohandlers,self.createparamserver)
 
-        self.configstr+="\n"+output+"\n"
 
         # turn off load config menu items
         # self.gladeobjdict["explogfileloadconfig"].set_sensitive(False)
@@ -661,7 +946,8 @@ class explogwindow(gtk.Window):
         self.gladeobjdict["explogfilenew"].set_sensitive(True)
         self.gladeobjdict["explogfileopen"].set_sensitive(True)
 
-        self.configfnames.append(canonicalize_path.canonicalize_path(fname))
+        self.configfstrs.append(output)
+        self.configfhrefs.append(dcv.hrefvalue.from_rel_or_abs_path(".",fname))
 
         pass
     
@@ -799,7 +1085,14 @@ class explogwindow(gtk.Window):
             pass
         pass
 
-    def choose_openchecklist(self,event):
+    def choose_opencentralchecklist(self,event):
+        return self.choose_openchecklist(event,central=True)
+
+    def choose_opencustomchecklist(self,event):
+        return self.choose_openchecklist(event,central=False)
+
+    
+    def choose_openchecklist(self,event,central):
         
         if hasattr(gtk,"FileChooserAction") and hasattr(gtk.FileChooserAction,"OPEN"):
             # gtk3
@@ -819,20 +1112,47 @@ class explogwindow(gtk.Window):
         chffilter.add_pattern("*.chf")
         checklistchooser.add_filter(chffilter)
 
+        if central:
+            checklistchooser.set_current_folder(os.path.abspath(os.path.join(thisdir, '..', 'checklists')))
+            pass
+        else:
+            if self.explog is not None:
+                checklistchooser.set_current_folder(self.explog.getcontextdir())
+                pass
+            else:
+                checklistchooser.set_current_folder(".")
+                pass
+            pass
+        
         result=checklistchooser.run()
         fname=checklistchooser.get_filename()
         checklistchooser.destroy()
         
         if result==RESPONSE_OK:
-            self.addtochecklistmenu(fname)
-            self.open_checklist(fname)
+            
+            if central:
+                # central checklists are always referred to
+                # via absolute path
+                
+                #fname=canonicalize_path.canonicalize_path(fname)
+                fnamehref=dcv.hrefvalue.from_rel_or_abs_path(None,fname)
+                pass
+            else:
+                # custom checklists are always referred to
+                # via relative path
+                fnamehref=dcv.hrefvalue.from_rel_path(self.explog.getcontextdir(),fname)
+                pass
+            
+            
+            self.addtochecklistmenu(fnamehref.getpath())
+            self.open_checklist(fnamehref.getpath())
 
             pass
         
         pass
 
 
-    def rebuildchecklistrealtimemenu(self,checklistjunk):
+    def rebuildchecklistrealtimemenu(self,*junkargs):
         openchecklists=checklistdb.getchecklists(None,None,None,None,allchecklists=True)
         menuentries=self.gladeobjdict["explogchecklistmenu"].get_children()
         
@@ -941,10 +1261,10 @@ class explogwindow(gtk.Window):
         
         
         if inplace:
-            chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self,destoverride=os.path.split(fname)[0])
+            chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self,filleddir=os.path.split(fname)[0])
             pass
         else:
-            chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self,destoverride=str(self.paramdb["dest"].dcvalue))
+            chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self)
             pass
 
             
@@ -967,7 +1287,7 @@ class explogwindow(gtk.Window):
         
         win=chklist.getwindow()
         win.connect("delete-event",self.handle_checklist_close,chklist)
-        win.show_all()
+        win.show()
         
         return chklist
 
@@ -1012,11 +1332,24 @@ class explogwindow(gtk.Window):
         plffilter.add_pattern("*.plf")
         checklistchooser.add_filter(plffilter)
 
+        if self.explog is not None:
+            checklistchooser.set_current_folder(self.explog.getcontextdir())
+            pass
+        else:
+            checklistchooser.set_current_folder(".")
+            pass
+        
+    
         result=checklistchooser.run()
         fname=checklistchooser.get_filename()
         checklistchooser.destroy()
         
+
         if result==RESPONSE_OK:
+            # plans are always referred to
+            # via relative path
+            fname=canonicalize_path.relative_path_to(".",fname)
+            
             self.open_plan(fname)
 
             pass
@@ -1027,7 +1360,7 @@ class explogwindow(gtk.Window):
     def open_plan(self,fname):
 
         
-        chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self,destoverride=str(self.paramdb["dest"].dcvalue))
+        chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self)
             
         self.checklists.append(chklist)
         
@@ -1086,6 +1419,13 @@ class explogwindow(gtk.Window):
 
     def aboutdialog(self,event):
         self.about_dialog.present()
+        
+        pass
+
+    def debug_pm(self,event):
+        import pdb as pythondb
+
+        pythondb.pm() # run debugger on most recent unhandled exception
         
         pass
 

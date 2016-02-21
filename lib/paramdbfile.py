@@ -28,10 +28,10 @@ paramdbfile_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink"
     
 
 
-def save_params(configfnames,guis,paramdb,fname,xmldocfilename,SingleSpecimen,non_settable=False,dcc=True,gui=True,chx=True,plans=True,xlg=True):
+def save_params(configfhrefs,guis,paramdb,fname,xmldocfilename,SingleSpecimen,non_settable=False,dcc=True,gui=True,chx=True,plans=True,xlg=True,synced=False):
     # Save parameters in file fname. 
     # Parameters: 
-    # configfnames:  list of .dcc files to include
+    # configfhrefs:  list of .dcc files to include (dc_value.hrefvalue)
     # guis:          list of gladefiles to include
     # paramdb:       parameter database to dump
     # fname:         file to write
@@ -44,6 +44,8 @@ def save_params(configfnames,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
     # plans:         Extract list of in-memory plans from checklistdb and
     #                include
     # xlg:           Extract experiment log info (experiment log name, and single specimen vs. multispecimen
+    # synced:        Save parameters that are normally synced to the global
+    #                experiment log
 
     contextdir=os.path.split(fname)[0]
 
@@ -52,11 +54,11 @@ def save_params(configfnames,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
     if dcc:
         configfiles=paramdoc.addelement(paramdoc.getroot(),"dc:configfiles")
         
-        for configfname in configfnames:
-            usepath=canonicalize_path.rel_or_abs_path(contextdir,configfname)
+        for configfhref in configfhrefs:
                 
             configfile=paramdoc.addelement(configfiles,"dc:configfile")
-            paramdoc.setattr(configfile,"xlink:href",urllib.pathname2url(usepath))
+            #sys.stderr.write("configfhref.path=%s; configfhref.contextdir=%s\n" % (configfhref.path,configfhref.contextdir))
+            configfhref.xmlrepr(paramdoc,configfile)
             pass
         pass
         
@@ -66,10 +68,11 @@ def save_params(configfnames,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
         guitags=paramdoc.addelement(paramdoc.getroot(),"dc:guis")
             
         for guifname in guis:
-            usepath=canonicalize_path.rel_or_abs_path(contextdir,guifname)
 
+            guihref=dc_value.hrefvalue.from_rel_or_abs_path(".",guifname)
+            
             guitag=paramdoc.addelement(guitags,"dc:gui")
-            paramdoc.setattr(guitag,"xlink:href",urllib.pathname2url(usepath))
+            guihref.xmlrepr(paramdoc,guitag)
             pass
         pass
             
@@ -96,9 +99,10 @@ def save_params(configfnames,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
                 entry.checklist.xmldoc.unlock_ro()                    
                 pass
 
-            usepath=canonicalize_path.rel_or_abs_path(contextdir,entry.origfilename)            
+            chxhref=dc_value.hrefvalue.from_rel_or_abs_path(".",entry.checklist.xmldoc.filename)
+            
             chxtag=paramdoc.addelement(chxs,"dc:chx")
-            paramdoc.setattr(chxtag,"xlink:href",urllib.pathname2url(usepath))
+            chxhref.xmlrepr(paramdoc,chxtag)
             pass
         pass
         
@@ -118,11 +122,11 @@ def save_params(configfnames,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
                 # has a parent... don't include it (should come from parent!) 
                 continue
 
-            usepath=canonicalize_path.rel_or_abs_path(contextdir,entry.origfilename)            
+            planhref=dc_value.hrefvalue.from_rel_or_abs_path(".",entry.checklist.xmldoc.filename)
                     
                 
             plantag=paramdoc.addelement(plans,"dc:plan")
-            paramdoc.setattr(chxtag,"xlink:href",urllib.pathname2url(usepath))
+            planhref.xmlrepr(paramdoc,plantag)
             pass
         pass
 
@@ -131,7 +135,8 @@ def save_params(configfnames,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
         if xmldocfilename is not None:
             # include link to experiment log
             explog=paramdoc.addelement(paramdoc.getroot(),"dc:explog")
-            paramdoc.setattr(explog,"xlink:href",urllib.pathname2url(canonicalize_path.rel_or_abs_path(contextdir,xmldocfilename)))
+            xmldoc_href=dc_value.hrefvalue.from_rel_or_abs_path(".",xmldocfilename)
+            xmldoc_href.xmlrepr(paramdoc,explog)
             pass
         
         # Indicate whether single- or multi-specimen
@@ -150,9 +155,27 @@ def save_params(configfnames,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
                 # Does not make sense to save current explogwindow list of checklists or plans with parameters
                 continue
 
+            # list of parameters here must be consistent with
+            # instantiated synced parameters in datacollect2 script
+            # and with adddoc() calls in explogwindow.py
+            if not synced and (
+                    (paramname=="specimen" and SingleSpecimen) or
+                    paramname=="perfby" or
+                    paramname=="date" or
+                    paramname=="expnotes" or
+                    paramname=="goal" or
+                    paramname=="dest" or
+                    paramname=="expphotos" or
+                    paramname=="hostname" or
+                    paramname=="measnum" or
+                    paramname=="checklists" or
+                    paramname=="plans"):
+                # ignore sync'ed parameters with synced unset. 
+                continue
+
             if non_settable or not paramdb[paramname].non_settable:
                 paramtag=paramdoc.addelement(paramdbtag,"dc:"+paramname)
-                paramdb[paramname].dcvalue.xmlrepr(paramdoc,paramtag,defunits=paramdb[paramname].defunits,xml_attribute=paramdb[paramname].xml_attribute)
+                paramdb[paramname].dcvalue.xmlrepr(paramdoc,paramtag,defunits=paramdb[paramname].defunits)  # xml_attribute=paramdb[paramname].xml_attribute)
                 pass
             pass
         pass
@@ -255,7 +278,7 @@ def apply_paramdb_updates(paramdb_updates,paramdb):
                 pass
             # only restore non-dangerous parameters
             # temporarily set filename for paramdb_updates
-            dcvalue=paramdb[dctag].paramtype.fromxml(paramdb_updates,param,defunits=paramdb[dctag].defunits,xml_attribute=paramdb[dctag].xml_attribute)
+            dcvalue=paramdb[dctag].paramtype.fromxml(paramdb_updates,param,defunits=paramdb[dctag].defunits)   # xml_attribute=paramdb[dctag].xml_attribute)
 
             if dcvalue is None: 
                 raise ValueError("Got None from fromxml() for %s from %s" % (dctag,etree.tostring(param)))

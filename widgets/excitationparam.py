@@ -2,7 +2,9 @@ import os
 import os.path
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk as gdk
     from gi.repository import GObject as gobject
@@ -131,7 +133,6 @@ class excitationparam(gtk.HBox,paramhandler):
         }
     __proplist = ["paramname","labelmarkup", "hide-type","hide-wfm","hide-f0","hide-f1","hide-t0","hide-t1","hide-t2","hide-t3"] 
 
-    dc_gui_io=None
     paramdb=None
     param=None
     lastvalue=None # last value provided by controller
@@ -178,7 +179,6 @@ class excitationparam(gtk.HBox,paramhandler):
         # need next line if subclassing a dc_gui class
         # super(dc_readout).__dc_gui_init(self,guistate)
         
-        self.dc_gui_io=guistate.io
 
         if self.paramdb is None:  # allow manual initialization of paramdb, in case we are to use a non-default paramdb
             self.paramdb=guistate.paramdb

@@ -13,12 +13,14 @@ import urllib
 
 from lxml import etree
 
+treesync=None
 try: 
     import dc_lxml_treesync as treesync
     pass
 except ImportError:
     sys.stderr.write("dc_value: Warning: unable to import dc_lxml_treesync -- XML comparisons not supported\n")
     pass
+
 
 import canonicalize_path
 
@@ -46,6 +48,68 @@ DCV="{http://thermal.cnde.iastate.edu/dcvalue}"
 # *** IMPORTANT *** 
 # Need to add distinction between strings and identifiers, and deal with escaping, etc. 
 # Deal with unicode? 
+
+def xmlstoredisplayfmt(xmldocu,element,formatstr):
+    if formatstr is not None:
+        xmldocu.setattr(element,"dcv:displayfmt",formatstr)
+        pass
+    else:
+        if xmldocu.hasattr(element,"dcv:displayfmt"):
+            xmldocu.remattr(element,"dcv:displayfmt")
+            pass
+        pass
+    
+    pass
+
+def xmlextractdisplayfmt(xmldocu,element):
+    displayfmt=None
+    if xmldocu.hasattr(element,"dcv:displayfmt"):
+        displayfmt=xmldocu.getattr(element,"dcv:displayfmt")
+        pass
+    return displayfmt
+
+
+def xmlstorevalueclass(xmldocu,element,valueclass):
+    if value is not None:
+        xmldocu.setattr(element,"dcv:valueclass",valueclass.__name__[:-5])  # store class name without trailing "value"
+        pass
+    else:
+        if xmldocu.hasattr(element,"dcv:valueclass"):
+            xmldocu.remattr(element,"dcv:valueclass")
+            pass
+        pass
+    
+    pass
+
+def xmlextractvalueclass(xmldocu,element):
+    globalvars=globals()
+    valueclass=None
+    if xmldocu.hasattr(element,"dcv:valueclass"):
+        valueclassname="%svalue" % (xmldocu.getattr(element,"dcv:valueclass"))
+        if valueclassname in globalvars:
+            # have a variable of correct name. Make sure it is a class
+            # that derives from class value
+            if globalvars[valueclassname].__class__ is type: # is a class (i.e. a type)
+                if issubclass(globalvars[valueclassname],value): # is a subclass of dc_value.value
+                    valueclass=globalvars[valueclassname]
+                    pass
+                pass
+            pass
+                    
+        pass
+    return valueclass
+
+
+class MergeError(Exception):
+    value=None
+    def __init__(self,value):
+        self.value=value
+        pass
+    def __str__(self):
+        return "MergeError: "+repr(self.value)
+    pass
+
+
 
 
 # still need to implement XML output!
@@ -135,7 +199,7 @@ class value(object):
                         pass
                     elif value != descendent:  
                        # two values -- raise exception!
-                        raise ValueError("Cannot merge values: %s and %s" % (str(value),str(descendent)))
+                        raise MergeError("Cannot merge values: %s and %s" % (str(value),str(descendent)))
 
                     pass
                 pass
@@ -151,7 +215,7 @@ class value(object):
                 if not(parent.equiv(descendent)):
                     if newvalue != None: 
                         # two values -- raise exception!
-                        raise ValueError("Cannot merge values: Orig=%s; descendents %s and %s" % (str(parent),str(newvalue),str(descendent)))
+                        raise MergeError("Cannot merge values: Orig=%s; descendents %s and %s" % (str(parent),str(newvalue),str(descendent)))
                         
                     newvalue=descendent
                 pass
@@ -266,7 +330,7 @@ class xmltreevalue(value):
             
         return treesync.treesmatch(self.__xmldoc.getroot(),othervalue.__xmldoc.getroot(),True)
 
-    def xmlrepr(self,xmldocu,element,defunits=None,xml_attribute=None,force_abs_href=False):
+    def xmlrepr(self,xmldocu,element,defunits=None,force_abs_href=False):
         # WARNING: Adds in all attributes of this xml structure to element, 
         # but only cleans out those in the dcvalue namespace, so it is 
         # possible to unintentionally merge. 
@@ -275,7 +339,7 @@ class xmltreevalue(value):
         # NOTE: Cannot update document's or element's nsmap in any effective way. 
         #       This will need to be handled some other way
 
-        assert(xml_attribute is None) # An xml tree cannot fit in an attribute
+        # assert(xml_attribute is None) # An xml tree cannot fit in an attribute
         
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
@@ -332,14 +396,14 @@ class xmltreevalue(value):
         pass
 
     @classmethod
-    def fromxml(cls,xmldocu,element,tagnameoverride=None,nsmap=None,defunits=None,xml_attribute=None,contextdir=None,force_abs_href=False):
+    def fromxml(cls,xmldocu,element,tagnameoverride=None,nsmap=None,defunits=None,contextdir=None,force_abs_href=False):
         # Create from a parsed xml representation. 
         # if tagnameoverride is specified, it will override the tag name of element
         # contextdir is the contextdir you want internally stored
         # in the object for relative links
 
 
-        assert(xml_attribute is None)  # storing content in an attribute does not make sense for an xml tre
+        # assert(xml_attribute is None)  # storing content in an attribute does not make sense for an xml tre
 
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
@@ -464,7 +528,7 @@ class stringvalue(value):
     def __str__(self) :
         return self.str;
 
-    def xmlrepr(self,xmldocu,element,defunits=None,xml_attribute=None):
+    def xmlrepr(self,xmldocu,element,defunits=None):
         # NOTE: if xml_attribute is provided, xmldocu must be also.
 
         #print "xmlrepr!" + self.str
@@ -487,13 +551,12 @@ class stringvalue(value):
         #    text=canonicalize_path.rel_or_abs_path(os.path.split(xmldocu.filename)[0],canonpath)
         #    pass
 
-        if xml_attribute is None: 
-            # set text
-            element.text=text
-            pass
-        else: 
-            xmldocu.setattr(element,xml_attribute,text)
-            pass
+        #if xml_attribute is None: 
+        # set text
+        element.text=text
+        #else: 
+        #xmldocu.setattr(element,xml_attribute,text)
+        #    pass
             
         if xmldocu is not None:
             xmldocu.modified=True
@@ -509,15 +572,15 @@ class stringvalue(value):
     
 
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: to use xml_attribute you must provide xmldocu)
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
             pass
 
         text=element.text
-        if xml_attribute is not None:
-            text=xmldocu.getattr(element,xml_attribute,"")
+        # if xml_attribute is not None:
+        #    text=xmldocu.getattr(element,xml_attribute,"")
         
         #if is_file_in_dest:
         #    # canonicalized file we are referring to 
@@ -554,9 +617,13 @@ class stringvalue(value):
 
 
 class hrefvalue(stringvalue):
-    # an href is a hypertext reference with
+    # an href is a hyperte reference with
     # a possible context. 
 
+    # It is represented either as a URL
+    # or as a relative or absolute path. If a relative path,
+    # it is relative to the internally-stored contextdir. 
+    
     # its string representation is an escaped URL
     #
     # if it is a relative local file reference, without leading
@@ -631,6 +698,18 @@ class hrefvalue(stringvalue):
         self.final=True
 
         pass
+
+    def isblank(self):
+        if self.str is not None and len(self.str)==0:
+            return True
+        return False
+        
+    def ismem(self):
+        return self.str is not None and self.str.startswith("mem://")
+
+    def ishttp(self):
+        return self.str is not None and self.str.startswith("http://")
+
     
     
     def __str__(self) :
@@ -647,17 +726,16 @@ class hrefvalue(stringvalue):
     def islocalfile(self):
         return self.path is not None
     
-    def xmlrepr(self,xmldocu,element,defunits=None,xml_attribute=None,force_abs_href=False):
+    def xmlrepr(self,xmldocu,element,defunits=None,force_abs_href=False):
 
         #import pdb as pythondb
         #if element.tag=="{http://thermal.cnde.iastate.edu/datacollect}dgsfile":
         #    pythondb.set_trace()
 
-        if xml_attribute is None:
-            xml_attribute="xlink:href"
-            pass
+        #if xml_attribute is None:
+        xml_attribute="xlink:href"
             
-        assert(xml_attribute=="xlink:href")
+        #assert(xml_attribute=="xlink:href")
         #assert(not is_file_in_dest) # This derived class uses its internal context specification, not the is_file_in_dest parameter
         # NOTE: if xml_attribute is provided, xmldocu must be also.
 
@@ -697,23 +775,28 @@ class hrefvalue(stringvalue):
         pass
 
     def getpath(self,contextdir=None):
-        # returns path (relative to contextdir if appropriate, or internal
-        # contextdir by default) or None
+        # returns path (relative to contextdir if appropriate, or current directory
+        # by default) or None
         # if the URL is not an appropriate type
         # returns filesystem path, not URL
         if self.path is None:
             return None
-        
-        if not os.path.isabs(self.path):
-            if contextdir is None:
-                return self.path
-            else: 
-                return canonicalize_path.relative_path_to(contextdir,self.path)
+
+        path=self.path
+        if not os.path.isabs(path):
+            path=os.path.join(self.contextdir,self.path)
             pass
-        return self.path
+        
+            
+        if not os.path.isabs(path):
+            if contextdir is None:
+                contextdir="."
+                pass
+            return canonicalize_path.relative_path_to(contextdir,os.path.join(self.contextdir,self.path))
+        return path
 
     @classmethod
-    def frompath(cls,contextdir,path):
+    def from_rel_path(cls,contextdir,path): # was frompath()
         # Path is desired file
         # Always stores relative path unless contextdir is None
         # contextdir is context relative to which path should be stored
@@ -729,11 +812,31 @@ class hrefvalue(stringvalue):
         # create and return the context
         return hrefvalue(None,contextdir=contextdir,path=path)
 
+    @classmethod
+    def from_rel_or_abs_path(cls,contextdir,path):
+        # Path is desired file
+        # Stores relative path or absolute path
+        # according to whether path is relative or
+        # absolute (unless contextdir is None, in which case
+        # path is always absolute)
+        # contextdir is context relative to which path should be stored
+        # will store absolute path otherwise
+
+        if contextdir is not None and not(os.path.isabs(path)):
+            path=canonicalize_path.relative_path_to(contextdir,path)
+            pass
+        else: 
+            path=canonicalize_path.canonicalize_path(path)
+            pass
+            
+        # create and return the context
+        return hrefvalue(None,contextdir=contextdir,path=path)
+
 
         
 
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None,force_abs_href=False):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None,force_abs_href=False):
         # NOTE: to use xml_attribute you must provide xmldocu)
         # contextdir is the contextdir you want internally stored
         # in the object for relative links... defaults to context of xmldocu
@@ -748,11 +851,10 @@ class hrefvalue(stringvalue):
             xmlcontextdir=None
             pass
 
-        if xml_attribute is None:
-            xml_attribute="xlink:href"
-            pass
+        #if xml_attribute is None:
+        xml_attribute="xlink:href"
 
-        assert(xml_attribute=="xlink:href")
+        # assert(xml_attribute=="xlink:href")
 
         #assert(not is_file_in_dest) # This derived class uses its internal context specification, not the is_file_in_dest parameter
 
@@ -760,7 +862,8 @@ class hrefvalue(stringvalue):
 
         val=hrefvalue(text,contextdir=xmlcontextdir)
 
-        if val.contextdir is not None and contextdir is not None:
+        if val.contextdir is not None and contextdir is not None and val.path is not None:
+            #sys.stderr.write("contextdir=%s; path=%s\n" % (val.contextdir,val.path))
             canonpath=canonicalize_path.canonicalize_path(os.path.join(val.contextdir,val.path))
 
             if force_abs_href:
@@ -786,6 +889,11 @@ class hrefvalue(stringvalue):
             assert(val.contextdir is not None)
         return val
     
+    def __hash__(self):
+        if self.str is not None:
+            return self.str.__hash__()
+
+        return canonicalize_path.canonicalize_path(self.path).__hash__()
     
     def __eq__(self,other) :
         if not hasattr(other,"path"):
@@ -993,7 +1101,7 @@ class complexunitsvalue(value) :
         pass
     
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: if xml_attribute is provided, xmldocu must be also.
 
         # Check if we have a units attribute
@@ -1001,12 +1109,12 @@ class complexunitsvalue(value) :
             provenance.xmldocelementaccessed(xmldocu,element)
             pass
         
-        if xml_attribute is None:
-            elementtext=element.text
-            pass
-        else: 
-            elementtext=xmldocu.getattr(element,xml_attribute,"")
-            pass
+        #if xml_attribute is None:
+        elementtext=element.text
+        #    pass
+        #else: 
+        #    elementtext=xmldocu.getattr(element,xml_attribute,"")
+        #    pass
 
 
         if DCV+"units" in element.attrib:
@@ -1018,7 +1126,7 @@ class complexunitsvalue(value) :
         pass
 
 
-    def xmlrepr(self,xmldocu,element,defunits=None,xml_attribute=None):
+    def xmlrepr(self,xmldocu,element,defunits=None):
         # NOTE: if xml_attribute is provided, xmldocu must be also.
 
         # clear out any old attributes
@@ -1077,13 +1185,13 @@ class complexunitsvalue(value) :
             
             pass
 
-        if xml_attribute is None: 
-            # set text
-            element.text=elementtext
-            pass
-        else: 
-            xmldocu.setattr(element,xml_attribute,elementtext)
-            pass
+        #if xml_attribute is None: 
+        # set text
+        element.text=elementtext
+        #    pass
+        #else: 
+        #    xmldocu.setattr(element,xml_attribute,elementtext)
+        #    pass
         
         if xmldocu is not None:
             xmldocu.modified=True
@@ -1409,19 +1517,19 @@ class numericunitsvalue(value) :
         pass
     
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: if xml_attribute is provided, xmldocu must be also.
 
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
             pass
 
-        if xml_attribute is None:
-            elementtext=element.text
-            pass
-        else: 
-            elementtext=xmldocu.getattr(element,xml_attribute,"")
-            pass
+        #if xml_attribute is None:
+        elementtext=element.text
+        #    pass
+        #else: 
+        #    elementtext=xmldocu.getattr(element,xml_attribute,"")
+        #    pass
 
         # Check if we have a units attribute
         if DCV+"units" in element.attrib:
@@ -1433,7 +1541,7 @@ class numericunitsvalue(value) :
         pass
 
 
-    def xmlrepr(self,xmldocu,element,defunits=None,xml_attribute=None):
+    def xmlrepr(self,xmldocu,element,defunits=None):
         # NOTE: if xml_attribute is provided, xmldocu must be also.
 
         # clear out any old attributes
@@ -1491,13 +1599,13 @@ class numericunitsvalue(value) :
             
             pass
 
-        if xml_attribute is None: 
-            # set text
-            element.text=elementtext
-            pass
-        else: 
-            xmldocu.setattr(element,xml_attribute,elementtext)
-            pass
+        #if xml_attribute is None: 
+        # set text
+        element.text=elementtext
+        #    pass
+        #else: 
+        #    xmldocu.setattr(element,xml_attribute,elementtext)
+        #    pass
         
         if xmldocu is not None:
             xmldocu.modified=True
@@ -1727,23 +1835,23 @@ class integervalue(value) :
         return str(self.val)
     
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: if xml_attribute is provided, xmldocu must be also.
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
             pass
 
-        if xml_attribute is None:
-            elementtext=element.text
-            pass
-        else: 
-            elementtext=xmldocu.getattr(element,xml_attribute,"")
-            pass
+        #if xml_attribute is None:
+        elementtext=element.text
+        #pass
+        #else: 
+        #    elementtext=xmldocu.getattr(element,xml_attribute,"")
+        #    pass
 
         return cls(elementtext)
 
 
-    def xmlrepr(self,xmldocu,element,defunits=None,xml_attribute=None):
+    def xmlrepr(self,xmldocu,element,defunits=None):
         # clear out any old attributes
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
@@ -1753,13 +1861,13 @@ class integervalue(value) :
             pass
 
 
-        if xml_attribute is None: 
-            # set text
-            element.text=str(self.val)
-            pass
-        else: 
-            xmldocu.setattr(element,xml_attribute,str(self.val))
-            pass
+        #if xml_attribute is None: 
+        # set text
+        element.text=str(self.val)
+        #    pass
+        #else: 
+        #    xmldocu.setattr(element,xml_attribute,str(self.val))
+        #    pass
             
             
         
@@ -1932,10 +2040,10 @@ class excitationparamsvalue(value) :
 
 
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: if xml_attribute must be none because of the structure used.
 
-        assert(xml_attribute is None)
+        #assert(xml_attribute is None)
 
         vals={}
         if xmldocu is not None:
@@ -1966,10 +2074,10 @@ class excitationparamsvalue(value) :
         
         return cls(vals)
     
-    def xmlrepr(self,xmldocu,tag,defunits=None,xml_attribute=None): # usually "excitation" tag
+    def xmlrepr(self,xmldocu,tag,defunits=None): # usually "excitation" tag
         
         # as this tag has subelements it cannot be stored in an xml attribute
-        assert(xml_attribute is None)
+        #assert(xml_attribute is None)
 
         # clear out any attributes in the dcvalue namespace
         oldattrs=tag.attrib.keys()
@@ -2036,17 +2144,18 @@ class excitationparamsvalue(value) :
     pass
 
 class photosvalue(value):
-    photolist=None # actually a tuple, as we are immutable
+    photoset=None # actually a frozenset
+    # ...  of hrefvalues
 
     def __init__(self,value,defunits=None):
-        if isinstance(value,tuple) or isinstance(value,list):
-            self.photolist=tuple(copy.deepcopy(value))
+        if isinstance(value,tuple) or isinstance(value,list) or isinstance(value,set):
+            self.photoset=frozenset(copy.deepcopy(value))
             pass
         elif isinstance(value,photosvalue):
-            self.photolist=copy.deepcopy(value.photolist)
+            self.photoset=copy.deepcopy(value.photoset)
             pass
         else :
-            self.photolist=()
+            self.photoset=frozenset([])
             
             if value is not None and len(value) != 0:
                 raise ValueError("photosvalue from string not yet implemented")
@@ -2054,37 +2163,37 @@ class photosvalue(value):
         pass
 
     def __str__(self):
-        return "\n".join([ os.path.split(photo)[-1] for photo in self.photolist ])
+        return ";".join([ os.path.split(photohref.getpath("."))[-1] for photohref in self.photoset ])
 
-    def copyandappend(self,newphotoname):
-        tmp=list(self.photolist)
-        tmp.append(newphotoname)
+    def copyandappend(self,newphotohref):
+        tmp=set(self.photoset)
+        tmp.add(newphotohref)
         return photosvalue(tmp)
 
     def isblank(self):
-        return len(self.photolist)==0
+        return len(self.photoset)==0
     
     
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: Does not currently handle context directories in a meaningful way (ignores them; assumes everything ends up in dest)
-        assert(xml_attribute=="xlink:href")
+        #assert(xml_attribute=="xlink:href")
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
             pass
-        tmp=[]
+        tmp=set([])
         for subel in element:
             if subel.tag != DCV+"photo":
                 raise ValueError("Photosvalue found non-dcv:photo tag: %s" % (subel.tag))
-            tmp.append(urllib.url2pathname(subel.attrib["{http://www.w3.org/1999/xlink}href"]))
+            tmp.add(hrefvalue.fromxml(xmldocu,subel))
             
             pass
         
         return cls(tmp)
     
-    def xmlrepr(self,xmldocu,tag,defunits=None,xml_attribute=None):
+    def xmlrepr(self,xmldocu,tag,defunits=None):
         # as this tag has subelements it cannot be stored in an xml attribute
-        assert(xml_attribute=="xlink:href")
+        #assert(xml_attribute=="xlink:href")
 
         # clear out any attributes in the dcvalue namespace
         oldattrs=tag.attrib.keys()
@@ -2099,9 +2208,9 @@ class photosvalue(value):
             tag.remove(tag[0])
             pass
         
-        for photo in self.photolist:
+        for photohref in self.photoset:
             newel=etree.Element(DCV+"photo")
-            newel.attrib["{http://www.w3.org/1999/xlink}href"]=urllib.pathname2url(photo)
+            photohref.xmlrepr(xmldocu,newel)
             tag.append(newel)
             pass
         if xmldocu is not None:
@@ -2110,6 +2219,35 @@ class photosvalue(value):
             pass
             
         return
+
+    @classmethod
+    def merge(cls,parent,descendentlist,contextdir=None,maxmergedepth=np.Inf,tag_index_paths_override=None):
+        added=set([])
+        removed=set([])
+        if parent is not None:
+            parentset=frozenset(parent.photoset)
+            pass
+        else:
+            parentset=frozenset([])
+            pass
+        
+        # ... for all descendents...
+        for descendent in descendentlist:
+            # find all photos that were added in this descendent
+            # and all those that were removed in this descendent
+            #sys.stderr.write("parentset=%s; descendent=%s\n" % (str(parentset),str(descendent)))
+            added.update(descendent.photoset.difference(parentset))
+            removed.update(parentset.difference(descendent.photoset))
+            pass
+
+        # if a photo was both added and removed, that is an error
+        if len(added.intersection(removed)) > 0:
+            raise MergeError("Error in merge: Photos %s were added in one descendent and removed in another descendent" % (str(added.intersection(removed)))) 
+
+        return cls(parentset.difference(removed).union(added))
+
+    def __eq__(self,other):
+        return self.photoset==other.photoset
     
     pass
 
@@ -2179,29 +2317,29 @@ class datesetvalue(value):
         return ",".join(sorteddates)
         
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: if xml_attribute is provided, xmldocu must be also.
 
-        if xml_attribute is None:
-            elementtext=element.text
-            pass
-        else: 
-            elementtext=xmldocu.getattr(element,xml_attribute,"")
-            pass
+        #if xml_attribute is None:
+        elementtext=element.text
+        #    pass
+        #else: 
+        #    elementtext=xmldocu.getattr(element,xml_attribute,"")
+        #    pass
 
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
             pass
         return cls(elementtext)
     
-    def xmlrepr(self,xmldocu,element,defunits=None,xml_attribute=None):
-        if xml_attribute is None: 
-            # set text
-            element.text=str(self)
-            pass
-        else: 
-            xmldocu.setattr(element,xml_attribute,str(self))
-            pass
+    def xmlrepr(self,xmldocu,element,defunits=None):
+        #if xml_attribute is None: 
+        # set text
+        element.text=str(self)
+        #pass
+        #else: 
+        #    xmldocu.setattr(element,xml_attribute,str(self))
+        #    pass
 
         if xmldocu is not None:
             xmldocu.modified=True
@@ -2319,23 +2457,23 @@ class integersetvalue(value) :
         
     
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,xml_attribute=None,contextdir=None):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: if xml_attribute is provided, xmldocu must be also.
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
             pass
 
-        if xml_attribute is None:
-            elementtext=element.text
-            pass
-        else: 
-            elementtext=xmldocu.getattr(element,xml_attribute,"")
-            pass
+        #if xml_attribute is None:
+        elementtext=element.text
+        #    pass
+        #else: 
+        #    elementtext=xmldocu.getattr(element,xml_attribute,"")
+        #    pass
 
         return cls(elementtext)
 
 
-    def xmlrepr(self,xmldocu,element,defunits=None,xml_attribute=None):
+    def xmlrepr(self,xmldocu,element,defunits=None):
         # clear out any old attributes
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
@@ -2345,13 +2483,13 @@ class integersetvalue(value) :
             pass
 
             
-        if xml_attribute is None: 
-            # set text
-            element.text=str(self)
-            pass
-        else: 
-            xmldocu.setattr(element,xml_attribute,str(self))
-            pass
+        #if xml_attribute is None: 
+        # set text
+        element.text=str(self)
+        #pass
+        #else: 
+        #    xmldocu.setattr(element,xml_attribute,str(self))
+        #    pass
             
         
         if xmldocu is not None:

@@ -31,3 +31,12 @@ DCINSTDIR=$(PREFIX)/datacollect2-$(VERSION)
 
 INSTALL=/usr/bin/install
 
+PYCHECKER_PATH=$(shell if [ -x /bin/pychecker ] ; then echo "/bin/pychecker" ; elif [ -x /usr/bin/pychecker ] ; then echo "/usr/bin/pychecker" ; elif [ -x /usr/local/bin/pychecker ] ; then echo "/usr/local/bin/pychecker" ; elif [ -x /opt/bin/pychecker ] ; then echo "/opt/bin/pychecker" ; else echo "/none" ; fi )
+
+
+ifneq ($(PYCHECKER_PATH), /none)
+# only use pychecker 0.8.17 or later
+PYCHECKER=$(shell if [[ `$(PYCHECKER_PATH) -V | awk -F . '{print $$1}'` > 0 ||  `$(PYCHECKER_PATH) -V | awk -F . '{print $$2}'` > 8 || `$(PYCHECKER_PATH) -V | awk -F . '{print $$3}'` > 16 ]] ; then echo $(PYCHECKER_PATH) ; else echo "/none" ; fi )
+else
+PYCHECKER=/none
+endif

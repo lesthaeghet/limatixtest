@@ -8,7 +8,10 @@ import os.path
 import sys
 import subprocess
 import tempfile
-if not "gtk" in sys.modules:  # gtk3
+
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     pass
@@ -92,7 +95,7 @@ class runcheckliststep(gtk.HBox):
     myprops=None
 
                       
-    dc_gui_io=None
+    dc_gui_iohandlers=None
     paramdb=None
     gladeobjdict=None
     xmlpath=None
@@ -104,7 +107,9 @@ class runcheckliststep(gtk.HBox):
     cell=None
 
     private_paramdb=None
+    subchecklists_registered=None  # boolean: is private_paramdb["subchecklists"] registered with adddoc?
 
+    
     # parentcl_dest=None # used for adddoc() and remdoc() -- now just use contextdir of parent checklist filename itself
 
     closed=None # flag that the checklist we are in has closed
@@ -115,7 +120,8 @@ class runcheckliststep(gtk.HBox):
         gobject.GObject.__init__(self)
         self.checklist=checklist
         self.xmlpath=xmlpath
-
+        self.subchecklists_registered=False
+        
         self.myprops={}
         self.closed=False
 
@@ -133,17 +139,17 @@ class runcheckliststep(gtk.HBox):
         # register our private paramdb with checklistdb
         checklistdb.register_paramdb(self.private_paramdb,"subchecklists",contextdir,False)
 
-        self.checklist.xmldoc.lock_rw()
+        self.checklist.xmldoc.lock_ro()
         try:
             xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
             self.checklists_element_etxpath=canonicalize_path.getelementetxpath(self.checklist.xmldoc.doc,xmltag)+"/{http://thermal.cnde.iastate.edu/checklist}subchecklists"
             pass
         finally:
-            self.checklist.xmldoc.unlock_rw()
+            self.checklist.xmldoc.unlock_ro()
             pass
             
         # our "dest" is contextdir -- location where we are saving
-        self.parentcl_new_filename(self.checklist,None,None,None,None)  # call adddoc()
+        self.parentcl_new_filename(self.checklist,None,None,None)  # call adddoc()
 
         self.checklist.addclosenotify(self.parentcl_close)
         self.checklist.addresetnotify(self.parentcl_reset)  # Note: this could be in resetchecklist() as an alternative
@@ -228,6 +234,25 @@ class runcheckliststep(gtk.HBox):
 
         pass
 
+    def set_readonly(self,readonly):
+        # NOTE: checkliststep data is not locked when the step is checked,
+        # only when the entire checklist is marked as readonly
+        if readonly:
+            if self.subchecklists_registered:
+
+                self.private_paramdb["subchecklists"].controller.remdoc(self.checklist.xmldoc,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
+                self.subchecklists_registered=False
+                pass
+            pass
+        else :
+            if not(self.subchecklists_registered) and self.checklist.xmldoc.filename is not None:
+                self.private_paramdb["subchecklists"].controller.adddoc(self.checklist.xmldoc,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
+                self.subchecklists_registered=True
+                pass
+            pass
+        pass
+    
+    
     def checklistopened(self,possiblesubchecklist):
         # This is called when ANY checklist or plan is opened. 
         # We have to detect if it is one of ours and call addresetnotify
@@ -242,7 +267,7 @@ class runcheckliststep(gtk.HBox):
 
         checklistsdoc=self.private_paramdb["subchecklists"].dcvalue.get_xmldoc(nsmap={"dc": "http://thermal.cnde.iastate.edu/datacollect","xlink":"http://www.w3.org/1999/xlink"},contextdir=contextdir)  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
         
-        if checklistdb.checklist_in_param(possiblesubchecklist,contextdir,checklistsdoc):
+        if checklistdb.checklist_in_param(checklistdb.checklist_href(possiblesubchecklist),checklistsdoc):
             
 
             possiblesubchecklist.addresetnotifyifneeded(self.subreset)  # This must be after checklistnotify (above) so that our reset routine gets called after checklistdb's, so that we see the result of the reset on the checklistdb
@@ -299,7 +324,7 @@ class runcheckliststep(gtk.HBox):
         
         
         self.paramdb=guistate.paramdb
-        self.dc_gui_io=guistate.io
+        self.dc_gui_iohandlers=guistate.iohandlers
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
@@ -320,19 +345,20 @@ class runcheckliststep(gtk.HBox):
 
         pass
 
-    def parentcl_new_filename(self,checklist,origfilename,dest,name,oldfilename):
+    def parentcl_new_filename(self,checklist,origfilename,name,oldfilename):
         #self.parentcl_dest=dest
 
-        if oldfilename is not None:
-            self.private_paramdb["subchecklists"].controller.remdoc(self.checklist.xmldoc,contextdir,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
+        if oldfilename is not None and self.subchecklists_registered:
+            self.private_paramdb["subchecklists"].controller.remdoc(self.checklist.xmldoc,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
             pass
+        self.subchecklists_registered=False
 
-        if self.checklist.xmldoc.filename is not None: 
+        if self.checklist.xmldoc.filename is not None and not self.checklist.readonly: 
 
-            contextdir=os.path.split(self.checklist.xmldoc.filename)[0]
 
             # our "dest" is contextdir -- location where we are saving
-            self.private_paramdb["subchecklists"].controller.adddoc(self.checklist.xmldoc,contextdir,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
+            self.private_paramdb["subchecklists"].controller.adddoc(self.checklist.xmldoc,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
+            self.subchecklists_registered=True
             # register remdoc with checklist close and with checklist reset. Will also need to adddoc when filename is set. 
             pass
 
@@ -355,12 +381,7 @@ class runcheckliststep(gtk.HBox):
         self.closed=True
 
         # go through children and remove notifies
-        if self.checklist.xmldoc.filename is None:
-            contextdir="ERROR"  # shouldn't need it if there is no filename!
-            pass
-        else :
-            contextdir=os.path.split(self.checklist.xmldoc.filename)[0]
-            pass
+        contextdir=self.checklist.xmldoc.getcontextdir()
 
         checklists=checklistdb.getchecklists(contextdir,self.private_paramdb,"subchecklists")
         for checklistentry in checklists:
@@ -375,18 +396,20 @@ class runcheckliststep(gtk.HBox):
         checklistdb.unregister_paramdb(self.private_paramdb,"subchecklists",None,False)
         
         
-        self.checklist.xmldoc.lock_rw()
-        try:
-            # our "dest" is contextdir -- location where we are saving
+        #self.checklist.xmldoc.lock_rw()
+        # Don't think we actually need to lock here... not doing any writing
+        #try:
+        #    # our "dest" is contextdir -- location where we are saving
 
-            if self.checklist.xmldoc.filename is not None:
-                # only adddoc'd if we have a filename, because we needed a filename to have a context location
-                self.private_paramdb["subchecklists"].controller.remdoc(self.checklist.xmldoc,contextdir,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
-                pass
+        if self.checklist.xmldoc.filename is not None and self.subchecklists_registered:
+            # only adddoc'd if we have a filename, because we needed a filename to have a context location
+            self.private_paramdb["subchecklists"].controller.remdoc(self.checklist.xmldoc,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
+            
             pass
-        finally:
-            self.checklist.xmldoc.unlock_rw()
-            pass
+        self.subchecklists_registered=False
+        #finally:
+        #    self.checklist.xmldoc.unlock_rw()
+        #    pass
         # clear paramdb entry
         self.private_paramdb["subchecklists"].requestvalstr_sync("")
         del self.private_paramdb["subchecklists"] # flag to checklistdb that this paramdb is no longer valid
@@ -434,7 +457,6 @@ class runcheckliststep(gtk.HBox):
 
 
     def resetchecklist(self):
-        # NOTE: self.checklist.xmldoc IS LOCKED WHEN THIS IS CALLED
 
         
 
@@ -452,7 +474,7 @@ class runcheckliststep(gtk.HBox):
 
     # most gotsubchecklist functionality now covered by checklistdb...
     
-    def gotsubchecklist(self,checklistobj,origfilename,dest,fname,oldfilename):
+    def gotsubchecklist(self,checklistobj,origfilename,fname,oldfilename):
         self.update_status()
         pass
 
@@ -506,12 +528,8 @@ class runcheckliststep(gtk.HBox):
         if self.statusreadout is None:
             return  # no status readout in bare checklist mode
 
-        if self.checklist.xmldoc.filename is None:
-            contextdir="ERROR"  # shouldn't need it if there is no filename!
-            pass
-        else :
-            contextdir=os.path.split(self.checklist.xmldoc.filename)[0]
-            pass
+        contextdir=self.checklist.xmldoc.getcontextdir()
+
         checklists=checklistdb.getchecklists(contextdir,self.private_paramdb,"subchecklists",None)
         # sys.stderr.write("checklists=%s\n" % (str(checklists)))
         #except:
@@ -619,7 +637,7 @@ class runcheckliststep(gtk.HBox):
                 subchecklistobj=self.checklist.datacollect_explogwin.popupchecklist(subchecklist.canonicalpath)
                 pass
             else:
-                standalone_checklist.popupchecklist(subchecklist.canonicalpath,self.paramdb,self.dc_gui_io)
+                standalone_checklist.popupchecklist(subchecklist.canonicalpath,self.paramdb,self.dc_gui_iohandlers)
                 pass
             ## notify checklist with our private paramdb
             #contextdir=os.path.split(self.checklist.xmldoc.filename)[0]
@@ -743,7 +761,7 @@ class runcheckliststep(gtk.HBox):
 
 
 
-            subchecklist=standalone_checklist.open_checklist(checklistfile,self.paramdb,self.dc_gui_io,destoverride=destdir)
+            subchecklist=standalone_checklist.open_checklist(checklistfile,self.paramdb,self.dc_gui_iohandlers)
             # set parent attribute
 
             subchecklist.set_parent(self.checklist.xmldoc.getcontextdir(),self.checklist.xmldoc.filename)

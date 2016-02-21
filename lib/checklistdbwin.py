@@ -17,7 +17,9 @@ except AttributeError:
 
 import numpy as np
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     pass
@@ -214,6 +216,7 @@ def uniqify(listofstrings):
     return [forwardmap[s] for s in listofstrings]
 
 
+# doabbrev is no longer used
 def doabbrev(listofobjs,objattr,objabbrevattr,separator="_"): 
     # go through listofobjs and place abbreviations for attribute objattr in attribute objabrrevattr
     
@@ -331,6 +334,14 @@ def doabbrev(listofobjs,objattr,objabbrevattr,separator="_"):
 
     return 
 
+def timestamp_abbreviate(isotimestamp):
+    (date,time)=isotimestamp.split("T")
+    (year,month,day)=date.split("-")
+    timesplit=time.split(":")
+    hour=timesplit[0]
+    minute=timesplit[1]
+    return "%s-%sT%s:%s" % (month,day,hour,minute)
+
 class checklistdbwin(gtk.Window):
     contextdir=None # context directory for filenames in <dc:checklist> tags within paramdb[clparamname]
     paramdb=None  
@@ -350,15 +361,16 @@ class checklistdbwin(gtk.Window):
 
     # Must match titles and types, in __init__ (below), and bottom of liststoreupdate() (below)... also be sure to update query_tooltip() and see also doabbrev() calls. 
     COLUMN_ORIGFILENAME=0
-    COLUMN_CLINFO=1
-    COLUMN_CLTYPE=2
-    COLUMN_FILENAME=3
-    COLUMN_STARTTIMESTAMP=4
-    COLUMN_IS_OPEN=5
-    COLUMN_ALLCHECKED=6
-    COLUMN_IS_DONE=7
-    COLUMN_EXTRA_CANONPATH=8  # hidden
-    COLUMN_EXTRA_SHOWTHISROW=9 # hidden, flag for whether this row should be shown or filtered (not yet implemented)
+    #COLUMN_CLINFO=1
+    #COLUMN_CLTYPE=2
+    COLUMN_FILENAME=1
+    COLUMN_MEASNUM=2
+    COLUMN_STARTTIMESTAMP=3
+    COLUMN_IS_OPEN=4
+    COLUMN_ALLCHECKED=5
+    COLUMN_IS_DONE=6
+    COLUMN_EXTRA_CANONPATH=7  # hidden
+    COLUMN_EXTRA_SHOWTHISROW=8 # hidden, flag for whether this row should be shown or filtered (not yet implemented)
 
     def __init__(self,contextdir,paramdb,clparamname,popupcallback=None,popupcallbackargs=[],allchecklists=False,allplans=False):
         gobject.GObject.__init__(self)
@@ -377,9 +389,9 @@ class checklistdbwin(gtk.Window):
 
         self.set_title("datacollect2 %s" % (clparamname))
 
-        titles=["Orig filename","Info","Type","Filename","Start Timestamp","Open","All Checked","Done"]
+        titles=["Orig filename","Filename","Measnum","Start Timestamp","Open","All Checked","Done"]
 
-        types=[gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_BOOLEAN,gobject.TYPE_BOOLEAN,gobject.TYPE_BOOLEAN,gobject.TYPE_STRING,gobject.TYPE_BOOLEAN]
+        types=[gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_LONG,gobject.TYPE_STRING,gobject.TYPE_BOOLEAN,gobject.TYPE_BOOLEAN,gobject.TYPE_BOOLEAN,gobject.TYPE_STRING,gobject.TYPE_BOOLEAN]
         
         self.liststore=gtk.ListStore(*types)
         
@@ -500,12 +512,20 @@ class checklistdbwin(gtk.Window):
                 if columnnum==self.COLUMN_ORIGFILENAME:
                     text=checklistentry.origfilename
                     pass
-                elif columnnum==self.COLUMN_CLINFO:
-                    text=checklistentry.clinfo
-                    pass
+                #elif columnnum==self.COLUMN_CLINFO:
+                #    text=checklistentry.clinfo
+                #    pass
                 elif columnnum==self.COLUMN_FILENAME:
-                    text=checklistentry.filename
+                    text=checklistentry.path
                     pass
+                elif columnnum==self.COLUMN_MEASNUM:
+                    if checklistentry.measnum is not None:
+                        text=str(checklistentry.measnum)
+                        pass
+                    else:
+                        text=""
+                        pass
+                    pass                
                 elif columnnum==self.COLUMN_STARTTIMESTAMP:
                     text=checklistentry.starttimestamp
                     pass
@@ -654,10 +674,11 @@ class checklistdbwin(gtk.Window):
 
         # Now go through self.checklists and abbreviate long filenames, etc. 
         
-        doabbrev(self.checklists,"filename","filename_abbrev")
-        doabbrev(self.checklists,"starttimestamp","starttimestamp_abbrev")
-        doabbrev(self.checklists,"clinfo","clinfo_abbrev")
-        doabbrev(self.checklists,"origfilename","origfilename_abbrev",separator="/")
+        #doabbrev(self.checklists,"filename","filename_abbrev")
+        
+        #doabbrev(self.checklists,"starttimestamp","starttimestamp_abbrev",separator=":")
+        #doabbrev(self.checklists,"clinfo","clinfo_abbrev")
+        #doabbrev(self.checklists,"origfilename","origfilename_abbrev",separator="/")
             
 
 
@@ -675,60 +696,86 @@ class checklistdbwin(gtk.Window):
             #import pdb as pythondb
             #try:
             #
-            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ORIGFILENAME) != entry.origfilename_abbrev:
-                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ORIGFILENAME, entry.origfilename_abbrev)
+            origfilenamefilepart=""
+            if entry.origfilename is not None:
+                origfilenamefilepart=os.path.split(entry.origfilename)[1]
+                pass
+            
+            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ORIGFILENAME) != origfilenamefilepart:
+                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ORIGFILENAME, origfilenamefilepart)
             # 2nd (1) column is abbreviated clinfo
             #import pdb as pythondb
             #try:
             #
-            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_CLINFO) != entry.clinfo_abbrev:
-                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_CLINFO, entry.clinfo_abbrev)
-                pass
+            #if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_CLINFO) != entry.clinfo_abbrev:
+            #    self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_CLINFO, entry.clinfo_abbrev)
+            #    pass
             #    pass
             #except:
             #    pythondb.post_mortem()
             #    pass
 
-            # 3rd column (2) is CLTYPE
-            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_CLTYPE) != entry.cltype:
-                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_CLTYPE, entry.cltype)
-                pass
+            ## 3rd column (2) is CLTYPE
+            #if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_CLTYPE) != entry.cltype:
+            #    self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_CLTYPE, entry.cltype)
+            #    pass
                 
             
-            # 4th (3) column is abbreviated filename
-            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_FILENAME) != entry.filename_abbrev:
-                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_FILENAME, entry.filename_abbrev)
+            # 2nd (1) column is abbreviated filename
+            filename=""
+            if entry.filename is not None:
+                filename=entry.filename
+                pass
+            
+            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_FILENAME) != filename:
+                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_FILENAME, filename)
                 pass
 
-            # 5th (4) column is abbreviated starting timestamp
-            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_STARTTIMESTAMP) != entry.starttimestamp_abbrev:
-                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_STARTTIMESTAMP, entry.starttimestamp_abbrev)
+            # 3rd (2) column is measnum
+            #sys.stderr.write("entry.measnum=%s\n" % (str(entry.measnum)))
+            measnum=-1
+            if entry.measnum is not None:
+                measnum=entry.measnum
+                pass
+            
+            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_MEASNUM) != measnum:
+                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_MEASNUM, measnum)
+                pass
+            
+            starttimestamp=""
+            if entry.starttimestamp is not None and entry.starttimestamp != "":
+                starttimestamp=timestamp_abbreviate(entry.starttimestamp)
+                pass
+            # 4th (3) column is abbreviated starting timestamp
+            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_STARTTIMESTAMP) != starttimestamp:
+                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_STARTTIMESTAMP, starttimestamp)
                 pass
 
-            # 6th (5) column is is_open
+            # 5th (4) column is is_open
             if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_IS_OPEN) != entry.is_open:
                 self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_IS_OPEN, entry.is_open)
                 pass
 
-            # 7th (6) column is allchecked
+            # 6th (5) column is allchecked
             if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ALLCHECKED) != entry.allchecked:
                 self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ALLCHECKED, entry.allchecked)
                 pass
 
-            # 8th (7) column is is_done
+            # 7th (6) column is is_done
             if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_IS_DONE) != entry.is_done:
                 self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_IS_DONE, entry.is_done)
                 pass
 
 
-            # 9th (8) column is EXTRA_CANONPATH
+            # 8th (7) column is EXTRA_CANONPATH
             if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_EXTRA_CANONPATH) != entry.canonicalpath:
                 self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_EXTRA_CANONPATH, entry.canonicalpath)
                 pass
 
-            # 10th (9) column is EXTRA_SHOWTHISROW (not yet implemented)
+            # 9th (8) column is EXTRA_SHOWTHISROW (not yet implemented)
                 
             rownum+=1
             pass
-        
+        pass
+    pass
 

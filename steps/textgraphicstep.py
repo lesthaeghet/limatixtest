@@ -4,7 +4,9 @@
 import os
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     from gi.repository import Gdk as gdk
@@ -36,7 +38,7 @@ class textgraphicstep(gtk.HBox):
     __gproperties__ = {
         "image": (gobject.TYPE_STRING,
                      "Image file",
-                     "Name of image file",
+                     "Relative or absolute reference to image file",
                      "", # default value 
                      gobject.PARAM_READWRITE), # flags
 
@@ -55,14 +57,16 @@ class textgraphicstep(gtk.HBox):
                      "", # default value 
                      gobject.PARAM_READWRITE), # flags
         }
+    __dcvalue_xml_properties={} # dictionary by property of dc_value class to be transmitted as a serialized  xmldoc
+    __dcvalue_href_properties=frozenset(["image"]) # set of properties to be transmitted as an hrefvalue with the current directory as contextdir
+
     __proplist = ["image","width","description"]
     
     myprops=None
 
     
-                      
-    dc_gui_io=None
-    searchdirs=None
+    
+    #searchdirs=None
     gladeobjdict=None
     
     def __init__(self,checklist,step,xmlpath):
@@ -76,7 +80,7 @@ class textgraphicstep(gtk.HBox):
 
         (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"textgraphicstep.glade"))   
         
-        self.searchdirs=[]
+        #self.searchdirs=[]
 
         self.set_property("image","")
         self.set_property("description","")
@@ -94,26 +98,11 @@ class textgraphicstep(gtk.HBox):
 
     def set_image(self,value):
         self.myprops["image"]=value
-        if value=="" or value is None or len(self.searchdirs)==0:
+        if value=="" or value is None: #  or len(self.searchdirs)==0:
             return
         
 
-        if not os.path.isabs(value):
-            path=None
-            # search for match
-            for direc in self.searchdirs:
-                if os.access(os.path.join(direc,value),os.R_OK):
-                    path=os.path.join(direc,value)
-                    break
-                pass
-            if path is None:
-                sys.stderr.write("Error opening image \"%s\". Searchdirs=\"%s\".\n" % (value,self.searchdirs))
-                path=value
-                pass
-            pass
-        else :
-            path=value # absolute path
-            pass
+        path=value # absolute path or relative to our current directory
         
         if not "gtk" in sys.modules:  # gtk3
             rawpixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
@@ -166,8 +155,7 @@ class textgraphicstep(gtk.HBox):
         # super(dg_readout).__dc_gui_init(self,io)
         
 
-        self.dc_gui_io=guistate.io
-        self.searchdirs.extend(guistate.searchdirs)
+        #self.searchdirs.extend(guistate.searchdirs)
 
         self.set_image(self.myprops["image"])
 

@@ -15,7 +15,7 @@ class dummy(object):
 thisdir=os.path.split(sys.modules[dummy.__module__].__file__)[0]
 
 
-def load_config(fname,paramdb,dgio,createparamserver):
+def load_config(fname,paramdb,iohandlers,createparamserver):
 
     fnamepath=os.path.split(fname)[0]
     if fnamepath=="":
@@ -37,7 +37,7 @@ def load_config(fname,paramdb,dgio,createparamserver):
     output=subproc.communicate(configstr)[0]
 
     try: 
-        exec(output,globals(),{"paramdb":paramdb,"dgio":dgio,"createparamserver":createparamserver})
+        exec(output,globals(),{"paramdb":paramdb,"iohandlers":iohandlers,"createparamserver":createparamserver})
         pass
     except: 
         tmpfname=os.tempnam(None,"dc2_preproc")

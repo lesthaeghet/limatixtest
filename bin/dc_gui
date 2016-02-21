@@ -7,6 +7,8 @@
 import sys
 import os
 if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     pass
 else :  # gtk2
@@ -42,7 +44,7 @@ sys.path.append(installeddir)
 sys.path.append(os.path.join(installeddir,"lib/"))
 
 
-import dg_io
+#import dg_io
 
 from dc_gtksupp import build_from_file
 from dc_gtksupp import dc_initialize_widgets
@@ -77,9 +79,8 @@ while argc < len(sys.argv):
     pass
 
 # !!! Add paramdb2 instatiation here
-iohandler=dg_io.io()
-iohandler.startcomm()
-guistate=create_guistate(iohandler,None,[os.path.split(gladefile)[0]])
+iohandlers={}   #=dg_io.io()
+guistate=create_guistate(iohandlers,None,[os.path.split(gladefile)[0]])
 
 (gladeobjdict,builder)=build_from_file(gladefile)
 

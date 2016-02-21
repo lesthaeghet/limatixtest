@@ -2,7 +2,9 @@ import os
 import os.path
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     pass
@@ -22,7 +24,7 @@ class steptemplate(gtk.HBox):
     __gtype_name__="steptemplate"
     # __gproperties__ = {}
     
-    dg_gui_io=None
+    dc_gui_iohandlers=None
     gladeobjdict=None
     gladebuilder=None
     stepnumber=None
@@ -79,13 +81,7 @@ class steptemplate(gtk.HBox):
         # print "%s\n%s" % (stepdescr,self.execcode)
         #exec("if True:\n%s" % (self.execcode),globals(),self.execlocaldict)
         for key in self.params:
-            if isinstance(self.params[key],hrefv):
-                # Set as string according to path from current directory
-                self.stepobj.set_property(key,self.params[key].getpath(contextdir="."))
-                pass
-            else : 
-                self.stepobj.set_property(key,self.params[key])
-                pass
+            self.stepobj.set_property(key,self.params[key])
             pass
 
         pass
@@ -97,13 +93,38 @@ class steptemplate(gtk.HBox):
         # self.gladeobjdict["setparam"].set_property("dg-paramdefault",self.myprops["dg-paramdefault"])
 
         
-        self.dc_gui_io=guistate.io
+        self.dc_gui_iohandlers=guistate.iohandlers
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
         self.stepobj.dc_gui_init(guistate)
 
         pass
 
+    # called by checklist when a box is checked or unchecked
+    # (checked is the new state)
+    def handle_check(self,checked):
+        # dispatch to stepboj if stepobj has a handle_check method
+        if hasattr(self.stepobj,"handle_check"):
+            self.stepobj.handle_check(checked)
+            pass
+        
+        pass
+    
+
+    # called by checklist when checklist is set readonly or non-readonly
+    def set_readonly(self,readonly):
+        checkbutton=self.gladeobjdict["checkbutton"]
+        checkbutton.set_sensitive(not(readonly))
+
+        # call set_readonly() method of the step, if present
+        if hasattr(self.stepobj,"set_readonly"):
+            self.stepobj.set_readonly(readonly)
+            pass
+        
+        pass
+    
+        
+    
     def destroystep(self):
         if hasattr(self.stepobj,"destroystep"):
             self.stepobj.destroystep()

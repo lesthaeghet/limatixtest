@@ -80,6 +80,8 @@ import ast
 from lxml import etree
 
 if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     pass
 else :  # gtk2
@@ -337,7 +339,7 @@ def findparam(prxnsmap,outdoc,element,argname):
         useargname=argname
         pass
     
-    if outdoc.child(element,useargname):
+    if outdoc.child(element,useargname) is not None:
         return stepparam(name=argname,value=stepparamvalue(xpath=useargname,xpathnsmap=namespaces,textflag=textflag,hrefflag=hrefflag,hreffullpathflag=hreffullpathflag,numericvalueflag=numericvalueflag))
     elif "_" in useargname:
 
@@ -358,6 +360,10 @@ def findparam(prxnsmap,outdoc,element,argname):
         
     else: 
         # raise NameError("Tag %s: No %s child element found!" % (outdoc.tostring(element),argname))
+        #import pdb
+        #
+        #pdb.set_trace()
+        
         raise NameError("Tag %s: No \"%s\" child element found!" % (etxpath2human(outdoc.get_canonical_etxpath(element),outdoc.nsmap),argname))
     pass
 
@@ -583,10 +589,11 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
         for oldelement in oldelements:
             # do the requested attributes match?
             attrmatch=True
+
             for attrname in attrdict:
-                if output.getattr(oldelement,attrname)!=attrdict[attrname]:
+                if not(output.hasattr(oldelement,attrname)) or output.getattr(oldelement,attrname)!=attrdict[attrname]:
                     attrmatch=False
-                    pass
+                    break
                 pass
             
             if attrmatch: 
@@ -744,6 +751,7 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
 
     # Search for matching elements
 
+    # sys.stderr.write("elementmatch=%s\n" % (elementmatch))
     elements=output.xpath(elementmatch,namespaces=elementmatch_nsmap,variables={"filepath":output.filename,"filename":os.path.split(output.filename)[1]})
 
 
@@ -970,9 +978,23 @@ def procstep(scriptdir,prxdoc,output,steptag,processpath,defaultelementmatch,def
     
     elementmatch=defaultelementmatch
     elementmatch_nsmap=defaultelementmatch_nsmap
+    # sys.stderr.write("defaultelementmatch=%s\n" % (elementmatch))
+
+    # try for <prx:elementmatch> in <step> 
+    try: 
+        elementmatchel=prxdoc.xpathsinglecontext(steptag,"prx:elementmatch")
+        elementmatch=elementmatchel.text
+        # sys.stderr.write("overrideelementmatch=%s\n" % (elementmatch))
+        elementmatch_nsmap=elementmatchel.nsmap
+        pass
+    except NameError:
+        pass
+
+    # try for <prx:elementmatch> in <script> 
     try: 
         elementmatchel=prxdoc.xpathsinglecontext(scripttag,"prx:elementmatch")
         elementmatch=elementmatchel.text
+        # sys.stderr.write("overrideelementmatch=%s\n" % (elementmatch))
         elementmatch_nsmap=elementmatchel.nsmap
         pass
     except NameError:
@@ -1009,7 +1031,7 @@ def procstep(scriptdir,prxdoc,output,steptag,processpath,defaultelementmatch,def
     
     # ***!!! Note: Should there be a separate class of parameters for xlink:href? 
 
-    for paramel in prxdoc.xpathcontext(steptag,"prx:parameter"):
+    for paramel in prxdoc.xpathcontext(steptag,"prx:parameter|prx:script/prx:parameter"):
         paramname=prxdoc.getattr(paramel,"name")
         param=stepparam(name=paramname)
         for child in prxdoc.xpathcontext(paramel,"*"):
@@ -1356,7 +1378,8 @@ if __name__=="__main__":
             output.lock_rw()
             try: 
                 output.merge_namespace("dcp","http://thermal.cnde.iastate.edu/datacollect/provenance")
-                sys.stderr.write("nsmap=%s\n" % (output.doc.getroot().nsmap))
+                output.suggest_namespace_rootnode("dcp","http://thermal.cnde.iastate.edu/datacollect/provenance")
+                #sys.stderr.write("nsmap=%s\n" % (output.doc.getroot().nsmap))
                 pass
             finally:
                 output.unlock_rw()
@@ -1374,6 +1397,7 @@ if __name__=="__main__":
             for nspre in prxdocmap.keys():
                 if nspre is not None:
                     output.merge_namespace(nspre,prxdocmap[nspre])
+                    output.suggest_namespace_rootnode(nspre,prxdocmap[nspre])
                     pass
                 pass
             pass

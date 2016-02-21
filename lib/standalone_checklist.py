@@ -5,7 +5,9 @@ import os
 import os.path
 
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     from gi.repository import Gdk as gdk
@@ -35,10 +37,10 @@ plandbwindow=None
 
 
 # event handler for clicking on the checklists... menu item
-def handle_openchecklists(event,paramdb,iohandler):
+def handle_openchecklists(event,paramdb,iohandlers):
     global checklistdbwindow
     if checklistdbwindow is None:
-        checklistdbwindow=checklistdbwin.checklistdbwin(None,None,None,popupchecklist,[paramdb,iohandler],True,False)
+        checklistdbwindow=checklistdbwin.checklistdbwin(None,None,None,popupchecklist,[paramdb,iohandlers],True,False)
         checklistdbwindow.show()
         pass
     else:
@@ -48,10 +50,10 @@ def handle_openchecklists(event,paramdb,iohandler):
     pass
 
 
-def handle_openplans(event,paramdb,iohandler):
+def handle_openplans(event,paramdb,iohandlers):
     global plandbwindow
     if plandbwindow is None:
-        plandbwindow=checklistdbwin.checklistdbwin(None,None,None,popupchecklist,[paramdb,iohandler],False,True)
+        plandbwindow=checklistdbwin.checklistdbwin(None,None,None,popupchecklist,[paramdb,iohandlers],False,True)
         plandbwindow.show()
         pass
     else:
@@ -61,12 +63,12 @@ def handle_openplans(event,paramdb,iohandler):
     pass
 
 
-def popupchecklist(canonicalpath,paramdb,iohandler):
+def popupchecklist(canonicalpath,paramdb,iohandlers):
     # like explogwindow.popupchecklist
     (chklistobj,canonfname)=dc2_misc.searchforchecklist(canonicalpath)
 
     if chklistobj is None:
-        checklistobj=open_checklist(canonfname,paramdb,iohandler)
+        checklistobj=open_checklist(canonfname,paramdb,iohandlers)
         pass
     else:
         # bring it to front 
@@ -75,12 +77,12 @@ def popupchecklist(canonicalpath,paramdb,iohandler):
     return chklistobj
     
 
-def checklistmenu_realtime(event,canonicalpath,paramdb,iohandler):
-    popupchecklist(canonicalpath,paramdb,iohandler)
+def checklistmenu_realtime(event,canonicalpath,paramdb,iohandlers):
+    popupchecklist(canonicalpath,paramdb,iohandlers)
     pass
 
 
-def rebuildchecklistrealtimemenu(event,AllChecklists,AllPlans,MenuObject,MenuOrigEntries,paramdb,iohandler):
+def rebuildchecklistrealtimemenu(event,AllChecklists,AllPlans,MenuObject,MenuOrigEntries,paramdb,iohandlers):
 
     openchecklists=checklistdb.getchecklists(None,None,None,None,allchecklists=AllChecklists,allplans=AllPlans)
     #sys.stderr.write("rebuildchecklistrealtimemenu(%s)\n" % (openchecklists))
@@ -106,7 +108,7 @@ def rebuildchecklistrealtimemenu(event,AllChecklists,AllPlans,MenuObject,MenuOri
         else:
             newitem=gtk.MenuItem(label=openchecklists[cnt].filename,use_underline=False)
             pass
-        newitem.connect("activate",checklistmenu_realtime,openchecklists[cnt].canonicalpath,paramdb,iohandler)
+        newitem.connect("activate",checklistmenu_realtime,openchecklists[cnt].canonicalpath,paramdb,iohandlers)
         MenuObject.append(newitem)
         newitem.show()
         # sys.stderr.write("adding checklist menu item: %s\n" % (openchecklists[cnt].filename))
@@ -115,7 +117,7 @@ def rebuildchecklistrealtimemenu(event,AllChecklists,AllPlans,MenuObject,MenuOri
 
 
 
-def insert_menu(chklist,paramdb,iohandler):
+def insert_menu(chklist,paramdb,iohandlers):
 
     MenuBar=gtk.MenuBar()
 
@@ -124,7 +126,7 @@ def insert_menu(chklist,paramdb,iohandler):
     ChecklistMenu=gtk.Menu()
     ChecklistMenuItem.set_submenu(ChecklistMenu)
     ChecklistsMenuItem=gtk.MenuItem("Checklists...")
-    ChecklistsMenuItem.connect("activate",handle_openchecklists,paramdb,iohandler)
+    ChecklistsMenuItem.connect("activate",handle_openchecklists,paramdb,iohandlers)
     ChecklistMenu.append(ChecklistsMenuItem)
 
     PlanMenuItem=gtk.MenuItem("Plan")
@@ -132,7 +134,7 @@ def insert_menu(chklist,paramdb,iohandler):
     PlanMenu=gtk.Menu()
     PlanMenuItem.set_submenu(PlanMenu)
     PlansMenuItem=gtk.MenuItem("Plans...")
-    PlansMenuItem.connect("activate",handle_openplans,paramdb,iohandler)
+    PlansMenuItem.connect("activate",handle_openplans,paramdb,iohandlers)
     PlanMenu.append(PlansMenuItem)
 
 
@@ -140,21 +142,21 @@ def insert_menu(chklist,paramdb,iohandler):
     chklist.gladeobjdict["UpperVBox"].reorder_child(MenuBar,0) # move it to the top
 
     # add rebuild requests... for ChecklistMenu
-    checklistdb.requestopennotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandler)
-    checklistdb.requestdonenotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandler)
-    checklistdb.requestresetnotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandler)
-    checklistdb.requestclosenotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandler)
+    checklistdb.requestopennotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandlers)
+    checklistdb.requestdonenotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandlers)
+    checklistdb.requestresetnotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandlers)
+    checklistdb.requestclosenotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandlers)
 
     # add rebuild requests... for PlanMenu
-    checklistdb.requestopennotify(rebuildchecklistrealtimemenu,False,True,PlanMenu,1,paramdb,iohandler)
-    checklistdb.requestdonenotify(rebuildchecklistrealtimemenu,False,True,PlanMenu,1,paramdb,iohandler)
-    checklistdb.requestresetnotify(rebuildchecklistrealtimemenu,False,True,PlanMenu,1,paramdb,iohandler)
-    checklistdb.requestclosenotify(rebuildchecklistrealtimemenu,False,True,PlanMenu,1,paramdb,iohandler)
+    checklistdb.requestopennotify(rebuildchecklistrealtimemenu,False,True,PlanMenu,1,paramdb,iohandlers)
+    checklistdb.requestdonenotify(rebuildchecklistrealtimemenu,False,True,PlanMenu,1,paramdb,iohandlers)
+    checklistdb.requestresetnotify(rebuildchecklistrealtimemenu,False,True,PlanMenu,1,paramdb,iohandlers)
+    checklistdb.requestclosenotify(rebuildchecklistrealtimemenu,False,True,PlanMenu,1,paramdb,iohandlers)
     
 
     pass
 
-def open_checklist_parent(chklist,paramdb,iohandler):
+def open_checklist_parent(chklist,paramdb,iohandlers):
     # does this checklist have a parent that we should open too? 
     parent=chklist.get_parent()  # returns hrefvalue object
 
@@ -164,7 +166,7 @@ def open_checklist_parent(chklist,paramdb,iohandler):
         
         if parentclobj is None:
             # if not, open the parent checklist
-            open_checklist(parentcanonfname,paramdb,iohandler)
+            open_checklist(parentcanonfname,paramdb,iohandlers)
             pass
         pass
     pass
@@ -178,21 +180,21 @@ def handle_checklist_close(param1,param2,chklist):
         pass
     return False
 
-def open_checklist(fname,paramdb,iohandler,destoverride=None):
-    chklist=checklist.checklist(fname,paramdb,destoverride=destoverride)
+def open_checklist(fname,paramdb,iohandlers):
+    chklist=checklist.checklist(fname,paramdb)
 
     # insert menu
-    insert_menu(chklist,paramdb,iohandler)
+    insert_menu(chklist,paramdb,iohandlers)
 
 
     # each checklist opened has its own private guistate
 
-    guistate=create_guistate(iohandler,paramdb,[os.path.split(fname)[0]])
+    guistate=create_guistate(iohandlers,paramdb,[os.path.split(fname)[0]])
     
     
     chklist.dc_gui_init(guistate)
 
-    open_checklist_parent(chklist,paramdb,iohandler) # open our parent, if necessary
+    open_checklist_parent(chklist,paramdb,iohandlers) # open our parent, if necessary
 
     
     if fname.endswith(".plx") or fname.endswith(".plf"):

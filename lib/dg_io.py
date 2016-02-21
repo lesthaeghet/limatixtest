@@ -49,7 +49,7 @@ import atexit
 # need to call g_thread_init() and gdk_threads_init() ????
 # or glib.threads_init()
 
-
+# sys.stderr.write("sys.path=%s\n" % (str(sys.path)))
 if "gtk" in sys.modules or "gobject" in sys.modules:
     # GTK2/PyGTK
     # import gobject
@@ -69,6 +69,17 @@ import dg_comm as dgc
 
 
 __pychecker__="no-import no-callinit no-local" # no-callinit because of spurious warning about (dg_comm.client) __init__() not being called
+
+def addhandler(iohandlers):
+    # This helper function adds the dg_io iohandler to
+    # the main handlers list and starts communication
+    if "dgio" not in iohandlers:
+        iohandlers["dgio"]=io()
+        iohandlers["dgio"].startcomm()
+        pass
+    
+    
+    pass
 
 class iochan(dgc.client):
     # extension of dg_comm client class

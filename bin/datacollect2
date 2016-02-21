@@ -8,6 +8,8 @@ import datetime
 import socket
 
 if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     pass
 else :  # gtk2
@@ -64,7 +66,7 @@ from dc_value import xmltreevalue as xmltreev
 
 from dc_dbus_barcode import dc_dbus_barcode
 
-import dg_io 
+#import dg_io 
 import paramdb2 as pdb
 import paramdbfile
 import dc2_misc
@@ -104,8 +106,9 @@ cmdline_checklists=[]
 cmdline_configfiles=[]
 dpdfiles=[]
 explogfile=None
-appendlog=False
+newlog=False
 parentchecklistpath=None
+autoloadconfig=True
 
 argc=1
 
@@ -121,6 +124,7 @@ while argc < len(sys.argv):
     elif arg=="-f":
         argc+=1
         cmdline_configfiles.append(sys.argv[argc])
+        autoloadconfig=False
         pass
     elif arg=="-g":
         argc+=1
@@ -134,12 +138,14 @@ while argc < len(sys.argv):
         argc+=1
         cmdline_plans.append(sys.argv[argc])
         pass
-    elif arg=='-a':
-        appendlog=True
+    elif arg=='-n':
+        newlog=True
+        autoloadconfig=False
         pass
     elif arg=="-d":
         argc+=1
         dpdfiles.append(sys.argv[argc])
+        autoloadconfig=False
         pass
     elif arg=='--gtk3':
         # handled at imports, above
@@ -155,7 +161,7 @@ while argc < len(sys.argv):
 Flags:
   -s                  Single specimen mode
   -m                  Multiple specimen mode
-  -a                  Append to existing experiment log
+  -n                  Create new experiment log
   -f <config.dcc>     Open this config file (multiple OK)
   -g <gui.glade>      Open this gui (multiple OK)
   -c <checklist.chx>  Open this checklist (multiple OK)
@@ -233,38 +239,19 @@ checklists.extend(cmdline_checklists)
 plans.extend(cmdline_plans)
 
 
-iohandler=dg_io.io()
 
-paramdb=pdb.paramdb(iohandler)
-if SingleSpecimen is None: # not already set on command line
-    if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
-        # gtk3
-        specimenchoice=gtk.MessageDialog(type=gtk.MessageType.QUESTION,buttons=gtk.ButtonsType.NONE)
-        pass
-    else : 
-        specimenchoice=gtk.MessageDialog(type=gtk.MESSAGE_QUESTION,buttons=gtk.BUTTONS_NONE)
-        pass
-    specimenchoice.set_markup("Will the experiment involve a single specimen or multiple specimens?")
-    specimenchoice.add_button("Single specimen",1)
-    specimenchoice.add_button("Multiple specimens", 2)
-    specimenchoiceval=specimenchoice.run()
-    specimenchoice.destroy()
     
-    if specimenchoiceval==1:
-        SingleSpecimen=True
-        pass
-    elif specimenchoiceval==2:
-        SingleSpecimen=False
-        pass
-    else :
-        raise ValueError("Invalid response from specimen choice dialog")
-    pass
 
+iohandlers={}   #dg_io.io()
+
+paramdb=pdb.paramdb(iohandlers)
+#if SingleSpecimen is None: # not already set on command line
+# SingleSpecimen chooser moved to explogwindow.py
 
 
 # define parameters
 
-# parameters that are supposed to go in the summary need to have an adddoc() call in explogwindow.syncexplog
+# parameters that are supposed to go in the summary need to have an adddoc() call in explogwindow.syncexplog. Also see "not synced" in paramdbfile.py
 # The adddoc() call can also be used to supply a default value which will be 
 # set only if not read in from the file. 
 #  and a corresponding remdoc call in explogwindow.unsyncexplog
@@ -290,19 +277,18 @@ paramdb.addparam("goal",stringv,build=lambda param: xmldoc.synced(param),hide_fr
 # EXCEPT when paramdb is being written out to the experiment log.
 # Will be auto-fixedup because the dcvalue xmlrepr methods will 
 # convert their context to that of the file they are writing.
-paramdb.addparam("dest",stringv,hide_from_meas=True)
-paramdb.addparam("reldest",stringv,build=lambda param: xmldoc.synced(param),hide_from_meas=True)
+paramdb.addparam("dest",hrefv,build=lambda param: xmldoc.synced(param),hide_from_meas=True)
 paramdb.addparam("explogname",stringv,hide_from_meas=True)
 
 #paramdb.addparam("nextmeasnum",integerv,build=lambda param: xmldoc.synced(param),hide_from_meas=True)
 paramdb.addparam("measnum",integerv,build=lambda param: xmldoc.synced(param),hide_from_meas=True)
-paramdb.addparam("expphotos",photosv,build=lambda param: xmldoc.synced(param),hide_from_meas=True,xml_attribute="xlink:href")
-paramdb.addparam("measphotos",photosv,reset_with_meas_record=True,xml_attribute="xlink:href")
+paramdb.addparam("expphotos",photosv,build=lambda param: xmldoc.synced(param),hide_from_meas=True)
+paramdb.addparam("measphotos",photosv,reset_with_meas_record=True)
 paramdb.addparam("notes",stringv,build=lambda param: xmldoc.synced(param))  # notes is shared between (the measurement checklist(s) that have done_is_save_measurement set or have a save measurement step) and the experiment log (although notes is not written directly to the experiment log except in a save measurement step)
 
 # print "Notes value: ", str(type(str(paramdb["notes"].dcvalue)))
 
-paramdb.addparam("measchecklist",hrefv,reset_with_meas_record=True,xml_attribute="xlink:href")
+paramdb.addparam("measchecklist",hrefv,reset_with_meas_record=True)
 
 
 # auto-set date 
@@ -325,7 +311,7 @@ explogwin=explogwindow(os.path.join(installeddir,"lib/","explogwin.glade"),param
 # paramserver is now created within explogwin.createparamserver() and stored as a member of explogwin
 
 
-guistate=create_guistate(iohandler,paramdb) # can add search directories as additional parameters here [os.path.split(fname)[0]])
+guistate=create_guistate(iohandlers,paramdb) # can add search directories as additional parameters here [os.path.split(fname)[0]])
 
 
 explogwin.dc_gui_init(guistate)
@@ -360,15 +346,15 @@ for (paramname,status,val1,val2) in dpdlog:
 
 
 # open new or load existing experiment log
-if len(explogwin.configfnames) > 0:
+if len(explogwin.configfhrefs) > 0 or (autoloadconfig and explogfile is not None and not newlog):
 
-    if explogfile is not None and not appendlog:
+    if explogfile is not None and newlog:
         #sys.stderr.write("new_explog(%s)\n" % (explogfile))
         explogwin.new_explog(explogfile,parentchecklistpath=parentchecklistpath)
         pass
-    elif explogfile is not None and appendlog:
+    elif explogfile is not None and not newlog:
         #sys.stderr.write("open_explog(%s)\n" % (explogfile))
-        explogwin.open_explog(explogfile)
+        explogwin.open_explog(explogfile,autoloadconfig=autoloadconfig)
         pass
     pass
 else :
@@ -381,7 +367,7 @@ else :
 
 
 
-if len(explogwin.configfnames) > 0 and explogwin.explog.filename is not None:
+if len(explogwin.configfhrefs) > 0 and explogwin.explog.filename is not None:
     for gui in guis:
         explogwin.open_gui(gui)
         pass

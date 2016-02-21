@@ -1,6 +1,7 @@
 import os
 import sys
 import xmldoc
+from lxml import etree
 
 def findstep(prxdoc,stepname):
     for step in prxdoc.xpath("prx:step"):
@@ -26,8 +27,8 @@ def getstepname(prxdoc,step):
         return scriptname
     elif scripttag is not None and prxdoc.hasattr(scripttag,"name"):
         scriptname=os.path.splitext(os.path.split(prxdoc.getattr(scripttag,"name"))[1])[0]
-        if prxdoc.hasattr(scripttag,function):
-            scriptname+="/"+function
+        if prxdoc.hasattr(scripttag,"function"):
+            scriptname+="/"+prxdoc.getattr(scripttag,"function")
             pass
         return scriptname
     else : 

@@ -74,7 +74,9 @@ This module contains a class object to act as a storage container.
 """
 
 import sys
-if not "gtk" in sys.modules and not "gobject" in sys.modules and not(__name__ == "__main__" and not "--gtk3" in sys.argv):  # gtk3
+if "gi" in sys.modules or (__name__ == "__main__" and "--gtk3" in sys.argv):  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')  # gtk3
     from gi.repository import GObject as gobject
     pass
 else : 
@@ -86,8 +88,8 @@ import subprocess
 import cPickle
 import dg_units
 dg_units.units_config('insert_basic_units')
-sys.path.append('/usr/local/dataguzzler/gui2/lib')
-import dg_io
+# sys.path.append('/usr/local/dataguzzler/gui2/lib')
+# import dg_io
 from dc_value import numericunitsvalue as numericunitsv
 from dc_value import complexunitsvalue as complexunitsv
 from dc_value import stringvalue as stringv
