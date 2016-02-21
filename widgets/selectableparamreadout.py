@@ -1,7 +1,9 @@
 import os
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk as gdk
     from gi.repository import GObject as gobject
@@ -86,7 +88,6 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
     __proplist = ["paramname"] 
 
     __selectableparamreadout_unique=None
-    dc_gui_io=None
     paramdb=None
     param=None
     requestident=None
@@ -95,16 +96,22 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
     lastvalue=None # last value provided by controller
     errorflag=None
     state=None
+    fixedvalue=None
     liststore=None # part of combobox
     cell=None # Part of combobox
     optionlen=0
 
+    newvalue_notify=None
+    changeinprogress_notify=None
+    newoptions_notify=None
+    
     childntry=None  # GtkEntry child
 
     # values for state
     STATE_FOLLOWDG=0  # white, or orange (if last command was mismatch), or red (if last command was error), or green (if last command was match)  ... requestident should usually be None, querypending should be True, assignedvalue not valid
     STATE_ADJUSTING=1 # yellow... querypending should be False, requestident should usually be None, querypending should usually be False, assignedvalue not valid
     STATE_WAITING=2 # ltblue... querypending should be False, requestident shoudl be valid, assignedvalue valid
+    STATE_FIXED=3 # fixed and hardwired to fixedvalue
 
     changedinhibit=None # Used to ignore change events triggered by  set_text... too bad Gtk doesn't  provide a better way to do this
     
@@ -129,6 +136,7 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         
         
         self.changedinhibit=False
+        self.fixedvalue=None
 
         if old_style_comboboxentry: 
             # need to manually create liststore,  & cell
@@ -146,18 +154,40 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
 
         self.errorflag=False
         self.querypending=False  # queries started in dc_gui_init
-        self.set_state(self.STATE_FOLLOWDG)
 
         # print "self.get_children()=",self.get_children()
 
         pass
 
+    def set_fixed(self,fixed,fixedvalue=None,fixeddisplayfmt=None):
+        if fixedvalue is None:
+            # provide generic blank
+            fixedvalue=dc_value.stringvalue("")
+            pass
+
+        if fixed:
+            self.fixedvalue=fixedvalue       
+            self.set_state(self.STATE_FIXED)
+            self.changedinhibit=True
+            self.childntry.set_text(self.fixedvalue.format(fixeddisplayfmt))
+            self.changedinhibit=False
+            pass
+
+        elif self.state==self.STATE_FIXED:
+            # if our state is set as fixed but we are no longer fixed
+            self.set_state(self.STATE_FOLLOWDG) # go into follower state
+            # update readout according to current param value
+            self.newvalue(self.param,None)
+            
+            pass
+        pass
+
 
     def isconsistent(self,inconsistentlist):
-        if self.state != self.STATE_FOLLOWDG:
+        if self.state != self.STATE_FOLLOWDG and self.state != self.STATE_FIXED:
             inconsistentlist.append(self.param.xmlname)
-            pass
-        return self.state==self.STATE_FOLLOWDG
+            return False
+        return True
     
     def newoptions(self, param, condition):
         self.append_text('')
@@ -178,7 +208,7 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         pass
     
     def newvalue(self,param,condition):
-        if self.state==self.STATE_ADJUSTING or self.state==self.STATE_WAITING:
+        if self.state==self.STATE_ADJUSTING or self.state==self.STATE_WAITING or self.state==self.STATE_FIXED:
             return
         self.changedinhibit=True
         self.childntry.set_text(param.dcvalue.format(param.displayfmt))
@@ -217,41 +247,20 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         assert(not(str(self.childntry).startswith("<CellView"))) # Child should be an Entry, not a CellView. CellView is symptomatic of gtk3 bug when this is included directly from a gladefile
         
         
-        self.dc_gui_io=guistate.io
 
-        self.set_state(self.state)
-
+        
         if self.paramdb is None:  # allow manual initialization of paramdb, in case we are to use a non-default paramdb
             self.paramdb=guistate.paramdb
             pass
 
-        
-        if self.myprops["paramname"] not in self.paramdb:
-            raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
-        self.param=self.paramdb[self.myprops["paramname"]]
-        self.lastvalue=self.param.dcvalue
+        if self.state is None:
+            self.set_state(self.STATE_FOLLOWDG) # trigger sync_to_paramdb
+            pass
 
-        self.param.addnotify(self.changeinprogress,pdb.param.NOTIFY_CONTROLLER_REQUEST)
-        self.param.addnotify(self.newvalue,pdb.param.NOTIFY_NEWVALUE,)
-        self.param.addnotify(self.newoptions,pdb.param.NOTIFY_NEWOPTIONS)
+        
 
         self.__selectableparamreadout_unique=[]
 
-
-        if self.childntry is not None:
-            self.childntry.set_text(self.param.dcvalue.format(self.param.displayfmt))
-            pass
-            
-
-        # Add list of options to this combobox
-        if self.param.options is not None:
-            for option in self.param.options:
-                self.append_text(unicode(option))
-                pass
-            pass
-            self.optionlen = len(self.param.options)
-        else:
-            self.optionlen = 0
 
         if self.childntry is not None:
             self.childntry.connect("key-press-event",self.apr_keypress)
@@ -265,6 +274,50 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         pass
 
 
+    def sync_to_paramdb(self):
+        if self.myprops["paramname"] not in self.paramdb:
+            raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
+        self.param=self.paramdb[self.myprops["paramname"]]
+        self.lastvalue=self.param.dcvalue
+
+        self.changeinprogress_notify=self.param.addnotify(self.changeinprogress,pdb.param.NOTIFY_CONTROLLER_REQUEST)
+        self.newvalue_notify=self.param.addnotify(self.newvalue,pdb.param.NOTIFY_NEWVALUE,)
+        self.newoptions_notify=self.param.addnotify(self.newoptions,pdb.param.NOTIFY_NEWOPTIONS)
+
+        # set up options
+        for i in range(0,self.optionlen+1):
+            self.remove_text(1)
+        if self.param.options is not None:
+            for option in self.param.options:
+                self.append_text(unicode(option))
+                pass
+            pass
+            self.optionlen = len(self.param.options)
+        else:
+            self.optionlen = 0
+            pass
+        
+        if self.childntry is not None:
+            self.changedinhibit=True
+            self.childntry.set_text(self.param.dcvalue.format(self.param.displayfmt))
+            self.changedinhibit=False
+            pass
+        pass
+
+    def unsync_to_paramdb(self):
+        self.param.remnotify(self.changeinprogress_notify)
+        self.changeinprogress_notify=None
+
+        self.param.remnotify(self.newvalue_notify)
+        self.newvalue_notify=None
+
+        self.param.remnotify(self.newoptions_notify)
+        self.newoptions_notify=None
+
+        pass
+
+        
+    
     def setbgcolor(self,color):
         colormap={"white" : "#ffffff",
                   "red"   : "#ff0000",
@@ -280,6 +333,8 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         pass
         
     def apr_keypress(self,obj,event):
+        if self.state == self.STATE_FIXED:
+            return
         
         # print "event.keyval=%s" % (str(event.keyval))
         
@@ -294,6 +349,8 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
 
 
     def apr_activate(self,event):
+        if self.state==self.STATE_FIXED:
+            return
         # entry has been activated. Also triggered by new combo box pulldown 
         # print "activate!"
         #print "issue command %s %s" % (self.myprops["dg-param"],self.get_text())
@@ -313,6 +370,8 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         pass
     
     def spr_changed(self,event): 
+        if self.state == self.STATE_FIXED:
+            return
         # combo box changed
         # print "Combobox changed. Get_active()=%s" % (str(self.get_active()))
         
@@ -327,6 +386,8 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         pass
 
     def apr_changed(self,event):
+        if self.state == self.STATE_FIXED:
+            return
         # entry has changed
         if not self.changedinhibit:
             # print "changed, event=%s!" % (str(event))
@@ -383,7 +444,20 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         return False
     
     def set_state(self,state,match=False,mismatch=False):
+        if self.state is not None and self.state != self.STATE_FIXED and state==self.STATE_FIXED:
+            # switch into fixed state: unsync_to_paramdb
+            self.unsync_to_paramdb()
+            pass
+        elif (self.state is None or self.state == self.STATE_FIXED) and state != self.STATE_FIXED:
+            # switch out of no state or fixed state: sync_to_paramdb
+            self.sync_to_paramdb()
+            pass
         self.state=state
+
+        if self.state!=self.STATE_FIXED:
+            self.set_sensitive(True)
+            pass
+        
         if self.state==self.STATE_FOLLOWDG:
 
             if self.errorflag:
@@ -405,6 +479,9 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
             pass
         elif self.state==self.STATE_WAITING:
             self.setbgcolor("ltblue")
+            pass
+        elif self.state==self.STATE_FIXED:
+            self.set_sensitive(False)
             pass
         else:
             assert(0)

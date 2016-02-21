@@ -7,7 +7,9 @@ import traceback
 import re
 import numpy as np
 
-if not "gtk" in sys.modules and not "gobject" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import GObject as gobject
     pass
 else : 
@@ -62,14 +64,16 @@ class paramdb(dict):
     # It internally creates a class param for each entry
     
     # BadValue=None;
-    dgio=None   # convenience storage for dgio reference
+    #dgio=None   # convenience storage for dgio reference
+    iohandlers=None  # dictionary of i/o handlers
+
     
     # BUG!! Should implement iterator that ignores non-present entries
     # until then, users must check iterator keys with "if key in ..."
     
-    def __init__(self,dgio) :
+    def __init__(self,iohandlers) :
         # self.BadValue=[];
-        self.dgio=dgio
+        self.iohandlers=iohandlers
         pass
     
     
@@ -150,7 +154,7 @@ class etree_paramdb_ext(object): # etree extension class for paramdb that define
         dcv=self._paramdb[name].dcvalue
         
         paramel=etree.Element(name)
-        dcv.xmlrepr(None,paramel,xml_attribute=self._paramdb[name].xml_attribute)
+        dcv.xmlrepr(None,paramel) # xml_attribute=self._paramdb[name].xml_attribute)
 
         return [paramel]  # return node-set
 
@@ -441,7 +445,7 @@ def optionscontroller_xmlfile(param, filestring, fileparams, xpath, xpathparams,
 class dgcontroller(object):
     # Class for controlling a parameter that uses dataguzzler to manage
     # change requests
-    controlparam=None  # link to the class param.... controlparam.dgio is the dgio instance.
+    controlparam=None  # link to the class param.... controlparam.iohandlers["dgio"] is the dgio instance.
     dgparam=None
     quote=None   # Should the value be quoted/unquoted before transmission? 
     escape=None  # Should unusual characters in the value be escaped before transmission (if not, they are invalid!)
@@ -460,10 +464,10 @@ class dgcontroller(object):
         self.id=id(self)
         self.state=param.CONTROLLER_STATE_QUIESCENT
         self.numpending=0
-        if not self.controlparam.dgio.commstarted:
+        if not self.controlparam.iohandlers["dgio"].commstarted:
             sys.stderr.write("dgcontroller: attempting to create dataguzzler parameter %s (%s) even though communication link not started!\n" % (self.controlparam.xmlname,self.dgparam))
             pass
-        elif len(self.controlparam.dgio.connfailindicator) > 0:
+        elif len(self.controlparam.iohandlers["dgio"].connfailindicator) > 0:
             sys.stderr.write("dgcontroller: attempting to create dataguzzler parameter %s (%s) even though dataguzzler communication link has failed!\n" % (self.controlparam.xmlname,self.dgparam))
             pass
 
@@ -593,10 +597,10 @@ class dgcontroller(object):
         self.numpending+=1
         self.stopquery()
 
-        if not self.controlparam.dgio.commstarted:
+        if not self.controlparam.iohandlers["dgio"].commstarted:
             sys.stderr.write("dgcontroller: attempting to write dataguzzler parameter %s (%s) even though communication link not started!\n" % (self.controlparam.xmlname,self.dgparam))
             pass
-        elif len(self.controlparam.dgio.connfailindicator) > 0:
+        elif len(self.controlparam.iohandlers["dgio"].connfailindicator) > 0:
             sys.stderr.write("dgcontroller: attempting to write dataguzzler parameter %s (%s) even though dataguzzler communication link has failed!\n" % (self.controlparam.xmlname,self.dgparam))
             pass
         
@@ -604,10 +608,10 @@ class dgcontroller(object):
 
         try:
             if self.querytype==dg_io.io.QT_EXCPARAMS:
-                reqid=self.controlparam.dgio.issuecommand(None,"%s:%s" % (self.dgparam.split(":")[-2],self.do_quote_escape(str(newvalue))),self.requestvalcallback,cbargs,self.querytype)
+                reqid=self.controlparam.iohandlers["dgio"].issuecommand(None,"%s:%s" % (self.dgparam.split(":")[-2],self.do_quote_escape(str(newvalue))),self.requestvalcallback,cbargs,self.querytype)
                 pass
             else :
-                reqid=self.controlparam.dgio.issuecommand(None,"%s %s" % (self.dgparam,self.do_quote_escape(str(newvalue))),self.requestvalcallback,cbargs,self.querytype)
+                reqid=self.controlparam.iohandlers["dgio"].issuecommand(None,"%s %s" % (self.dgparam,self.do_quote_escape(str(newvalue))),self.requestvalcallback,cbargs,self.querytype)
                 pass
             pass
         except ValueError as e:
@@ -622,7 +626,7 @@ class dgcontroller(object):
 
     def cancelrequest(self,param,requestid): 
         # returns True if successfully canceled
-        canceled=self.controlparam.dgio.abortcommand(requestid)
+        canceled=self.controlparam.iohandlers["dgio"].abortcommand(requestid)
         if canceled: 
             self.numpending -= 1
             if self.numpending == 0:
@@ -641,11 +645,11 @@ class dgcontroller(object):
         paramsplit[0]+="?"
         paramstring=" ".join(paramsplit)
 
-        self.controlparam.dgio.addquery(id(self),paramstring,self.querycallback,None,self.querytype)
+        self.controlparam.iohandlers["dgio"].addquery(id(self),paramstring,self.querycallback,None,self.querytype)
         pass
 
     def stopquery(self):
-        self.controlparam.dgio.remquery(id(self))
+        self.controlparam.iohandlers["dgio"].remquery(id(self))
 
         pass
     
@@ -800,15 +804,15 @@ class dgcontroller_nummathparam(dgcontroller):
         try:
             if np.isnan(newvalue.value()):
                 # sys.stderr.write("Issuing command: MATH:UNDEF %s\n" % (self.mathname))
-                reqid=self.controlparam.dgio.issuecommand(None,"MATH:UNDEF %s" % (self.mathname),self.requestvalcallback,cbargs,self.querytype)
+                reqid=self.controlparam.iohandlers["dgio"].issuecommand(None,"MATH:UNDEF %s" % (self.mathname),self.requestvalcallback,cbargs,self.querytype)
                 
             else :
                 # sys.stderr.write("Issuing command: %s\n" % (self.commandformat % (str(newvalue))))
-                reqid=self.controlparam.dgio.issuecommand(None,self.commandformat % (str(newvalue)),self.requestvalcallback,cbargs,self.querytype)
+                reqid=self.controlparam.iohandlers["dgio"].issuecommand(None,self.commandformat % (str(newvalue)),self.requestvalcallback,cbargs,self.querytype)
                 pass
 
             pass
-        except ValueError(e):
+        except ValueError as e:
             gobject.timeout_add(0,self.requestvalerrorcallback,e,*cbargs)
             return None  # BUG: Should probably return valid request id in this case. Otherwise we use dgio idents, which are the id() of the pendingcommand structure
         
@@ -936,7 +940,7 @@ def updatedg_notifycallback(param, condition, module):
     if outvalue.strip() == "":
         outvalue = "NONE"
     retfun = lambda id,fullcommand,retcode,full_response,result,param: False
-    param.dgio.issuecommand(None,"%s:DCLOCK FALSE;%s %s;%s:DCLOCK TRUE" % (module, module, outvalue, module), retfun, param,dg_io.io.QT_GENERIC)
+    param.iohandlers["dgio"].issuecommand(None,"%s:DCLOCK FALSE;%s %s;%s:DCLOCK TRUE" % (module, module, outvalue, module), retfun, param,dg_io.io.QT_GENERIC)
     return False
 
 def updatedg_exitcallback(param, module):
@@ -946,7 +950,7 @@ def updatedg_exitcallback(param, module):
     # can be called.
 
     # We Must Issue Command Directly Because Garbage Collection Has Already Started And New Commands Will Not Get Dispatched
-    dgc.command(param.dgio.dgch, "%s:DCLOCK FALSE" % (module))
+    dgc.command(param.iohandlers["dgio"].dgch, "%s:DCLOCK FALSE" % (module))
     return False
 
 # Note: These routines (below) are for READ ONLY access to the specimen
@@ -1040,7 +1044,7 @@ class autocontroller_xmlfile_class(autocontrollerbase):
                 if len(res) != 1:  # We Got Too Many or Too Few Elements Back
                     raise Exception('XPath Expression Returned %d Results - Expected Exactly 1' % len(res))
                 else:
-                    valueobj = paramdb[controlparam].paramtype.fromxml(None,res[0],xml_attribute=paramdb[controlparam].xml_attribute)
+                    valueobj = paramdb[controlparam].paramtype.fromxml(None,res[0])  # xml_attribute=paramdb[controlparam].xml_attribute)
             else:  # We Got a Bool, Float, or String - Use it Directly - Errors Will Be Thrown Internally if There are Type Issues
                 valueobj = paramdb[controlparam].paramtype(res)
             
@@ -1110,12 +1114,12 @@ class autocontroller_averagedwfm(autocontrollerbase):
     def __init__(self,controlparam,wfmname):
         autocontrollerbase.__init__(self,controlparam)
         self.wfmname=wfmname
-        self.controlparam.dgio.add_chanmon(wfmname,self.chanmon)
+        self.controlparam.iohandlers["dgio"].add_chanmon(wfmname,self.chanmon)
         
         pass
 
     def chanmon(self,dgio):
-        (rev,wfm)=dgc.getlatestwfm(self.controlparam.dgio.dgch_sync,self.wfmname,readyflag=True);
+        (rev,wfm)=dgc.getlatestwfm(self.controlparam.iohandlers["dgio"].dgch_sync,self.wfmname,readyflag=True);
         
         if wfm is not None and wfm.data is not None:
             newunits=""
@@ -1154,12 +1158,12 @@ class autocontroller_wfmmetadata(autocontrollerbase):
         autocontrollerbase.__init__(self,controlparam)
         self.wfmname=wfmname
         self.metadatumname=metadatumname
-        self.controlparam.dgio.add_chanmon(wfmname,self.chanmon)
+        self.controlparam.iohandlers["dgio"].add_chanmon(wfmname,self.chanmon)
         
         pass
 
     def chanmon(self,dgio):
-        (rev,wfm)=dgc.getlatestmetadata(self.controlparam.dgio.dgch_sync,self.wfmname,readyflag=True);
+        (rev,wfm)=dgc.getlatestmetadata(self.controlparam.iohandlers["dgio"].dgch_sync,self.wfmname,readyflag=True);
         valueinp=""
         if wfm is not None and wfm.MetaData is not None:
             if self.metadatumname in wfm.MetaData:                 
@@ -1187,7 +1191,8 @@ class autocontroller_wfmmetadata(autocontrollerbase):
 class param(object):
     # class for representing parameter within paramdb
     parent=None
-    dgio=None
+    #dgio=None
+    iohandlers=None
     xmlname=None
     paramtype=None
     defunits=None
@@ -1202,7 +1207,7 @@ class param(object):
     reset_with_meas_record=None  # Should we clear this entry when measurements are written to the experiment log? 
     dangerous=None  # Set this flag on parameter creation to indicate that this parameter has potentially dangerous (usually mechanical) side effects and should be ignored on restore. 
     non_settable=None # specified on creation or by controller to indicate that this parameter is not generally settable by the user. Used to select which parameters in the database are saved. 
-    xml_attribute=None # if not None, dc_value.value.xmlrepr()  and dc_value.value.fromxml() should store their data this attribute, specified by name (namespace prefixes OK) rather than in the content of the tag
+    # xml_attribute=None # if not None, dc_value.value.xmlrepr()  and dc_value.value.fromxml() should store their data this attribute, specified by name (namespace prefixes OK) rather than in the content of the tag
 
     # NOTE: since this class shadows a dc_value object, it should NOT have members
     # with the same name as those in a dc_value or it's derived classes 
@@ -1222,7 +1227,7 @@ class param(object):
     NOTIFY_NEWVALUE=1  # every successful controller request should result in a newvalue, whether or not the value actually changed
     NOTIFY_NEWOPTIONS=2 # Called when options are updated by the controller so that they can be reloaded in the GUI
 
-    def __init__(self,parent,xmlname,paramtype,options=None,defunits=None,build=None,displayfmt=None,hide_from_meas=False,reset_with_meas_record=False,dangerous=False,non_settable=False,xml_attribute=None):
+    def __init__(self,parent,xmlname,paramtype,options=None,defunits=None,build=None,displayfmt=None,hide_from_meas=False,reset_with_meas_record=False,dangerous=False,non_settable=False): # xml_attribute=None):
         # DO NOT CALL THIS DIRECTLY.... Should be called indirectly from pdb.addparam() 
         # create a parameter with the specified xmlname (string/unicode)
         # paramtype should be dc_value.stringvalue, dc_value.numericunitsvalue, dc_value.excitationparamsvalue, or similar
@@ -1233,7 +1238,7 @@ class param(object):
         #   lambda param: dg_param.dg_paramcontroller(param,"AWG:AMPL")
         # 
         self.parent=parent
-        self.dgio=parent.dgio
+        self.iohandlers=parent.iohandlers
         self.xmlname=xmlname
         self.paramtype=paramtype
         if options is not None:
@@ -1248,7 +1253,7 @@ class param(object):
         self.reset_with_meas_record=reset_with_meas_record
         self.dangerous=dangerous
         self.non_settable=non_settable  # specified on creation or by controller to indicate that this parameter is not generally settable by the user. Used to select which parameters in the database are saved. 
-        self.xml_attribute=xml_attribute
+        #self.xml_attribute=xml_attribute
 
         #import pdb as pythondb
         #pythondb.set_trace()

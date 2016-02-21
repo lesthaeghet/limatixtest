@@ -154,96 +154,66 @@ dpddoc=xmldoc.xmldoc.frometree(initialdpdfile,nsmap=x2d_nsmap)
 
 # fixups: go through configfiles
 
-configfnames=[]
+confighrefs=[]
 
-configstrs=xlgdoc.xpath("dc:configstr")
-for configstr in configstrs: 
-    # each configstr tag has an fnames attribute that 
-    # can be interpreted as a json list of strings
-    try: 
-        fnames=json.loads(xlgdoc.getattr(configstr,"fnames"))
-        pass
-    except ValueError:
-        # probably an old .xlgfile that uses single-quoted strings
-        # try again, converting to double-quoted strings
-        fnames=json.loads(str(xlgdoc.getattr(configstr,"fnames")).replace("'",'"'))
-        pass
-    configfnames.extend(fnames)
+# find final dc:config block 
+config=xlgdoc.xpathsingle("dc:config[last()]")
+# go through all configfile tags, which are xlink:hrefs to the .dcc
+for configfile in xlgdoc.xpathcontext(config,"dc:configfile"):
+    confighref=dc_value.hrefvalue.fromxml(xlgdoc,configfile)
+    confighrefs.extend(confighref)
     pass
 
-# canonicalize list of configfiles
-canonicalize_path.canonicalize_filelist(os.path.split(xlgfile)[0],configfnames)
+## canonicalize list of configfiles
+#canonicalize_path.canonicalize_filelist(os.path.split(xlgfile)[0],configfnames)
 
-# configfpaths are the paths from the perspective of the dpdfile
-configfpaths=[ canonicalize_path.rel_or_abs_path(os.path.split(dpdfile)[0],configf) for configf in configfnames ]
+## configfpaths are the paths from the perspective of the dpdfile
+#configfpaths=[ canonicalize_path.rel_or_abs_path(os.path.split(dpdfile)[0],configf) for configf in configfnames ]
 
 # insert dc:configfiles tag and generate dc:configfile tags within 
 configfilesel=dpddoc.insertelement(None,0,"dc:configfiles")
-for configfpath in configfpaths: 
+for confighref in confighrefs: 
     configfileel=dpddoc.addelement(configfilesel,"dc:configfile")
-    dpddoc.setattr(configfileel,"xlink:href",configfpath)
+    confighref.xmlrepr(dpddoc,configfileel)
     pass
 
 # insert dc:explog tag
 explogel=dpddoc.insertelement(None,1,"dc:explog")
-dpddoc.setattr(explogel,"xlink:href", canonicalize_path.rel_or_abs_path(os.path.split(dpdfile)[0],xlgfile))
+xlghref=dc_value.hrefvalue.from_rel_path(".",xlgfile)
+xlghref.xmlrepr(dpddoc,explogel)
 
 # go through checklists
-checklistset=set([]) # set of canonical filenames
-origfilenameset=set([]) # set of canonicalize origfilenames
+checklist_hrefs=[] # list of hrefs
+#origfilenameset=set([]) # set of canonicalize origfilenames
 
-reldest=xlgdoc.xpath("string(dc:summary/dc:reldest)")
-#sys.stderr.write("reldest=%s\n" % (reldest))
+#reldest=xlgdoc.xpath("string(dc:summary/dc:reldest)")
+##sys.stderr.write("reldest=%s\n" % (reldest))
 checklists=xlgdoc.xpath("dc:summary/dc:checklists/dc:checklist")
 for checklist in checklists:
-    if not xlgdoc.hasattr(checklist,"xlink:href"):
-        # old-style file with link being tag content
-        # old-style file implicitly included reldest
-        href=os.path.join(reldest,checklist.text)
-        #sys.stderr.write("href=%s\n" % (href))
-        pass
-    else: 
-        href=xlgdoc.getattr(checklist,"xlink:href")
-        #sys.stderr.write("new-style href=%s\n" % (href))
-        pass
+    href=dc_value.hrefvalue.fromxml(xlgdoc,checklist)
 
-    if href.startswith("mem://"):
+    if href.ismem():
         # ignore and do nothing
         continue
-    elif os.path.isabs(href):
-        href=canonicalize_path.canonicalize_path(href)
-        pass
-    else:
-        href=canonicalize_path.canonicalize_path(os.path.join(os.path.split(xlgfile)[0],href))
-        pass
-    checklistset.add(href)
+
+    # ignore if checklist has a parent (we will get it from its parent)
+    checklistfname=href.getpath(".")
+    chxdoc=xmldoc.xmldoc.loadfile(checklistfname,x2d_nsmap,readonly=True)
+    has_parent = len(chxdoc.getattr(None,"parent","")) > 0 
+    is_done = chxdoc.getattr(chxdoc.getroot(),"done",defaultvalue="false")=="true"
+    if has_parent or is_done:
+        continue
+    
+    checklist_hrefs.append(href)
     pass
 
-for checklistfname in checklistset:
-    chxdoc=xmldoc.xmldoc.loadfile(checklistfname,x2d_nsmap,readonly=True)
-    if len(chxdoc.getattr(None,"parent","")) == 0: 
-        # has no (or empty) parent attribute... look up origfilename
-        if len(chxdoc.getattr(None,"origfilename","")) > 0:
-            # got origfilename
-            origfilename=chxdoc.getattr(None,"origfilename","")
-            if os.path.isabs(origfilename):
-                origfilename=canonicalize_path.canonicalize_path(origfilename)
-                pass
-            else: 
-                origfilename=canonicalize_path.canonicalize_path(os.path.join(os.path.split(checklistfname)[0],origfilename))
-                pass                
-            origfilenameset.add(origfilename)
-            pass
-        pass
-    chxdoc.close()
-    pass
 
 # Now add everything in origfilenameset to a dc:chxs tag
 # and generate dc:chx tags within
 chxsel=dpddoc.insertelement(None,0,"dc:chxs")
-for origfilename in origfilenameset: 
+for checklist_href in checklist_hrefs: 
     chxel=dpddoc.addelement(chxsel,"dc:chx")
-    dpddoc.setattr(chxel,"xlink:href",canonicalize_path.rel_or_abs_path(os.path.split(dpdfile)[0],origfilename))
+    checklist_href.xmlrepr(dpddoc,chxel)
     pass
 
 # Write out the resulting dpdfile

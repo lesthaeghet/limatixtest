@@ -3,7 +3,10 @@
 
 import os
 import sys
-if not "gtk" in sys.modules:  # gtk3
+
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     pass
@@ -61,6 +64,7 @@ class dc_selectableparamstep(gtk.HBox):
 
     checklist=None
     xmlpath=None
+    guistate=None
 
     paramnotify=None
                       
@@ -121,11 +125,13 @@ class dc_selectableparamstep(gtk.HBox):
         
         self.guistate=guistate
         
+        self.set_fixed()  # set to fixed value from xml file if appropriate prior to sub-widget initialization
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
 
         self.changedcallback(None,None) #  update xml
-
+       
+        
         self.paramnotify=self.guistate.paramdb.addnotify(self.myprops["paramname"],self.changedcallback,pdb.param.NOTIFY_NEWVALUE)
 
         pass
@@ -135,11 +141,80 @@ class dc_selectableparamstep(gtk.HBox):
         self.paramnotify=None
         pass
     
+    def is_fixed(self):
+        # param readout is fixed when checklist is marked as
+        # readonly or when checkbox is checked. 
+        return self.checklist.readonly or self.step.gladeobjdict["checkbutton"].get_property("active")
+    
+
+    def set_fixed(self):
+        fixed=self.is_fixed()
+        (value,displayfmt)=self.value_from_xml()
+        self.gladeobjdict["step_adjustparam"].set_fixed(fixed,value,displayfmt)
+        if not fixed:
+            self.update_xml()
+            pass
+        pass
+    
+    def handle_check(self,checked):
+        # automagically called by steptemplate when checkbox is checked or unchecked
+        self.set_fixed()
+        pass
+
+    
+    def set_readonly(self,readonly):
+        # automagically called by step when checklist readonly state
+        # changes.
+        self.set_fixed()
+        pass
+        
 
     def changedcallback(self,param,condition):
-        newvalue=self.guistate.paramdb[self.myprops["paramname"]].dcvalue
-        xml_attribute=self.guistate.paramdb[self.myprops["paramname"]].xml_attribute
+        if not self.is_fixed():
+            self.update_xml()
+            pass
+        pass
+    
+    def value_from_xml(self):
+        gotvalue=None
+        gotdisplayfmt=None
+        #xml_attribute=self.guistate.paramdb[self.myprops["paramname"]].xml_attribute
 
+        self.checklist.xmldoc.lock_ro()
+        try: 
+            xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
+            for child in xmltag:
+                childtag=self.checklist.xmldoc.gettag(child)
+                if childtag=="dc:"+self.myprops["paramname"] or childtag==self.myprops["paramname"]:
+                    if self.guistate is not None and self.guistate.paramdb is not None:
+                        # Use type specified in paramdb if possible
+                        paramtype=self.guistate.paramdb[self.myprops["paramname"]].paramtype
+                        pass
+                    else:
+                        # pull type from XML
+                        paramtype=dc_value.xmlextractvalueclass(self.checklist.xmldoc,child)
+                        pass
+                    gotvalue=paramtype.fromxml(self.checklist.xmldoc,child)
+                    gotdisplayfmt=dc_value.xmlextractdisplayfmt(self.checklist.xmldoc,child)
+                    break
+                pass
+            pass
+        except: 
+            raise
+        finally:
+            self.checklist.xmldoc.unlock_ro()
+            pass
+        return (gotvalue,gotdisplayfmt)
+    
+    def update_xml(self):
+        if self.is_fixed():
+            return
+        
+        if self.guistate is None or self.guistate.paramdb is None:
+            return
+
+        newvalue=self.guistate.paramdb[self.myprops["paramname"]].dcvalue
+        #xml_attribute=self.guistate.paramdb[self.myprops["paramname"]].xml_attribute
         gottag=False
         
         #chxstate="checked" in self.xmltag.attrib and self.xmltag.attrib["checked"]=="true"
@@ -155,14 +230,17 @@ class dc_selectableparamstep(gtk.HBox):
             for child in xmltag:
                 childtag=self.checklist.xmldoc.gettag(child)
                 if childtag=="dc:"+self.myprops["paramname"] or childtag==self.myprops["paramname"]:
-                    newvalue.xmlrepr(self.checklist.xmldoc,child,xml_attribute=xml_attribute)
+                    newvalue.xmlrepr(self.checklist.xmldoc,child) #xml_attribute=xml_attribute)
+                    dc_value.xmlstoredisplayfmt(self.checklist.xmldoc,child,self.guistate.paramdb[self.myprops["paramname"]].displayfmt)
+                    dc_value.xmlstorevalueclass(self.checklist.xmldoc,child,self.guistate.paramdb[self.myprops["paramname"]].paramtype)
                     gottag=True
                     break
                 pass
             if not gottag: 
                 # need to create tag
                 newchild=self.checklist.xmldoc.addelement(xmltag,"dc:"+self.myprops["paramname"])
-                newvalue.xmlrepr(self.checklist.xmldoc,newchild,xml_attribute=xml_attribute)
+                newvalue.xmlrepr(self.checklist.xmldoc,newchild) # xml_attribute=xml_attribute)
+                dc_value.xmlstoredisplayfmt(self.checklist.xmldoc,newchild,self.guistate.paramdb[self.myprops["paramname"]].displayfmt)
                 pass
             pass
         except:

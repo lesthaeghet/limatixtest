@@ -15,12 +15,12 @@ class explog(xmldoc.xmldoc):
     summarytagname=None
     paramdb=None
     paramdb_ext=None # etree_parmdb_ext extension object
-    dgio=None
+    iohandlers=None
 
     # summaryparams must be registered with the document through creation using xmldoc.synced as the controller
 
-    def __init__(self,filename,dgio,paramdb,maintagname="dc:experiment",summarytagname="dc:summary",oldfile=False,use_locking=False,debug=False): #autoflush=False,autoresync=False):  # if oldfile is False, create a new file, overwriting any preexisting file of the same name
-        self.dgio=dgio
+    def __init__(self,filename,iohandlers,paramdb,maintagname="dc:experiment",summarytagname="dc:summary",oldfile=False,use_locking=False,debug=False): #autoflush=False,autoresync=False):  # if oldfile is False, create a new file, overwriting any preexisting file of the same name
+        self.iohandlers=iohandlers
         self.paramdb=paramdb
         self.paramdb_ext=pdb.etree_paramdb_ext(paramdb)
         self.maintagname=maintagname
@@ -41,8 +41,8 @@ class explog(xmldoc.xmldoc):
 
     
 
-    def set_dgio(self,dgio):
-        self.dgio=dgio
+    def set_iohandlers(self,iohandlers):
+        self.iohandlers=iohandlers
         pass
     
     #def writesummaryparams(self) :
@@ -63,7 +63,7 @@ class explog(xmldoc.xmldoc):
 
 
 
-    def recordmeasurement(self,measnum,dest,clinfo=None,cltitle=None,extrataglist=None):
+    def recordmeasurement(self,measnum,clinfo=None,cltitle=None,extrataglist=None):
 
         self.shouldbeunlocked()
 
@@ -115,7 +115,7 @@ class explog(xmldoc.xmldoc):
                     if not self.paramdb[paramname].hide_from_meas:
 
                         paramtag=self.addelement(meastag,"dc:"+paramname)
-                        self.paramdb[paramname].dcvalue.xmlrepr(self,paramtag,defunits=self.paramdb[paramname].defunits,xml_attribute=self.paramdb[paramname].xml_attribute)
+                        self.paramdb[paramname].dcvalue.xmlrepr(self,paramtag,defunits=self.paramdb[paramname].defunits) # xml_attribute=self.paramdb[paramname].xml_attribute)
                     
                         # paramtag=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}"+paramname)                
                         # self.paramdb[paramname].dcvalue.xmlrepr(self,paramtag,defunits=self.paramdb[paramname].defunits)

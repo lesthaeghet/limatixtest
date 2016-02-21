@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <interface>
   <requires lib="gtk+" version="2.16"/>
-  <!-- interface-requires dg_gui_widgets 0.0 -->
+  <!-- interface-requires dc_widgets 0.0 -->
   <!-- interface-naming-policy project-wide -->
   <object class="GtkWindow" id="CheckListWindow">
     <property name="default_height">800</property>
@@ -14,6 +14,39 @@
           <object class="GtkVBox" id="UpperVBox">
             <property name="visible">True</property>
             <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkHBox" id="ReadonlyHBox">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="ReadonlyLabel">
+                    <property name="visible">True</property>
+                    <property name="xalign">1</property>
+                    <property name="xpad">10</property>
+                    <property name="label" translatable="yes">Checklist is Read Only</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="ReadWriteButton">
+                    <property name="label" translatable="yes">Switch to Read/Write</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">0</property>
+		<property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
+            </child>
             <child>
               <object class="GtkHBox" id="ParamBox">
                 <property name="visible">True</property>
@@ -170,7 +203,7 @@
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -195,7 +228,7 @@
                 </child>
               </object>
               <packing>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>

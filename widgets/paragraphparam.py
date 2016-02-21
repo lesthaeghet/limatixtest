@@ -1,6 +1,9 @@
 import os
 import sys
-if not "gtk" in sys.modules:  # gtk3
+
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk as gdk
     from gi.repository import GObject as gobject
@@ -70,30 +73,34 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
 
     __paragraphparam_unique=None
     textview=None # Textview wrapped within our scrollbar
-    dc_gui_io=None
     paramdb=None
     param=None
     requestident=None
+    requestassignedcallback=None  # callback to generate after request completes
     querypending=None
     assignedvalue=None
     lastvalue=None # last value provided by controller
     errorflag=None
     state=None
+    fixedvalue=None
     endmark=None # gtk.TextMark indicating end of textbuffer
 
+    newvalue_notify=None
+    changeinprogress_notify=None
+
+    
     # values for state
     STATE_FOLLOWDG=0  # white, or orange (if last command was mismatch), or red (if last command was error), or green (if last command was match)  ... requestident should usually be None, querypending should be True, assignedvalue not valid
     STATE_ADJUSTING=1 # yellow... querypending should be False, requestident should usually be None, querypending should usually be False, assignedvalue not valid
     STATE_WAITING=2 # ltblue... querypending should be False, requestident shoudl be valid, assignedvalue valid
+    STATE_FIXED=3 # fixed and hardwired to fixedvalue
 
-    stopped=None
     changedinhibit=None # Used to ignore change events triggered by  set_text... too bad Gtk doesn't  provide a better way to do this
     
 
     def __init__(self):
         gobject.GObject.__init__(self)
 
-        self.stopped=False
 
         paramhandler.__init__(self,super(paragraphparam,self),self.__proplist)# .__gproperties__)
         # gtk.HBox.__init__(self) # Not supposed to call superclass __init__ method, just gobject __init__ according to    http://www.pygtk.org/articles/subclassing-gobject/sub-classing-gobject-in-python.htm  
@@ -120,6 +127,7 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         
 
         self.changedinhibit=False
+        self.fixedvalue=None
 
         buf=self.textview.get_buffer()
         end_iter=buf.get_end_iter()
@@ -127,12 +135,37 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
 
         self.errorflag=False
         self.querypending=False  # queries started in dc_gui_init
-        self.set_state(self.STATE_FOLLOWDG)
 
 
 
         pass
-    
+
+    def set_fixed(self,fixed,fixedvalue=None,fixeddisplayfmt=None):
+        if fixedvalue is None:
+            # provide generic blank
+            fixedvalue=dc_value.stringvalue("")
+            pass
+
+        if fixed:
+            self.fixedvalue=fixedvalue       
+            self.set_state(self.STATE_FIXED)
+            self.changedinhibit=True
+            self.textview.get_buffer().set_property("text",self.fixedvalue.format(fixeddisplayfmt))
+            self.changedinhibit=False
+            pass
+
+        elif self.state==self.STATE_FIXED:
+            # if our state is set as fixed but we are no longer fixed
+            self.set_state(self.STATE_FOLLOWDG) # go into follower state
+            # update readout according to current param value
+
+            #sys.stderr.write("paragraphparam: Following dg. self.param.dcvalue=%s\n" % (str(self.param.dcvalue)))
+            #sys.stderr.write("paragraphparam: Following dg. self.paramdb[notes].dcvalue=%s\n" % (str(self.paramdb["notes"].dcvalue)))
+            self.newvalue(self.param,None)
+            
+            pass
+        pass
+
     
 
     def changeinprogress(self,param,condition): 
@@ -142,41 +175,16 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         sys.stderr.write("paragraphparam warning: attempt to set editable... not yet implemented!\n")
         pass
 
-    def stop(self):
-        self.stopped=True
-        self.set_sensitive(False)
-
-        pass
-    
-    def start(self):
-        self.stopped=False
-        self.set_sensitive(True)
-
-        # make sure we are up-to-date
-        if self.lastvalue != self.param.dcvalue:
-            self.changedinhibit=True
-            self.textview.get_buffer().set_property("text",self.param.dcvalue.format(self.param.displayfmt))
-            self.changedinhibit=False
-
-            self.lastvalue=self.param.dcvalue
-
-            self.set_state(self.STATE_FOLLOWDG) # clear a color change resulting from a command 
-            pass
-        
-        pass
     
     def isconsistent(self,inconsistentlist):
-        if self.state != self.STATE_FOLLOWDG:
+        if self.state != self.STATE_FOLLOWDG and self.state != self.STATE_FIXED:
             inconsistentlist.append(self.param.xmlname)
-            pass
-        # returns TRUE if we are in a consistent state
-        return self.state==self.STATE_FOLLOWDG
+            return False
+        return True
     
     def newvalue(self,param,condition):
-        if self.stopped: 
-            return
         
-        if self.state==self.STATE_ADJUSTING or self.state==self.STATE_WAITING:
+        if self.state==self.STATE_ADJUSTING or self.state==self.STATE_WAITING or self.state==self.STATE_FIXED:
             return
         
         self.changedinhibit=True
@@ -196,34 +204,46 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         # need next line if subclassing a dc_gui class
         # super(dc_readout).__dc_gui_init(self,guistate)
         
-        self.dc_gui_io=guistate.io
         if self.paramdb is None:  # allow manual initialization of paramdb, in case we are to use a non-default paramdb
             self.paramdb=guistate.paramdb
             pass
         
-        if self.myprops["paramname"] not in self.paramdb:
-            raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
-        self.param=self.paramdb[self.myprops["paramname"]]
-
-        self.lastvalue=self.param.dcvalue
-        self.param.addnotify(self.changeinprogress,pdb.param.NOTIFY_CONTROLLER_REQUEST)
-        self.param.addnotify(self.newvalue,pdb.param.NOTIFY_NEWVALUE,)
-
         self.__paragraphparam_unique=[]
 
+        if self.state is None: 
+            self.set_state(self.STATE_FOLLOWDG) # trigger sync_to_paramdb
+            pass
 
-        self.textview.get_buffer().set_property("text",self.param.dcvalue.format(self.param.displayfmt))
-
-
-
-
+        
         #self.textview.connect("focus-out-event",self.pp_activate)
         self.textview.connect("key-press-event",self.pp_keypress)
         self.textview.get_buffer().connect("changed",self.pp_changed)
 
         pass
 
+    def sync_to_paramdb(self):
+        if self.myprops["paramname"] not in self.paramdb:
+            raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
+        self.param=self.paramdb[self.myprops["paramname"]]
 
+        self.lastvalue=self.param.dcvalue
+        self.changeinprogress_notify=self.param.addnotify(self.changeinprogress,pdb.param.NOTIFY_CONTROLLER_REQUEST)
+        self.newvalue_notify=self.param.addnotify(self.newvalue,pdb.param.NOTIFY_NEWVALUE,)
+
+        self.changedinhibit=True
+        self.textview.get_buffer().set_property("text",self.param.dcvalue.format(self.param.displayfmt))
+        self.changedinhibit=False
+        
+        pass
+
+    def unsync_to_paramdb(self):
+        self.param.remnotify(self.changeinprogress_notify)
+        self.changeinprogresss_notify=None
+
+        self.param.remnotify(self.newvalue_notify)
+        self.newvalue_notify=None
+        pass
+    
     def setbgcolor(self,color):
         colormap={"white" : "#ffffff",
                   "red"   : "#ff0000",
@@ -239,6 +259,9 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
 
     def pp_abort(self):
         # set to current value of underlying parameter
+        if self.state==self.STATE_FIXED:
+            return
+        
         self.changedinhibit=True
         self.textview.get_buffer().set_property("text",self.param.dcvalue.format(self.param.displayfmt))
         self.changedinhibit=False
@@ -248,15 +271,16 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         pass
     
     def pp_keypress(self,obj,event):
-        if self.stopped: 
+        if self.state==self.STATE_FIXED:
             return False
+
         
         # print "event.keyval=%s" % (str(event.keyval))
         
         if event.keyval==0xff09:  # GDK_Tab 
             #print "Tab pressed\n"
             if self.state != self.STATE_FOLLOWDG:
-                self.pp_activate(None)
+                self.pp_activate()
                 pass
             pass
 
@@ -274,6 +298,8 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         # this is used to programatically append content WITHOUT
         # triggering an update to the parameter. 
         # Be sure to call pp_activate() when done.
+        assert(self.state != self.STATE_FIXED)
+
         buf=self.textview.get_buffer()
         end_iter=buf.get_end_iter()
         buf.insert(end_iter,text)
@@ -283,15 +309,25 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         buf.move_mark(self.endmark,end_iter_new)
         self.textview.scroll_mark_onscreen(self.endmark)
         pass
-        
-    def pp_activate(self,param1):
-        if self.stopped:
+
+
+    # WARNING: pp_activate no longer suitable as gtk callback because of
+    # assignedcallback parameter
+    def pp_activate(self,assignedcallback=None):
+        if self.state==self.STATE_FIXED:
+            if assignedcallback is not None:
+                assignedcallback(self,None)
+                pass
             return
 
         # print "Loose focus... update controller"
 
         if self.state != self.STATE_ADJUSTING:
             # change callback never called... do nothing
+            if assignedcallback is not None:
+                assignedcallback(self,None)
+                pass
+
             return
 
         
@@ -307,10 +343,11 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         self.assignedvalue=self.param.paramtype(self.textview.get_buffer().get_property("text"),defunits=self.param.defunits)
         
         self.requestident=self.param.requestval(self.assignedvalue,self.requestvalcallback)
+        self.requestassignedcallback=assignedcallback
         pass
     
     def pp_changed(self,event):
-        if self.stopped: 
+        if self.state==self.STATE_FIXED: 
             return
         
         if not self.changedinhibit:
@@ -321,8 +358,6 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         pass
     
     def requestvalcallback(self,param,requestid,errorstr,result):
-        if self.stopped:
-            return
         
         if requestid != self.requestident:
             # spurious callback -- probably from command we were unable to cancel
@@ -342,6 +377,10 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
             
             self.set_state(self.STATE_FOLLOWDG)
             self.assignedvalue=None
+            if self.requestassignedcallback is not None:
+                self.requestassignedcallback(self,None)
+                pass
+            
             pass
         else :
             self.errorflag=False
@@ -360,11 +399,29 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
                 pass
             self.lastvalue=result
             
+            if self.requestassignedcallback is not None:
+                self.requestassignedcallback(self,result)
+                pass
             pass
         return False
     
     def set_state(self,state,match=False,mismatch=False):
+        if self.state is not None and self.state != self.STATE_FIXED and state==self.STATE_FIXED:
+            # switch into fixed state: unsync_to_paramdb
+            self.unsync_to_paramdb()
+            pass
+        elif (self.state is None or self.state == self.STATE_FIXED) and state != self.STATE_FIXED:
+            # switch out of no state or fixed state: sync_to_paramdb
+            self.sync_to_paramdb()
+            pass
+
         self.state=state
+
+        if self.state!=self.STATE_FIXED:
+            self.set_sensitive(True)
+            pass
+
+
         if self.state==self.STATE_FOLLOWDG:
 
             if self.errorflag:
@@ -386,6 +443,9 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
             pass
         elif self.state==self.STATE_WAITING:
             self.setbgcolor("ltblue")
+            pass
+        elif self.state==self.STATE_FIXED:
+            self.set_sensitive(False)
             pass
         else:
             assert(0)

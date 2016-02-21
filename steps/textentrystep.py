@@ -5,7 +5,9 @@ import os
 import sys
 
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     pass
@@ -63,9 +65,10 @@ class textentrystep(gtk.HBox):
     step=None
     xmlpath=None
                       
-    dc_gui_io=None
     searchdirs=None
     gladeobjdict=None
+
+    changedinhibit=None
     
     def __init__(self,checklist,step,xmlpath):
         # paramhandler.__init__(self,super(adjustparamstep,self),self.__proplist)# .__gproperties__)
@@ -80,6 +83,7 @@ class textentrystep(gtk.HBox):
         
         # self.gladeobjdict["step_textentry"].connect("size-request",self.te_reqsize)
 
+        self.changedinhibit=False
         self.searchdirs=None
         self.checklist=checklist
         self.step=step
@@ -103,9 +107,37 @@ class textentrystep(gtk.HBox):
 
         pass
 
-    def set_text(self,value):
-        self.myprops["text"]=value
-        self.gladeobjdict["step_textentry"].set_text(self.myprops["text"]) 
+
+    def text_from_xml(self):
+        text=""
+        self.checklist.xmldoc.lock_ro()
+        try:
+            xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
+
+            textparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:parameter[@name='text']")
+            if len(textparamnodes) > 0:
+                textparamnode=textparamnodes[0]
+                
+                text=self.checklist.xmldoc.gettext(textparamnode)
+                
+                pass
+            
+
+            pass
+        finally:
+            self.checklist.xmldoc.unlock_ro()
+            pass
+        
+        return text
+
+    def update_widget(self):
+        self.changedinhibit=True
+        self.gladeobjdict["step_textentry"].set_text(self.myprops["text"])
+        self.changedinhibit=False
+        pass
+    
+    def update_xml(self):
+        value=self.myprops["text"]
 
         self.checklist.xmldoc.lock_rw()
         try : 
@@ -151,7 +183,7 @@ class textentrystep(gtk.HBox):
             pass
         elif property.name=="text":
             self.myprops["text"]=value
-            self.gladeobjdict["step_textentry"].set_text(value)
+            self.update_widget()
             pass
         elif property.name=="width":
             self.myprops[property.name]=value
@@ -173,25 +205,53 @@ class textentrystep(gtk.HBox):
         # super(dg_readout).__dc_gui_init(self,io)
         
 
-        self.dc_gui_io=guistate.io
         self.searchdirs=guistate.searchdirs
 
-        self.set_initialtext(self.myprops["initialtext"])
+        #self.set_initialtext(self.myprops["initialtext"])
         
-        if self.myprops["text"] is None:
-            # use initialtext 
-            self.myprops["text"]=self.myprops["initialtext"]
-            pass
-        self.set_text(self.myprops["text"]) 
+        self.set_fixed()
         
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
         pass
 
+    def is_fixed(self):
+        # param readout is fixed when checklist is marked as
+        # readonly or when checkbox is checked. 
+        return self.checklist.readonly or self.step.gladeobjdict["checkbutton"].get_property("active")
+    
+
+    def set_fixed(self):
+        fixed=self.is_fixed()
+        self.gladeobjdict["step_textentry"].set_sensitive(not(fixed))
+        if fixed:
+            self.update_widget()
+            pass
+        
+        pass
+    
+    def handle_check(self,checked):
+        # automagically called by steptemplate when checkbox is checked or unchecked
+        self.set_fixed()
+        pass
+
+    
+    def set_readonly(self,readonly):
+        # automagically called by step when checklist readonly state
+        # changes.
+        self.set_fixed()
+        pass
+        
 
 
     def changedcallback(self,event):
-        self.set_text(self.gladeobjdict["step_textentry"].get_text())
+        if self.changedinhibit:
+            return
+        
+        if not self.is_fixed():
+            self.myprops["text"]=self.gladeobjdict["step_textentry"].get_text()
+            self.update_xml()
+            pass
         pass
 
     # def te_reqsize(self,obj,requisition):
@@ -209,7 +269,11 @@ class textentrystep(gtk.HBox):
 
 
     def resetchecklist(self):
-        self.set_text(self.myprops["initialtext"])
+        assert(not self.is_fixed())
+        self.myprops["text"]=self.myprops["initialtext"]
+
+        self.update_widget()
+        self.update_xml()
 
         pass
 

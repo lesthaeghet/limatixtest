@@ -1,7 +1,9 @@
 import os
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk as gdk
     from gi.repository import GObject as gobject
@@ -35,7 +37,6 @@ class labelled_selectableparamreadout(gtk.HBox):
          
          }
 
-    dc_gui_io=None
     label=None # label object
     labelmarkup=None
     entry=None # selectbleparamreadout object
@@ -57,6 +58,12 @@ class labelled_selectableparamreadout(gtk.HBox):
         self.pack_start(self.label,False,False,0)
         self.pack_start(self.entry,True,True,0)
         
+        pass
+
+    def set_fixed(self,fixed,fixedvalue=None,fixeddisplayfmt=None):
+        if hasattr(self.entry,"set_fixed"):
+            self.entry.set_fixed(fixed,fixedvalue,fixeddisplayfmt)
+            pass
         pass
 
     def isconsistent(self,inconsistentlist):
@@ -86,7 +93,6 @@ class labelled_selectableparamreadout(gtk.HBox):
     
     
     def dc_gui_init(self,guistate):
-        self.dc_gui_io=guistate.io
         self.entry.dc_gui_init(guistate)
         
         pass

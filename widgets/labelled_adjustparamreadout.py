@@ -1,7 +1,9 @@
 import os
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk as gdk
     from gi.repository import GObject as gobject
@@ -41,7 +43,6 @@ class labelled_adjustparamreadout(gtk.HBox):
          
          }
 
-    dc_gui_io=None
     label=None # label object
     labelmarkup=None
     entry=None # adjustparamreadout object
@@ -71,6 +72,12 @@ class labelled_adjustparamreadout(gtk.HBox):
 
         pass
 
+    def set_fixed(self,fixed,fixedvalue=None,fixeddisplayfmt=None):
+        if hasattr(self.entry,"set_fixed"):
+            self.entry.set_fixed(fixed,fixedvalue,fixeddisplayfmt)
+            pass
+        pass
+    
     def isconsistent(self,inconsistentlist):
         return self.entry.isconsistent(inconsistentlist)
       
@@ -98,7 +105,6 @@ class labelled_adjustparamreadout(gtk.HBox):
     
     
     def dc_gui_init(self,guistate):
-        self.dc_gui_io=guistate.io
         self.entry.dc_gui_init(guistate)
 
         

@@ -10,7 +10,9 @@
 import os
 import sys
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     pass
@@ -57,7 +59,6 @@ class buttontextareastep(gtk.HBox):
     myprops=None
 
                       
-    dc_gui_io=None
     paramdb=None
     gladeobjdict=None
     
@@ -115,7 +116,6 @@ class buttontextareastep(gtk.HBox):
         
         
         self.paramdb=guistate.paramdb
-        self.dc_gui_io=guistate.io
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
 

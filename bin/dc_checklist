@@ -7,6 +7,8 @@ import string
 import datetime
 
 if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     pass
 else :  # gtk2
@@ -56,7 +58,13 @@ from dc_value import datesetvalue as datesetv
 from dc_value import accumulatingdatesetvalue as accumulatingdatesetv
 from dc_dbus_barcode import dc_dbus_barcode
 
-import dg_io 
+dg_io=None
+try:
+    import dg_io
+    pass
+except ImportError:
+    pass
+
 import paramdb2 as pdb
 import dc2_misc
 import standalone_checklist
@@ -128,12 +136,16 @@ if fname is None:
     sys.exit(1)
 
 
-iohandler=dg_io.io()
+iohandlers={}  #=dg_io.io()
 if connect_dg:
-    iohandler.startcomm()
+    if dg_io is not None:
+        dg_io.addhandler(iohandlers)
+        pass
+    else:
+        sys.stderr.write("dc_checklist: dg_io not available (ImportError)\n")
     pass
 
-paramdb=pdb.paramdb(iohandler)
+paramdb=pdb.paramdb(iohandlers)
 
 # define parameters
 # paramdb.addparam("clinfo",stringv,build=lambda param: xmldoc.synced(param))  # clinfo auto-added to checklist-private paramdb
@@ -169,7 +181,7 @@ def createparamserver():
 
 
 for configfile in configfiles:
-    dc2_misc.load_config(configfile,paramdb,iohandler,createparamserver)
+    dc2_misc.load_config(configfile,paramdb,iohandlers,createparamserver)
     #configfh=file(configfile)
     #configstr=configfh.read()
     #exec(configstr,globals(),{"paramdb":paramdb,"dgio":iohandler,"createparamserver":createparamserver})
@@ -183,7 +195,7 @@ dbuslink=dc_dbus_barcode(paramdb)
 
 
 
-standalone_checklist.open_checklist(fname,paramdb,iohandler)
+standalone_checklist.open_checklist(fname,paramdb,iohandlers)
 
 
 

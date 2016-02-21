@@ -13,13 +13,13 @@ import traceback
 import StringIO
 import cProfile
 
-if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
-    from gi.repository import Gtk as gtk
-    pass
-else :  # gtk2
-    import gobject
-    import gtk
-    pass
+#if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
+#    from gi.repository import Gtk as gtk
+#    pass
+#else :  # gtk2
+#    import gobject
+#    import gtk
+#    pass
 
 import shutil
 import datetime

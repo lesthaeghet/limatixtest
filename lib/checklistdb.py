@@ -136,7 +136,7 @@ def checklistlookup(canonicalpath):
     if cached is None:
         if canonicalpath.startswith("mem://"):
             
-            entry=checklistentry(None,None,canonicalpath,False)
+            entry=checklistentry(None,None,None,canonicalpath,False)
             entry.clinfo=""
             entry.cltype=""
             entry.starttimestamp=""
@@ -150,7 +150,7 @@ def checklistlookup(canonicalpath):
         pass
     try: 
         
-        entry=checklistentry(None,cached,canonicalpath,False)
+        entry=checklistentry(None,cached,cached.filename,canonicalpath,False)
         pass
     finally:
         cached.unlock_ro() # release lock on cached xmldoc
@@ -180,7 +180,7 @@ def cachechecklist(checklistobj):
 class checklistentry(object):
     # a class checklistentry is how a checklist is represented
     # within the checklistdb
-
+    path = None # filename, including path
     filename=None # Just filename, no path
     filename_abbrev=None  # used by checklistdbwin to represent abbreviated filename
     canonicalpath=None # filename+canonical path
@@ -193,16 +193,19 @@ class checklistentry(object):
     starttimestamp_abbrev=None  # used by checklistdbwin to represent abbreviated starttimestamp
 
     is_done=None  # is this checklist done
+    #is_plan=None  # is this a plan as opposed to a regular checklist?
     is_open=None  # is this checklist in-memory
     allchecked=None # Have all items been checked?
+    measnum=None  # measnum from checklist or None
     checklist=None # checklist object or None
 
-    def __init__(self,checklist,xmldoc,canonicalpath,is_open):
+    def __init__(self,checklist,xmldoc,path,canonicalpath,is_open):
         # PRIVATE: Create and return a checklist entry for provided
         # xmldoc. 
         # Locks xmldoc for read
 
         self.checklist=checklist
+        self.path=path
 
         if canonicalpath is not None and not canonicalpath.startswith("mem://"):
             self.filename=os.path.split(canonicalpath)[1]
@@ -231,8 +234,14 @@ class checklistentry(object):
                 else :
                     self.allchecked=False
                     pass
-            
-                    
+
+                self.measnum=None
+                measnumels=xmldoc.xpath("dc:measnum")
+                if len(measnumels) > 0:
+                    measnumvalue=dc_value.integervalue.fromxml(xmldoc,measnumels[0])
+                    self.measnum=measnumvalue.value()
+                    pass
+                
                 self.clinfo=xmldoc.xpathsinglestr("string(chx:clinfo)")
                 self.origfilename=xmldoc.xpathsinglestr("string(@origfilename)")
                 self.cltype=xmldoc.xpathsinglestr("string(chx:clinfo/@type)")
@@ -359,21 +368,21 @@ def getchecklists(contextdir,paramdb,clparamname,clparamname2=None,allchecklists
 
     if allchecklists:
         # unnamed checklists in-memory -- indexed by their id
-        all_cl_unnamed_inmem=[ generate_inmemory_id(checklist) for checklist in openchecklists if checklist.xmldoc.filename is None and not checklist.closed and not checklist.grayed_out]
+        all_cl_unnamed_inmem=[ generate_inmemory_id(checklist) for checklist in openchecklists if checklist.xmldoc.filename is None and not checklist.closed ]
         #sys.stderr.write("all_cl_unnamed_inmem=%s\n\n" % (str(all_cl_unnamed_inmem)))
         checklistset|=set(all_cl_unnamed_inmem)  
         # add in named checklists in-memory -- indexed by their canonicalized path
-        all_cl_named_inmem=[ canonicalize_path.canonicalize_path(checklist.xmldoc.filename) for checklist in openchecklists if checklist.xmldoc.filename is not None and not checklist.closed and not checklist.grayed_out]
+        all_cl_named_inmem=[ canonicalize_path.canonicalize_path(checklist.xmldoc.filename) for checklist in openchecklists if checklist.xmldoc.filename is not None and not checklist.closed ]
         #sys.stderr.write("all_cl_named_inmem=%s\n\n" % (str(all_cl_named_inmem)))
         checklistset|=set(all_cl_named_inmem)
         pass
 
     if allplans:
         # unnamed plans in-memory -- indexed by their id
-        all_pl_unnamed_inmem=[ generate_inmemory_id(checklist) for checklist in openplans if checklist.xmldoc.filename is None and not checklist.closed and not checklist.grayed_out]
+        all_pl_unnamed_inmem=[ generate_inmemory_id(checklist) for checklist in openplans if checklist.xmldoc.filename is None and not checklist.closed ]
         checklistset|=set(all_pl_unnamed_inmem)
         # add in named checklists in-memory -- indexed by their canonicalized path
-        all_pl_named_inmem=[ canonicalize_path.canonicalize_path(checklist.xmldoc.filename) for checklist in openplans if checklist.xmldoc.filename is not None and not checklist.closed and not checklist.grayed_out]
+        all_pl_named_inmem=[ canonicalize_path.canonicalize_path(checklist.xmldoc.filename) for checklist in openplans if checklist.xmldoc.filename is not None and not checklist.closed ]
         checklistset|=set(all_pl_named_inmem)
         pass
 
@@ -431,11 +440,11 @@ def getchecklists(contextdir,paramdb,clparamname,clparamname2=None,allchecklists
     entrylist=[]
 
     checklistobjbycanonpath={}
-    checklistobjbycanonpath.update(dict((generate_inmemory_id(checklistobj),checklistobj) for checklistobj in openchecklists if checklistobj.xmldoc.filename is None and not checklistobj.closed and not checklistobj.grayed_out))
-    checklistobjbycanonpath.update(dict((canonicalize_path.canonicalize_path(checklistobj.xmldoc.filename),checklistobj) for checklistobj in openchecklists if checklistobj.xmldoc.filename is not None and not checklistobj.closed and not checklistobj.grayed_out))
+    checklistobjbycanonpath.update(dict((generate_inmemory_id(checklistobj),checklistobj) for checklistobj in openchecklists if checklistobj.xmldoc.filename is None and not checklistobj.closed ))
+    checklistobjbycanonpath.update(dict((canonicalize_path.canonicalize_path(checklistobj.xmldoc.filename),checklistobj) for checklistobj in openchecklists if checklistobj.xmldoc.filename is not None and not checklistobj.closed ))
 
-    checklistobjbycanonpath.update(dict((generate_inmemory_id(checklistobj),checklistobj) for checklistobj in openplans if checklistobj.xmldoc.filename is None and not checklistobj.closed and not checklistobj.grayed_out))
-    checklistobjbycanonpath.update(dict((canonicalize_path.canonicalize_path(checklistobj.xmldoc.filename),checklistobj) for checklistobj in openplans if checklistobj.xmldoc.filename is not None and not checklistobj.closed and not checklistobj.grayed_out))
+    checklistobjbycanonpath.update(dict((generate_inmemory_id(checklistobj),checklistobj) for checklistobj in openplans if checklistobj.xmldoc.filename is None and not checklistobj.closed ))
+    checklistobjbycanonpath.update(dict((canonicalize_path.canonicalize_path(checklistobj.xmldoc.filename),checklistobj) for checklistobj in openplans if checklistobj.xmldoc.filename is not None and not checklistobj.closed ))
 
 
     for canonpath in setelementsbyorder(checklistset,checklists1,checklists2,all_cl_unnamed_inmem,all_cl_named_inmem,all_pl_unnamed_inmem,all_pl_named_inmem): 
@@ -446,7 +455,7 @@ def getchecklists(contextdir,paramdb,clparamname,clparamname2=None,allchecklists
 
         if canonpath in checklistobjbycanonpath:
             checklistobj=checklistobjbycanonpath[canonpath]
-            clentry=checklistentry(checklistobj,checklistobj.xmldoc,canonpath,True)
+            clentry=checklistentry(checklistobj,checklistobj.xmldoc,checklistobj.xmldoc.filename,canonpath,True)
             pass
         else: 
             # look up a (possibly cached) copy of the XML file
@@ -534,27 +543,26 @@ def checklistclosenotify(checklist):
     pass
 
 
-def checklist_in_param(checklist,contextdir,checklistsdoc):
-
+def checklist_href(checklist):
     filename=checklist.xmldoc.filename
-
     if filename is None:
         canonname=generate_inmemory_id(checklist)
+        href=dc_value.hrefvalue(canonname)
         pass
-    else :
-        canonname=canonicalize_path.canonicalize_path(filename)
+    else:
+        href=dc_value.hrefvalue.from_rel_path(".",filename)
         pass
-
+    return href
+    
+def checklist_in_param(href,checklistsdoc):
+    # href can be found from checklist_href(checklist)
 
     gotclentry=False
     for checklisttag in checklistsdoc.xpath("dc:checklist"):
-        if checklistsdoc.hasattr(checklisttag,"xlink:href"):
-            # look for xlink:href attribute
-            canonpath=xlinkhref2canonpath(contextdir,checklistsdoc,checklisttag)
-            if canonpath==canonname: # Found the mem://  url or canonical filename?
-                gotclentry=True
-                break
-            pass
+        testhref=dc_value.hrefvalue.fromxml(checklistsdoc,checklisttag)
+        if testhref==href:
+            gotclentry=True
+            break
         pass
 
     return gotclentry
@@ -621,11 +629,14 @@ def addchecklisttoparamdb(checklist,paramdb,clparamname):
     
     if filename is None:
         canonname=generate_inmemory_id(checklist)
+        href=dc_value.hrefvalue(canonname)
         pass
     else :
-        canonname=canonicalize_path.canonicalize_path(filename)
+        #canonname=canonicalize_path.canonicalize_path(filename)
+        href=dc_value.hrefvalue.from_rel_path(".",filename)
         pass
 
+    
     index=paramdbindex(paramdb,clparamname)
 
     if index not in paramdbentries: 
@@ -636,19 +647,22 @@ def addchecklisttoparamdb(checklist,paramdb,clparamname):
 
     checklistsdoc=paramdb[clparamname].dcvalue.get_xmldoc(nsmap=cdb_nsmap,contextdir=paramdbentry.contextdir)  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
 
-    gotclentry=checklist_in_param(checklist,paramdbentry.contextdir,checklistsdoc)
+    gotclentry=checklist_in_param(href,checklistsdoc)
 
     if not(gotclentry):
         # no existing entry for this checklist...  add one!
         # 
         
         newelement=checklistsdoc.addelement(checklistsdoc.getroot(),"dc:checklist")
-        if canonname.startswith("mem://"):
-            checklistsdoc.setattr(newelement,"xlink:href",canonname)
-            pass
-        else: 
-            checklistsdoc.setattr(newelement,"xlink:href",urllib.pathname2url(canonicalize_path.relative_path_to(paramdbentry.contextdir,canonname)))
-            pass
+        href.xmlrepr(checklistsdoc,newelement)
+        
+        
+        #if canonname.startswith("mem://"):
+        #    checklistsdoc.setattr(newelement,"xlink:href",canonname)
+        #    pass
+        #else: 
+        #    checklistsdoc.setattr(newelement,"xlink:href",urllib.pathname2url(canonicalize_path.relative_path_to(paramdbentry.contextdir,canonname)))
+        #    pass
 
         # update paramdb entry
         paramdb[clparamname].requestval_sync(dc_value.xmltreevalue(checklistsdoc,contextdir=paramdbentry.contextdir))
@@ -791,7 +805,7 @@ def newchecklistnotify(checklist,is_plan=False):
 #!!! fix to separate out reset and assign filename behaviors
 # !!! filenamenotify should get old name too. 
 
-#def filenamenotify_internal(checklist,origfilename,dest,fname,contextdir,paramdb,clparamname):
+#def filenamenotify_internal(checklist,origfilename,fname,contextdir,paramdb,clparamname):
 #    # MUST ARRANGE THAT THIS BE CALLED when checklist gets its filename set (DONE)
 #    # Note that it should also be called when the filename gets reset due to rerunning the checklist
 #    # WARNING: May call requestval_sync which runs sub-mainloop
@@ -896,16 +910,15 @@ def newchecklistnotify(checklist,is_plan=False):
 #    pass
 
 
-def filenamenotify(checklist,origfilename,dest,fname,oldfilename): #paramdb,clparamname):
+def filenamenotify(checklist,origfilename,fname,oldfilename): #paramdb,clparamname):
     # Warning: May call requestval_sync!
 
+    #sys.stderr.write("checklistdb.filenamenotify: origfilename=%s, fname=%s, oldfilename=%s, closed=%s\n" % (origfilename,fname,oldfilename,str(checklist.closed)))
+    
     if checklist.closed:
         return
 
-    if checklist.grayed_out: 
-        # grayed-out checklist doesn't meaningfully have a name
-        return
-
+    
 
     filename=checklist.xmldoc.filename  # need to use this to get full path. otherwise it may just be file part
 
@@ -943,12 +956,13 @@ def filenamenotify(checklist,origfilename,dest,fname,oldfilename): #paramdb,clpa
                     canonpath=xlinkhref2canonpath(entry.contextdir,checklistsdoc,checklisttag)
                     if canonpath==oldcanonname:
                         # found a previous name for this checklist
-                    
+                        #sys.stderr.write("checklistdb.filenamenotify: matched %s...\n" % (oldcanonname))
                         # update the url
                     
                         checklistsdoc.setattr(checklisttag,"xlink:href",urllib.pathname2url(canonicalize_path.relative_path_to(entry.contextdir,canonname)))
                         # update paramdb entry
                         entry.paramdb[entry.clparamname].requestval_sync(dc_value.xmltreevalue(checklistsdoc,contextdir=entry.contextdir))
+                        #sys.stderr.write("checklistdb: updatedentry=%s\n" % (str(entry.paramdb[entry.clparamname])))
                         pass
                     pass
                 pass
@@ -960,11 +974,11 @@ def filenamenotify(checklist,origfilename,dest,fname,oldfilename): #paramdb,clpa
 
 
 
-    # filenamenotify_internal(checklist,origfilename,dest,fname,contextdir,paramdb,clparamname)
+    # filenamenotify_internal(checklist,origfilename,fname,contextdir,paramdb,clparamname)
     
     # perform requested notifications
     for (notify,args,kwargs) in filenamenotifies:
-        notify(checklist,origfilename,dest,fname,oldfilename,*args,**kwargs)
+        notify(checklist,origfilename,fname,oldfilename,*args,**kwargs)
         pass
     pass
 
@@ -976,6 +990,7 @@ def checklist_handle_reset(checklist,oldfilename):
     if checklist.closed:
         return
 
+    #sys.stderr.write("checklistdb:checklist_handle_reset(%s)\n" % (oldfilename))
     # make sure this checklist is in our cache
     cachechecklist(checklist)
 
@@ -1011,6 +1026,9 @@ def checklist_handle_reset(checklist,oldfilename):
 
         # always make sure the new canonname is in the 
 
+        # Since there can be multiple paramdbs want to make sure
+        # we add new entry to same place as old entry
+        entryupdated=False
         for index in paramdbentries: 
             entry=paramdbentries[index]
         
@@ -1037,12 +1055,14 @@ def checklist_handle_reset(checklist,oldfilename):
                         
                             # update paramdb entry
                             entry.paramdb[entry.clparamname].requestval_sync(dc_value.xmltreevalue(checklistsdoc,contextdir=entry.contextdir))
+                            entryupdated=True
                             pass
                         
                         pass
                     pass
                 pass
             pass
+        assert(entryupdated)
         pass
         
 

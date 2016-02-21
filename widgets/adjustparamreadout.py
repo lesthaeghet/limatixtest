@@ -2,7 +2,9 @@ import os
 import sys
 
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk as gdk
     from gi.repository import GObject as gobject
@@ -61,7 +63,6 @@ class adjustparamreadout(gtk.Entry,paramhandler):
     __proplist = ["paramname"] 
 
     __adjustparamreadout_unique=None
-    dc_gui_io=None
     paramdb=None
     param=None
     requestident=None
@@ -70,12 +71,18 @@ class adjustparamreadout(gtk.Entry,paramhandler):
     lastvalue=None # last value provided by controller
     errorflag=None
     state=None
+    fixedvalue=None
 
+    newvalue_notify=None
+    changeinprogress_notify=None
+    
     # values for state
     STATE_FOLLOWDG=0  # white, or orange (if last command was mismatch), or red (if last command was error), or green (if last command was match)  ... requestident should usually be None, querypending should be True, assignedvalue not valid
     STATE_ADJUSTING=1 # yellow... querypending should be False, requestident should usually be None, querypending should usually be False, assignedvalue not valid
     STATE_WAITING=2 # ltblue... querypending should be False, requestident shoudl be valid, assignedvalue valid
+    STATE_FIXED=3 # fixed and hardwired to fixedvalue
 
+    
     changedinhibit=None # Used to ignore change events triggered by  set_text... too bad Gtk doesn't  provide a better way to do this
     
 
@@ -88,20 +95,41 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         # self.myprops["dg-paramsuffix"]=""
 
         self.changedinhibit=False
-
+        self.fixedvalue=None
 
         self.errorflag=False
         self.querypending=False  # queries started in dc_gui_init
-        self.set_state(self.STATE_FOLLOWDG)
 
+        pass
+
+    def set_fixed(self,fixed,fixedvalue=None,fixeddisplayfmt=None):
+        if fixedvalue is None:
+            # provide generic blank
+            fixedvalue=dc_value.stringvalue("")
+            pass
+        
+        if fixed:
+            self.fixedvalue=fixedvalue       
+            self.set_state(self.STATE_FIXED)
+            self.changedinhibit=True
+            self.set_text(self.fixedvalue.format(fixeddisplayfmt))
+            self.changedinhibit=False
+            pass
+
+        elif self.state==self.STATE_FIXED:
+            # if our state is set as fixed but we are no longer fixed
+            self.set_state(self.STATE_FOLLOWDG) # go into follower state
+            # update readout according to current param value
+            self.newvalue(self.param,None)
+            
+            pass
         pass
     
     def isconsistent(self,inconsistentlist):
-        if self.state != self.STATE_FOLLOWDG:
+        if self.state != self.STATE_FOLLOWDG and self.state != self.STATE_FIXED:
             inconsistentlist.append(self.param.xmlname)
-            pass
-        
-        return self.state==self.STATE_FOLLOWDG
+            return False
+        return True
     
 
 
@@ -109,7 +137,8 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         pass
     
     def newvalue(self,param,condition):
-        if self.state==self.STATE_ADJUSTING or self.state==self.STATE_WAITING:
+        # (condition not used)
+        if self.state==self.STATE_ADJUSTING or self.state==self.STATE_WAITING or self.state==self.STATE_FIXED:
             return
         self.changedinhibit=True
         self.set_text(param.dcvalue.format(param.displayfmt))
@@ -131,36 +160,48 @@ class adjustparamreadout(gtk.Entry,paramhandler):
     def dc_gui_init(self,guistate):
         # need next line if subclassing a dc_gui class
         # super(dc_readout).__dc_gui_init(self,guistate)
+
         
-        self.dc_gui_io=guistate.io
 
         if self.paramdb is None:  # allow manual initialization of paramdb, in case we are to use a non-default paramdb
             self.paramdb=guistate.paramdb
             pass
-
-        
-        if self.myprops["paramname"] not in self.paramdb:
-            raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
-        self.param=self.paramdb[self.myprops["paramname"]]
-        self.lastvalue=self.param.dcvalue
-
-        self.param.addnotify(self.changeinprogress,pdb.param.NOTIFY_CONTROLLER_REQUEST)
-        self.param.addnotify(self.newvalue,pdb.param.NOTIFY_NEWVALUE,)
-
         self.__adjustparamreadout_unique=[]
 
+        if self.state is None: 
+            self.set_state(self.STATE_FOLLOWDG)  # trigger sync_to_paramdb
+            pass
 
-
-        self.set_text(self.param.dcvalue.format(self.param.displayfmt))
-
-
-
+        
         self.connect("key-press-event",self.apr_keypress)
         self.connect("activate",self.apr_activate)
         self.connect("changed",self.apr_changed)
 
         pass
 
+    def sync_to_paramdb(self):
+        if self.myprops["paramname"] not in self.paramdb:
+            raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
+        self.param=self.paramdb[self.myprops["paramname"]]
+        self.lastvalue=self.param.dcvalue
+
+        self.changeinprogress_notify=self.param.addnotify(self.changeinprogress,pdb.param.NOTIFY_CONTROLLER_REQUEST)
+        self.newvalue_notify=self.param.addnotify(self.newvalue,pdb.param.NOTIFY_NEWVALUE,)
+
+        self.changedinhibit=True
+        self.set_text(self.param.dcvalue.format(self.param.displayfmt))
+        self.changedinhibit=False
+
+        pass
+
+    def unsync_to_paramdb(self):
+        self.param.remnotify(self.changeinprogress_notify)
+        self.changeinprogress_notify=None
+
+        self.param.remnotify(self.newvalue_notify)
+        self.newvalue_notify=None
+        pass
+    
 
     def setbgcolor(self,color):
         colormap={"white" : "#ffffff",
@@ -181,6 +222,8 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         pass
         
     def apr_keypress(self,obj,event):
+        if self.state == self.STATE_FIXED:
+            return
         
         # print "event.keyval=%s" % (str(event.keyval))
         
@@ -210,6 +253,8 @@ class adjustparamreadout(gtk.Entry,paramhandler):
 
 
     def apr_activate(self,event):
+        if self.state==self.STATE_FIXED:
+            return
 
         # print "activate!"
         #print "issue command %s %s" % (self.myprops["dg-param"],self.get_text())
@@ -229,6 +274,9 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         pass
     
     def apr_changed(self,event):
+        if self.state == self.STATE_FIXED:
+            return
+        
         if not self.changedinhibit:
             # print "changed, event=%s!" % (str(event))
             self.set_state(self.STATE_ADJUSTING)
@@ -284,7 +332,21 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         return False
     
     def set_state(self,state,match=False,mismatch=False):
+        if self.state is not None and self.state != self.STATE_FIXED and state==self.STATE_FIXED:
+            # switch into fixed state: unsync_to_paramdb
+            self.unsync_to_paramdb()
+            pass
+        elif (self.state is None or self.state == self.STATE_FIXED) and state != self.STATE_FIXED:
+            # switch out of no state or fixed state: sync_to_paramdb
+            self.sync_to_paramdb()
+            pass
+        
         self.state=state
+        if self.state!=self.STATE_FIXED:
+            self.set_sensitive(True)
+            pass
+        
+        
         if self.state==self.STATE_FOLLOWDG:
 
             if self.errorflag:
@@ -306,6 +368,9 @@ class adjustparamreadout(gtk.Entry,paramhandler):
             pass
         elif self.state==self.STATE_WAITING:
             self.setbgcolor("ltblue")
+            pass
+        elif self.state==self.STATE_FIXED:
+            self.set_sensitive(False)
             pass
         else:
             assert(0)

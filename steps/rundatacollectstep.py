@@ -29,7 +29,9 @@ if not hasattr(sys.modules["__builtin__"],"basestring"):
     pass
 
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import GObject as gobject
     from gi.repository import Gdk as gdk
@@ -276,7 +278,7 @@ class rundatacollectstep(gtk.HBox):
                         pass
                     pass
 
-                if os.path.exists(xlgfile):
+                if os.path.exists(xlgfile) and not self.checklist.readonly:
                     # store in checklist
                     self.checklist.xmldoc.lock_rw()
                     try:
@@ -301,7 +303,7 @@ class rundatacollectstep(gtk.HBox):
                         
                     pass
 
-                if os.path.exists(filledplan):
+                if os.path.exists(filledplan) and not self.checklist.readonly:
                     # store in checklist
                     self.checklist.xmldoc.lock_rw()
                     try:
@@ -435,7 +437,6 @@ class rundatacollectstep(gtk.HBox):
         
         
         self.paramdb=guistate.paramdb
-        self.dc_gui_io=guistate.io
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
@@ -522,8 +523,8 @@ class rundatacollectstep(gtk.HBox):
             commandlist.append(self.datacollectconfig3)
             pass 
 
-        if os.path.exists(xlgfile):
-            commandlist.append('-a')
+        if not os.path.exists(xlgfile):
+            commandlist.append('-n')
             pass
             
         commandlist.append(xlgfile)

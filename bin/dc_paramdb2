@@ -10,6 +10,8 @@ import subprocess
 
 
 if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     pass
 else :  # gtk2
@@ -69,7 +71,7 @@ from dc_value import photosvalue as photosv
 
 from dc_dbus_barcode import dc_dbus_barcode
 
-import dg_io 
+#import dg_io 
 import paramdb2 as pdb
 import paramdb2_editor
 import dc2_misc
@@ -141,9 +143,9 @@ import_widgets()
 
 
 
-iohandler=dg_io.io()
+iohandlers={}  #=dg_io.io()
 
-paramdb=pdb.paramdb(iohandler)
+paramdb=pdb.paramdb(iohandlers)
 
 
 # define universal parameters
@@ -187,7 +189,7 @@ def createparamserver():
 
 
 
-guistate=create_guistate(iohandler,paramdb) # can add search directories as additional parameters here [os.path.split(fname)[0]])
+guistate=create_guistate(iohandlers,paramdb) # can add search directories as additional parameters here [os.path.split(fname)[0]])
 
 
 for dpdfile in dpdfiles: 
@@ -200,7 +202,7 @@ for dpdfile in dpdfiles:
 
 
 for configfile in configfiles: 
-    dc2_misc.load_config(configfile,paramdb,iohandler,createparamserver)
+    dc2_misc.load_config(configfile,paramdb,iohandlers,createparamserver)
     pass
 
 

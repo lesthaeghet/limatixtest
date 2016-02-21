@@ -23,7 +23,8 @@ from dataguzzler_setparam import dg_setparam
 from adjustparamstep import adjustparamstep
 import dc_gtksupp
 
-iohandler=dg_io.io()
+iohandlers={}
+iohandlers["dgio"]=dg_io.io()
 
 aps=adjustparamstep(None,None,None)
 aps.set_property("dg-param","TRIG:MODE")

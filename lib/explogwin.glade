@@ -34,11 +34,17 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkImageMenuItem" id="explogfileloadconfig">
-                    <property name="label">Load Config...</property>
+                  <object class="GtkImageMenuItem" id="explogfileloadcentralconfig">
+                    <property name="label">Load Central Config...</property>
                     <property name="visible">True</property>
                     <property name="image">image1</property>
                     <property name="use_stock">False</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem" id="explogfileloadcustomconfig">
+                    <property name="label">Load Custom Config...</property>
+                    <property name="visible">True</property>
                   </object>
                 </child>
                 <child>
@@ -180,11 +186,17 @@
               <object class="GtkMenu" id="explogchecklistmenu">
                 <property name="visible">True</property>
                 <child>
-                  <object class="GtkImageMenuItem" id="explogchecklistopen">
+                  <object class="GtkImageMenuItem" id="explogcentralchecklistopen">
                     <property name="label">gtk-open</property>
                     <property name="visible">True</property>
-                    <property name="use_underline">True</property>
+                    <!-- <property name="use_underline">True</property> -->
                     <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImageMenuItem" id="explogcustomchecklistopen">
+                    <property name="label">Open custom checklist...</property>
+                    <property name="visible">True</property>
                   </object>
                 </child>
                 <child>
@@ -217,6 +229,12 @@
                     <property name="visible">True</property>
                     <property name="use_underline">True</property>
                     <property name="use_stock">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem" id="explogdebugmenu">
+                    <property name="label">Debug most recent exception</property>
+                    <property name="visible">True</property>
                   </object>
                 </child>
               </object>

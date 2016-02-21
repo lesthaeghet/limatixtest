@@ -1,70 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<checklist xmlns="http://thermal.cnde.iastate.edu/checklist" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" dc:done_is_save_measurement="true">
+<checklist xmlns="http://thermal.cnde.iastate.edu/checklist" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" dc:done_is_save_measurement="true" xmlns:xlink="http://www.w3.org/1999/xlink">
   <clinfo>testlist_V1.0_5/17/13</clinfo>
   <cltitle>Test checklist</cltitle>
 
   <dest autofilename="concat('testchx',chx:specimen,'.chf')"/>
 
     <checkitem class="text" title="First Step">
-        <parameter type="str" name="description">Step instructions go here
-Unicode 00fe thorn: doesn't work</parameter>
+        <description>Step instructions go here
+Unicode 00fe thorn: doesn't work</description>
     </checkitem>
 
     <checkitem class="textgraphic" title="Step 1.5">
-        <parameter type="float" name="width">160.0</parameter>
-        <parameter type="str" name="image">testlistimg.png</parameter>
-        <parameter type="str" name="description">Step instructions go here. And an image:</parameter>
+        <width>160</width>
+        <image xlink:href="testlistimg.png"/>
+        <description>Step instructions go here. And an image:</description>
     </checkitem>
 
 
-    <checkitem class="adjustparam" title="Second step">
-        <parameter type="str" name="description">This is a case
+    <checkitem class="dc_param" title="Second step">
+        <parameter name="description">This is a case
 of a multiline string</parameter>
-        <parameter type="str" name="dc-valuedefunits">IGNORECASE</parameter>
-        <parameter type="str" name="dc-valuetype">string</parameter>
-        <parameter type="str" name="dg-paramdefault">INTERNAL</parameter>
-        <parameter type="str" name="dg-param">TRIG:MODE</parameter>
+        <parameter name="labelmarkup">Value for dc_param</parameter>
+        <parameter name="paramname">specimen</parameter>
     </checkitem>
 
+    <!-- 
     <checkitem class="burstfreq" title="Third step">
-        <parameter type="str" name="dg-timestring">0.2 s 0.21 s 1.19 s 1.2 s</parameter>
-        <parameter type="str" name="wfmname">Arb</parameter>
-        <parameter type="str" name="dc-valuedefunits">Hz</parameter>
-        <parameter type="str" name="freqdefault">10000 Hz</parameter>
-        <parameter type="str" name="genmodule">GEN</parameter>
-        <parameter type="float" name="dc-valuethreshold">0.01</parameter>
-        <parameter type="str" name="description">This is the test step for burst generation</parameter>
+        <parameter name="dg-timestring">0.2 s 0.21 s 1.19 s 1.2 s</parameter>
+        <parameter name="wfmname">Arb</parameter>
+        <parameter name="dc-valuedefunits">Hz</parameter>
+        <parameter name="freqdefault">10000 Hz</parameter>
+        <parameter name="genmodule">GEN</parameter>
+        <parameter name="dc-valuethreshold">0.01</parameter>
+        <parameter name="description">This is the test step for burst generation</parameter>
     </checkitem>
 
     <checkitem class="sweepfreq" title="Fourth step">
-        <parameter type="str" name="dg-timestring">0.2 s 0.21 s 1.19 s 1.2 s</parameter>
-        <parameter type="str" name="freqdefault2">24000 Hz</parameter>
-        <parameter type="str" name="wfmname">Arb</parameter>
-        <parameter type="float" name="dc-valuethreshold">0.01</parameter>
-        <parameter type="str" name="dc-valuedefunits">Hz</parameter>
-        <parameter type="str" name="genmodule">GEN</parameter>
-        <parameter type="str" name="freqdefault1">20000 Hz</parameter>
-        <parameter type="str" name="description">This is the test step for sweep generation</parameter>
+        <parameter name="dg-timestring">0.2 s 0.21 s 1.19 s 1.2 s</parameter>
+        <parameter name="freqdefault2">24000 Hz</parameter>
+        <parameter name="wfmname">Arb</parameter>
+        <parameter name="dc-valuethreshold">0.01</parameter>
+        <parameter name="dc-valuedefunits">Hz</parameter>
+        <parameter name="genmodule">GEN</parameter>
+        <parameter name="freqdefault1">20000 Hz</parameter>
+        <parameter name="description">This is the test step for sweep generation</parameter>
     </checkitem>
-
+    -->
     <checkitem class="textentry" title="Fifth step">
-        <parameter type="int" name="width">40</parameter>
-        <parameter type="str" name="initialtext">Default text</parameter>
-        <parameter type="str" name="description">Step instructions go here. <br/>And <b>discussion</b> of what to type :</parameter>
+        <parameter name="width">40</parameter>
+        <parameter name="initialtext">Default text</parameter>
+        <parameter name="description">Step instructions go here. <br/>And <b>discussion</b> of what to type :</parameter>
     </checkitem>
 
     <checkitem class="dc_param" title="Step 5.5">
-      <parameter type="str" name="paramname">specimen</parameter>
-      <parameter type="str" name="description">Enter the specimen ID</parameter>
-      <parameter type="str" name="labelmarkup">specimen</parameter>
+      <parameter name="paramname">specimen</parameter>
+      <parameter name="description">Enter the specimen ID</parameter>
+      <parameter name="labelmarkup">specimen</parameter>
     </checkitem>
     <!-- 
     <checkitem class="savesettings" title="Sixth step">
-        <parameter type="str" name="description">Be sure to save the settings!</parameter>
+        <parameter name="description">Be sure to save the settings!</parameter>
     </checkitem>
 
     <checkitem class="savedgs" title="Seventh step">
-        <parameter type="str" name="description">Be sure to save the dgs file!</parameter>
+        <parameter name="description">Be sure to save the dgs file!</parameter>
     </checkitem>
    -->
 

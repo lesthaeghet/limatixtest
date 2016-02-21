@@ -18,21 +18,29 @@ import copy
 import traceback
 import urllib
 
-if not "gtk" in sys.modules:  # gtk3
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
     from gi.repository import Gdk as gdk
+    from gi.repository import GObject as gobject
     pass
 else : 
     # gtk2
     import gtk
     import gtk.gdk as gdk
+    import gobject
     pass
 
+
+
 # import pygram
+
 
 import xmldoc
 import canonicalize_path
 import checklistdb
+
 
 
 import dg_timestamp
@@ -48,6 +56,7 @@ from dc_value import stringvalue as stringv
 from dc_value import hrefvalue as hrefv
 from dc_value import accumulatingintegersetvalue as accumulatingintegersetv
 from dc_value import accumulatingdatesetvalue as accumulatingdatesetv
+from dc_value import datesetvalue as datesetv
 from dc_value import integersetvalue as integersetv
 from dc_value import integervalue as integerv
 
@@ -100,15 +109,13 @@ class checkitem(object):
     title=None
     cls=None
     params=None
-    pycode=None
     xmlpath=None  # xmldoc savedpath
 
-    def __init__(self,title=None,cls=None,params=None,pycode=None,xmlpath=None):
+    def __init__(self,title=None,cls=None,params=None,xmlpath=None):
         self.title=title
         self.cls=cls
         self.params=params
         
-        self.pycode=pycode
         self.xmlpath=xmlpath
         pass
     pass
@@ -181,16 +188,26 @@ xml2pango=etree.XSLT(etree.XML(xml2pangoxslt))
 def ErrorDialog(msg,exctype,excvalue,tback):
     if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
         # gtk3
-        Dialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.OK)
+        Dialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.NONE)
         pass
     else : 
-        Dialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
+        Dialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_NONE)
         pass
+    Dialog.add_buttons("Debug",1,"OK",0)
         
     # sys.stderr.write("Markup is Error: %s.\n%s: %s\n\nTraceback:\n%s" % (msg,str(exctype),xml.sax.saxutils.escape(unicode(excvalue)),xml.sax.saxutils.escape(tback)))
     Dialog.set_markup("Error: %s.\n%s: %s\n\nTraceback:\n%s" % (msg,xml.sax.saxutils.escape(exctype.__name__),xml.sax.saxutils.escape(str(excvalue)),xml.sax.saxutils.escape(tback)))
-    Dialog.run()
+    result=Dialog.run()
     Dialog.destroy()
+    
+    if result==1:
+        # run debugger
+        import pdb as pythondb
+        print("exception: %s: %s" % (exctype.__name__,str(excvalue)))
+        sys.stderr.write(tback)
+
+        pythondb.post_mortem()
+        pass
     
     
     pass
@@ -203,10 +220,11 @@ class checklist(object):
     gladeobjdict=None
     gladebuilder=None
     parsedchecklist=None
-    io=None
+    iohandlers=None
     steps=None
     xmldoc=None
     origfilename=None
+    filleddir=None  # if not None, directory to put filled checklist in (otherwise use dest)
     paramdb=None
     paramdb_ext=None # dc:paramdb() extension function
     chklistfile=None # in datacollect mode, once the filename has been determined and we are auto-saving, chklistfile is the name of the file we are saving as
@@ -227,14 +245,19 @@ class checklist(object):
     done_is_save_measurement=None # flag, in datacollect mode, to transform the "Save"/"Done" button into a button that saves the measurement to the xml file. Also triggers storing checklist file name in "measchecklist" param. Also makes the notes field at the bottom shared between the checklist and the experiment log
     has_save_measurement_step=None # Flag, in datacollect mode, that indicates that the checklist has a save measurement step. It triggers storing checklist file name in "measchecklist" param. Also makes the notes field at the bottom shared between the checklist and the experiment log
     part_of_a_measurement=None # Flag, in datacollect mode that indicates that a checklist is part of a measurement and therefore when saved should be saved using the measnum
-    grayed_out=None   # Checklist is grayed out (after done is pressed, before reset)
+    readonly=None   # Checklist is read only out (after done is pressed, before reset)
     pre_reset_filename=None # last real filename from before a reset
     
     shared_notes=None # flag to indicate whether the notes field is shared or not. Automatically set with done_is_save_measurement
     specimen_disabled=None  # if True, then we don't show a specimen widget and we don't sync the specimen field
-    specimen_perfby_date_in_private_paramdb=None
 
-
+    # adddoc/remdoc params. Whether these members are None is used as a flag for whether remdoc() needs to be called.
+    notes_sync=None
+    #dest_sync=None
+    date_sync=None
+    perfby_sync=None
+    specimen_sync=None
+    measnum_sync=None
 
     savebuttonnormalcolor=None # GdkColor
     savebuttonreadycolor=None  # GdkColor
@@ -245,18 +268,16 @@ class checklist(object):
     closenotify=None
 
     
-    def __init__(self,origfilename,paramdb,datacollect_explog=None,datacollect_explogwin=None,destoverride=None):
+    def __init__(self,origfilename,paramdb,datacollect_explog=None,datacollect_explogwin=None,filleddir=None):
 
 
         self.closed=False
         self.paramdb=paramdb
+        self.filleddir=filleddir
         self.private_paramdb=pdb.paramdb(None) # could pass dgio as parameter to allow private parameters to interact with dataguzzler
-        self.private_paramdb.addparam("clinfo",stringv,build=lambda param: xmldoc.synced(param))
-        self.private_paramdb.addparam("dest",stringv,build=lambda param: xmldoc.synced(param))
         self.private_paramdb.addparam("notes",stringv,build=lambda param: xmldoc.synced(param))
 
         self.private_paramdb.addparam("defaultfilename",stringv)  # defaultfilename maps to the filename entry field at the bottom of the checklist window
-        self.specimen_perfby_date_in_private_paramdb=False
 
         self.paramdb_ext=pdb.etree_paramdb_ext(paramdb)
         self.steps=[]
@@ -273,7 +294,6 @@ class checklist(object):
         self.done_is_save_measurement=False
         self.has_save_measurement_step=False
         self.part_of_a_measurement=False
-        self.grayed_out=False
         self.shared_notes=False
         self.filenamenotify=[]
         self.donenotify=[]
@@ -285,7 +305,7 @@ class checklist(object):
         (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(thisdir,"checklist.glade"))
 
 
-        if not "gtk" in sys.modules: # gtk3
+        if "gi" in sys.modules: # gtk3
             #print self.gladeobjdict["SaveButton"].get_style().lookup_color("theme_bg_color")
             (junk,self.savebuttonnormalcolor)=self.gladeobjdict["SaveButton"].get_style().lookup_color("theme_bg_color") # use theme_bg_color or background-color? 
             (Junk,self.savebuttonreadycolor)=gdk.Color.parse('green')
@@ -302,37 +322,60 @@ class checklist(object):
         self.origfilename=origfilename
         
 
+        # if origfilename is not a .chf and not a .plf, then open
+        # as a new checklist with no name, in read/write mode
         if os.path.splitext(origfilename)[1]!=".chf" and os.path.splitext(origfilename)[1]!=".plf":
+            
         
             # hide the file -- prevent locking, etc. by reading it from a file object
             fh=open(origfilename,"rb")
             self.xmldoc=xmldoc.xmldoc(None,None,None,FileObj=fh,use_locking=True,contextdir=os.path.split(origfilename)[0],debug=True) # !!!*** can improve performance once debugged by setting debug=False
             fh.close()
-            
+
+            self.readonly=False
+            initializefromunfilled=True
             # absolutize all relative xlink:href links
-            self.xmldoc.setcontextdir(os.path.split(origfilename)[0],force_abs_href=True)
-            self.xmldoc.merge_namespace(None,"http://thermal.cnde.iastate.edu/checklist")     
+            self.xmldoc.setcontextdir(os.path.split(origfilename)[0]) # ,force_abs_href=True)
+            self.xmldoc.merge_namespace("chx","http://thermal.cnde.iastate.edu/checklist")
+            self.xmldoc.merge_namespace("dc","http://thermal.cnde.iastate.edu/datacollect")
+            self.xmldoc.suggest_namespace_rootnode(None,"http://thermal.cnde.iastate.edu/checklist")
+            self.xmldoc.suggest_namespace_rootnode("chx","http://thermal.cnde.iastate.edu/checklist")
+            self.xmldoc.suggest_namespace_rootnode("dc","http://thermal.cnde.iastate.edu/datacollect")
+   
             self.xmldoc.setattr(".", "origfilename", origfilename)
             # log start timestamp
             
             self.logstarttimestamp()
+
+            self.xmldoc.setattr(".","filled","true")
             
+
             #self.xmldoc.setfilename(None)  # prevent auto-flushing, etc. unless this is a "filled" file
             pass
-        else : 
+        else :
+
+            # open existing filled checklist/plan (.chf or .plf) in read only mode 
+            self.readonly=True
+            initializefromunfilled=False
+
             #import pdb as pythondb
             try:
                 self.xmldoc=xmldoc.xmldoc(origfilename,None,None,use_locking=True) # !!!*** can improve performance once debugged by setting debug=False
+                pass
             except IOError:
                 (exctype, excvalue) = sys.exc_info()[:2] 
                 tback=traceback.format_exc()
                 #pythondb.set_trace()
                 ErrorDialog("Error Loading Checklist",exctype,excvalue,tback)
-            self.xmldoc.merge_namespace(None,"http://thermal.cnde.iastate.edu/checklist")
+                pass
+            self.xmldoc.merge_namespace("chx","http://thermal.cnde.iastate.edu/checklist")
+            self.xmldoc.merge_namespace("dc","http://thermal.cnde.iastate.edu/datacollect")
             try:
                 self.origfilename = self.xmldoc.getattr(".", "origfilename")
+                pass
             except IndexError:
-                sys.stderr.write("Warning:  Original Filename Not Set in Filled Checklist\n")     
+                sys.stderr.write("Warning:  Original Filename Not Set in Filled Checklist\n")
+                pass
     
 
             self.chklistfile=os.path.basename(origfilename)
@@ -341,13 +384,13 @@ class checklist(object):
         
         try :  # try...catch...finally block for handling lock we just acquired with xmldoc()
 
-            # do we have a <chx:parent> tag?
-            parentlist=self.xmldoc.xpath("chx:parent")
-            if len(parentlist) == 0:
-                # add a parent tag so we don't 
-                # end up messing with tag positioning later
-                self.xmldoc.addelement(self.xmldoc.getroot(),"chx:parent")
-                pass
+            ## do we have a <chx:parent> tag?
+            #parentlist=self.xmldoc.xpath("chx:parent")
+            #if len(parentlist) == 0:
+            #    # add a parent tag so we don't 
+            #    # end up messing with tag positioning later
+            #    self.xmldoc.addelement(self.xmldoc.getroot(),"chx:parent")
+            #    pass
 
             if self.chklistfile is not None:
                 # window title is filename if we are actively updating the file
@@ -355,22 +398,6 @@ class checklist(object):
                 
                 #self.xmldoc.autoflush=True
                 #print "Auto flush mode!!!"
-            
-                
-                # Evalute "dest" even though the primary code for this is below
-                curdest=destoverride
-                if curdest is None and "dest" in self.paramdb:
-                    curdest=unicode(self.paramdb["dest"].dcvalue)
-                    pass
-                if curdest is None:
-                    curdest="."
-                    pass
-
-                if curdest.endswith(os.path.sep):
-                    curdest=curdest[:-1]
-                    pass
-                
-                curdest_abspath=canonicalize_path.canonicalize_path(curdest)
 
                 # check if our checklistfile is already in "dest"
                 # if so, give it just a relative path. 
@@ -394,28 +421,77 @@ class checklist(object):
             # WARNING: filenamenotify may call requestval_sync which runs sub-mainloop
             # ***!!! Possible bug because shouldn't do this with stuff locked
             for (filenamenotify,fnargs,fnkwargs) in self.filenamenotify:
-                if chklistfile_absdir==curdest_abspath:
-                    filenamenotify(self,self.origfilename,curdest,chklistfile_absfile,None,*fnargs,**fnkwargs)
-                    pass
-                else :
-                    # must supply absolute path
-                    filenamenotify(self,self.origfilename,curdest,chklistfile_abspath,None,*fnargs,**fnkwargs)
-                    pass
+                filenamenotify(self,self.origfilename,chklistfile_absfile,None,*fnargs,**fnkwargs)
                 pass
             pass
+
+        # datacollect mode:  dest does not exist. can not 
+        # explicitly save
+        if self.datacollectmode:
+            #self.gladeobjdict["ChecklistEntry"].set_editable(False)
+            self.gladeobjdict["DestEntry"].set_editable(False)
+            self.gladeobjdict["DestBox"].hide()
+            self.gladeobjdict["DestBox"].set_no_show_all(True)
+            self.gladeobjdict["ParamBox"].remove(self.gladeobjdict["DestBox"])
+            del self.gladeobjdict["DestEntry"]
+            del self.gladeobjdict["DestLabel"]
+            del self.gladeobjdict["DestBox"]
+
+            self.gladeobjdict["SaveButton"].connect("clicked",self.handle_done)
+            if self.xmldoc.filename is not None:
+                self.private_paramdb["defaultfilename"].requestvalstr_sync(self.xmldoc.filename)
+                pass
+            
+
+            pass
+        else:
+            # not datacollectmode
+            if self.xmldoc.filename is not None: 
+                # If checklist already has a filename, then 
+                # Save button replaced with Done button
+                self.gladeobjdict["SaveButton"].set_property("label","Done")                
+                
+                self.private_paramdb["defaultfilename"].requestvalstr_sync(self.xmldoc.filename)
+                
+                
+                pass
+            else: 
+                # self.xmldoc.filename is None
+                try:
+                    # Put this in a "try...except" because requestedfilename() does not seem to have much in terms of error handling
+                    self.private_paramdb["defaultfilename"].requestvalstr_sync(self.requestedfilename())
+                    pass
+                except:
+                    (exctype, excvalue) = sys.exc_info()[:2] 
+                    sys.stderr.write("checklist.py: warning: exception requesting default filename: %s, %s\n" % (exctype,excvalue))
+                    pass
+                pass
+            if len(self.private_paramdb["defaultfilename"].dcvalue.value())==0:
+                # still blank...
+                # Create default filename from original name, ".chx" -> ".chf"
+                if self.origfilename.endswith(".chx"):
+                    self.private_paramdb["defaultfilename"].requestvalstr_sync(sys.path.splitext(origfilename)[0]+".chf")
+                    pass
+                elif self.origfilename.endswith(".plx"):
+                    self.private_paramdb["defaultfilename"].requestvalstr_sync(sys.path.splitext(origfilename)[0]+".plf")
+                    pass
+                pass
+
+            self.gladeobjdict["SaveButton"].set_sensitive(True)
+            self.gladeobjdict["SaveButton"].connect("clicked",self.handle_save)
+            #self.gladeobjdict["CheckListWindow"].connect("delete_event",self.handle_quit)
+
+            pass
         
-        self.xmldoc.lock_rw()  
+        
+        self.xmldoc.lock_ro()  
         try:
         
         
-            checklisttag=self.xmldoc.find(".")
+            #checklisttag=self.xmldoc.find(".")
 
 
-            # datacollect mode: clinfo and dest are not editable; can not 
-            # explicitly save
             if self.datacollectmode:
-                #self.gladeobjdict["ChecklistEntry"].set_editable(False)
-                self.gladeobjdict["DestEntry"].set_editable(False)
 
                 # in datacollect mode, the save button is instead the "Done" button
                 # if done button is supposed to save the measurement
@@ -442,175 +518,124 @@ class checklist(object):
                     pass
 
 
-                self.gladeobjdict["SaveButton"].connect("clicked",self.handle_done)
-                if self.xmldoc.filename is None:
-                    self.gladeobjdict["SaveButton"].set_sensitive(False)
-                    pass
-                else : 
-                    self.private_paramdb["defaultfilename"].requestvalstr_sync(self.xmldoc.filename)
-                    self.gladeobjdict["SaveButton"].set_sensitive(True)
-                
-                    pass
-            
                 pass
             else :
                 # Not datacollectmode
-                if self.xmldoc.filename is not None: 
-                    # If checklist already has a filename, then 
-                    # Save button replaced with Done button
-                    self.gladeobjdict["SaveButton"].set_property("label","Done")                
-                    
-                    self.private_paramdb["defaultfilename"].requestvalstr_sync(self.xmldoc.filename)
-        
-                    
-                    pass
-                else: 
-                    # self.xmldoc.filename is None
-                    try:
-                        # Put this in a "try...except" because requestedfilename() does not seem to have much in terms of error handling
-                        self.private_paramdb["defaultfilename"].requestvalstr_sync(self.requestedfilename())
-                        pass
-                    except:
-                        (exctype, excvalue) = sys.exc_info()[:2] 
-                        sys.stderr.write("checklist.py: warning: exception requesting default filename: %s, %s\n" % (exctype,excvalue))
-                        pass
-                    pass
-
-                if len(self.private_paramdb["defaultfilename"].dcvalue.value())==0:
-                    # still blank...
-                    # Create default filename from original name, ".chx" -> ".chf"
-                    if self.origfilename.endswith(".chx"):
-                        self.private_paramdb["defaultfilename"].requestvalstr_sync(sys.path.splitext(origfilename)[0]+".chf")
-                        pass
-                    elif self.origfilename.endswith(".plx"):
-                        self.private_paramdb["defaultfilename"].requestvalstr_sync(sys.path.splitext(origfilename)[0]+".plf")
-                        pass
-                    pass
-                
-                ## if default filename has no folder, put it relative to the current directory
-                #if len(os.path.split(self.private_paramdb["defaultfilename"].dcvalue.value())[0])==0:
-                #    # no first path component... join './defaultfilename'
-                #    self.private_paramdb["defaultfilename"].requestvalstr_sync(os.path.join('.',self.private_paramdb["defaultfilename"].dcvalue.value()))
-                #     
-                #    pass
-
-
-                self.gladeobjdict["SaveButton"].set_sensitive(True)
-                self.gladeobjdict["SaveButton"].connect("clicked",self.handle_save)
-                #self.gladeobjdict["CheckListWindow"].connect("delete_event",self.handle_quit)
                 pass
 
 
             # Make sure common tags exist: clinfo, specimen, perfby, date, dest, and notes
             # Important to do this here, lest tag numbering change underneath
             # the various steps and screw with resyncinc. 
-        
+
+            dest=None
             destl=self.xmldoc.xpath("chx:dest")
             assert(len(destl) <= 1)
-            if len(destl)==0:
-                dest=self.xmldoc.insertelement(".",0,"chx:dest")
-                pass
-            else : 
+            if len(destl) > 0:
                 dest=destl[0]
                 pass
-        
-            if self.datacollect_explog is not None and not self.xmldoc.hasattr(dest,"autofilename") and not self.xmldoc.hasattr(dest,"autodcfilename"):
-                raise ValueError("In datacollect mode, checklist/dest must have an autofilename or autodcfilename attribute to determine autosave filename")
-        
-            datel=self.xmldoc.xpath("chx:date")
-            assert(len(datel) <= 1)
-            if len(datel)==0:
-                date=self.xmldoc.insertelement(".",0,"chx:date")
-                pass
-            else : 
-                date=datel[0]
-                pass
-                
-            perfbyl=self.xmldoc.xpath("chx:perfby")
-            assert(len(perfbyl) <= 1)
-            if len(perfbyl)==0:
-                perfby=self.xmldoc.insertelement(".",0,"chx:perfby")
-                pass
-            else : 
-                perfby=perfbyl[0]
-                pass
-        
-            specimenl=self.xmldoc.xpath("chx:specimen")
-            assert(len(specimenl) <= 1)
-            if len(specimenl)==0:
-                specimen=self.xmldoc.insertelement(".",0,"chx:specimen")
-                pass
-            else : 
-                specimen=specimenl[0]
-                pass
-        
-        
-            clinfol=self.xmldoc.xpath("chx:clinfo")
-            assert(len(clinfol) <= 1)
-            if len(clinfol)==0:
-                clinfo=self.xmldoc.insertelement(".",0,"chx:clinfo")
-                pass
-            else:
-                clinfo=clinfol[0]
-                pass
-                
-            notesl=self.xmldoc.xpath("chx:notes")
-            assert(len(notesl) <= 1)
-            if len(notesl)==0:
-                notes=self.xmldoc.insertelement(".",0,"chx:notes")
-                pass
-            else:
-                notes=notesl[0]
-                pass
-
-            self.xmldoc.setattr(".","filled","true")
-            # self.xmldoc.flush()  # force flush in case we added elements above. 
-                             # (only applies if we are on a .chf file, because
-                             # otherwise filename set to None, above)
-
+            
+            if self.datacollect_explog is not None and (dest is None or (not self.xmldoc.hasattr(dest,"autofilename") and not self.xmldoc.hasattr(dest,"autodcfilename"))):
+                raise ValueError("In datacollect mode, chx:checklist/chx:dest must have an autofilename or autodcfilename attribute to determine autosave filename")
+            
             checkitems=self.xmldoc.xpath("chx:checkitem")
             self.parsedchecklist=[]
             for curitem in checkitems:
-                params={}
-                for parameter in self.xmldoc.xpathcontext(curitem,"chx:parameter"):
-                    typestr=self.xmldoc.xpathcontext(parameter,"string(@type)")
-                    if typestr=="href":
-                        paramtype=hrefv # dc_value.hrefvalue
-                        pass
-                    else: 
-                        paramtype=__builtins__[typestr]
-                        pass
-                    paramname=self.xmldoc.xpathcontext(parameter,"string(@name)")
-                    if paramname=="": 
-                        raise ValueError("Parameter does not have a name attribute in checklist item %s" % (etree.tostring(curitem,encoding="UTF-8")))
+                cls=self.xmldoc.getattr(curitem,"class","text")
+
+                if ("." in cls) or ("/" in cls):
+                    raise ValueError("invalid character in step class %s" % (cls))
+
+                # Try to import class so as to obtain parameter types
+                importobjdict={}
+                try:
+                    exec("from steps.%s import %s as stepclass" % (cls+"step",cls+"step"),importobjdict,importobjdict)
+                    pass
+                except ImportError:
+                    raise ValueError("Invalid step: %s" % (cls+"step"))
+                stepclass=importobjdict["stepclass"]
+                stepgprops=gobject.list_properties(stepclass) 
+                # convert gprops into types: dictionary of gobject.TYPE_whatever
+                stepgprop_gtypes=dict([(prop.name,prop.value_type) for prop in stepgprops])
+                stepxmlprops={}
+                if hasattr(stepclass,"_%s__dcvalue_xml_properties" % (cls+"step")):
+                    stepxmlprops=getattr(stepclass,"_%s__dcvalue_xml_properties" % (cls+"step"))
+                    pass
+                stephrefprops=frozenset([])
+                if hasattr(stepclass,"_%s__dcvalue_href_properties" % (cls+"step")):
+                    
+                    stephrefprops=getattr(stepclass,"_%s__dcvalue_href_properties" % (cls+"step"))
+                    pass
+            
+                step_nonparameter_elements=frozenset([])
+                if hasattr(stepclass,"_%s__nonparameter_elements" % (cls+"step")):
+                    
+                    step_nonparameter_elements=getattr(stepclass,"_%s__nonparameter_elements" % (cls+"step"))
+                    pass
                 
-                                     
+                    
+                params={}
+                for child in self.xmldoc.children(curitem):
+                    tag=self.xmldoc.gettag(child)
+                    (prefix,dctag)=tag.split(":")
+                    if prefix != "chx":
+                        continue  # silently ignore non-chx tags
+
+                    if dctag=="parameter": # old-style format
+                        paramname=self.xmldoc.xpathcontext(child,"string(@name)")
+                        if paramname=="": 
+                            raise ValueError("Parameter does not have a name attribute in checklist item %s" % (etree.tostring(curitem,encoding="UTF-8")))
+                        pass
+                    else:
+                        paramname=dctag
+                        pass
+                    
+                    if paramname in step_nonparameter_elements:
+                        continue # silently ignore nonparameter elements
+                    
                     if paramname=="description":
                         # try : 
-                        params[paramname]=etree.tostring(xml2pango(parameter),encoding='utf-8').decode("utf-8")
-                        #    pass
-                        # except:
-                        #    print "XSLT Error log:\n"+ string.join([ "%s l%d c%d %s\n" % (entry.filename,entry.line,entry.column,str(entry)) for entry in xml2pango.error_log])+"\n"
-                        #    raise
-                        #    pass
-                        
-                        # print unicode(xml2pango(parameter))
+                        params[paramname]=etree.tostring(xml2pango(child),encoding='utf-8').decode("utf-8")
                         pass
-                    else :
-                        if paramtype is bool:
-                            paramstr=self.xmldoc.xpathcontext(parameter,"string(.)").strip()
+                    else:
+                        if paramname not in stepgprop_gtypes:
+                            raise ValueError("Parameter %s not supported by %sstep" % (paramname,cls))
+                        if stepgprop_gtypes[paramname].is_a(str):
+                            if paramname in stepxmlprops:
+                                params[paramname]=etree.tostring(child,encoding='utf-8').decode('utf-8')
+                                pass
+                            elif paramname in stephrefprops:
+                                paramval=hrefv.fromxml(self.xmldoc,child)
+
+                                #import pdb as pythondb
+                                #pythondb.set_trace()
+                                
+                                params[paramname]=paramval.getpath(contextdir=".")
+                                pass
+                            else:
+                                # Regular old string parameter
+                                params[paramname]=self.xmldoc.xpathcontext(child,"string(.)")
+                                pass
+                            
+                            pass
+                        elif stepgprop_gtypes[paramname].is_a(bool):
+                            paramstr=self.xmldoc.xpathcontext(child,"string(.)").strip()
                             paramval=False
                             if paramstr.lower()=="true":
                                 paramval=True
                                 pass
                             params[paramname]=paramval
                             pass
-                        elif paramtype is hrefv: # dc_value.hrefvalue
-                            params[paramname]=paramtype.fromxml(self.xmldoc,parameter,contextdir=self.xmldoc.getcontextdir())
-                        else : 
-
-                            params[paramname]=paramtype(self.xmldoc.xpathcontext(parameter,"string(.)").strip())
+                        elif stepgprop_gtypes[paramname].is_a(int):
+                            params[paramname]=int(self.xmldoc.xpathcontext(child,"string(.)").strip())
                             pass
+                        elif stepgprop_gtypes[paramname].is_a(float):
+                            
+                            params[paramname]=float(self.xmldoc.xpathcontext(child,"string(.)").strip())
+                            pass
+                        else:
+                            raise ValueError("Unknown type from %sstep for %s: %s" % (cls,paramname,str(stepgprop_gtypes[paramname])))
+                        
                         pass
                     pass
                 title=self.xmldoc.getattr(curitem,"title",defaultvalue="")
@@ -631,7 +656,7 @@ class checklist(object):
                     pass
             
                 # pycode=xml.sax.saxutils.unescape(curitem.xpath("string(pycode)"))
-                pycode=self.xmldoc.xpathcontext(curitem,"string(chx:pycode)")
+                #pycode=self.xmldoc.xpathcontext(curitem,"string(chx:pycode)")
                 
                 # self.parsedchecklist.append(checkitem(title=xml.sax.saxutils.unescape(curitem.xpath("string(@title)")),cls=curitem.xpath("string(@class)"),params=params,pycode=pycode))
 
@@ -642,7 +667,7 @@ class checklist(object):
                     pass
             
             
-                self.parsedchecklist.append(checkitem(title=title,cls=cls,params=params,pycode=pycode,xmlpath=self.xmldoc.savepath(curitem)))
+                self.parsedchecklist.append(checkitem(title=title,cls=cls,params=params,xmlpath=self.xmldoc.savepath(curitem)))
                 pass
             
 
@@ -658,240 +683,31 @@ class checklist(object):
             #    self.paramdb["nextmeasnum"].requestval_sync(self.measnum+1)
             #    pass
 
-            if "dest" in self.paramdb:
-                destval=self.paramdb["dest"].dcvalue.value()
-                pass
-            else: 
-                destval="."
-                pass
-
+            #if "dest" in self.paramdb:
+            #    destval=self.paramdb["dest"].dcvalue
+            #    pass
+            #else: 
+            #    destval=hrefv(".",contextdir=".")
+            #    pass
+            
 
             # if <specimen> has the special value disabled, hide the "specimen" box and set specimen_disabled
-            if self.xmldoc.xpathsinglestr("chx:specimen")=="disabled":
+            if self.xmldoc.xpathsinglestr("chx:specimen",default="")=="disabled":
                 self.gladeobjdict["SpecBox"].hide()
                 self.gladeobjdict["SpecBox"].set_no_show_all(True)
+                self.gladeobjdict["ParamBox"].remove(self.gladeobjdict["SpecBox"])
                 del self.gladeobjdict["SpecEntry"]
                 del self.gladeobjdict["SpecLabel"]
                 del self.gladeobjdict["SpecBox"]
                 self.specimen_disabled=True
                 # sys.stderr.write("specimen is disabled!\n")
-                pass
-
+                pass            
             
-            
-            # measnum is in general a set of integers. We only create it now 
-            # that we know if we have done_is_save_measurement, has_save_measurement_step or part_of_a_measurement
-            if self.done_is_save_measurement or self.has_save_measurement_step or self.part_of_a_measurement: 
-                self.private_paramdb.addparam("measnum",integersetv,build=lambda param: xmldoc.synced(param))
-
-                measnuml=self.xmldoc.xpath("dc:measnum")
-                assert(len(measnuml) <= 1)
-                if len(measnuml)==0:
-                    measnumel=self.xmldoc.insertelement(".",0,"dc:measnum")
-                    pass
-                else : 
-                    measnumel=measnuml[0]
-                    pass
-
-                
-                self.private_paramdb["measnum"].controller.adddoc(self.xmldoc,destval,"dc:measnum")
-
-                self.gladeobjdict["MeasnumEntry"].paramdb=self.private_paramdb
-                # print "specimen: "+str(self.paramdb["specimen"])
-                
-
-                pass
-            else: 
-                # Remove MeasnumBox and MeasnumEntry if we are not a datacollect checklist that uses them
-                self.gladeobjdict["ParamBox"].remove(self.gladeobjdict["MeasnumBox"])
-                del self.gladeobjdict["MeasnumEntry"]
-                del self.gladeobjdict["MeasnumBox"]
-        
-            # connect paramdb (including GUI objects for name, specimen, perfby, date, dest & notes) with XML file
-
-            # IMPORTANT: adddoc() calls here must be matched with remdoc() calls in self.destroy() !!!
-        
-            self.private_paramdb["clinfo"].controller.adddoc(self.xmldoc,destval,"chx:clinfo")
-            ## Tell widget to use private paramdb
-            #self.gladeobjdict["ChecklistEntry"].paramdb=self.private_paramdb
-            # print "specimen: "+str(self.paramdb["specimen"])
-
-            
-            is_done = self.xmldoc.getattr(self.xmldoc.getroot(),"done",defaultvalue="false")=="true"
-            if is_done:
-
-                # If checklist is marked as "Done", gray out the "Done" button
-                # (which is the same button as the save button) 
-
-                self.gladeobjdict["SaveButton"].set_sensitive(False)        
-                # if checklist is done, specimen, perfby, and date are 
-                # in private paramdb and widgets are grayed out 
-                self.specimen_perfby_date_in_private_paramdb=True
-                if not self.specimen_disabled:
-                    self.private_paramdb.addparam("specimen",stringv,build=lambda param: xmldoc.synced(param))
-                    self.private_paramdb["specimen"].controller.adddoc(self.xmldoc,destval,"chx:specimen",logfunc=self.addlogentry)
-                    pass
-                
-                # Tell widget to use private paramdb
-                if not self.specimen_disabled: 
-                    self.gladeobjdict["SpecEntry"].paramdb=self.private_paramdb
-                    self.gladeobjdict["SpecEntry"].set_sensitive(False)
-                    pass
-
-                self.private_paramdb.addparam("perfby",stringv,build=lambda param: xmldoc.synced(param))
-                self.private_paramdb["perfby"].controller.adddoc(self.xmldoc,destval,"chx:perfby",logfunc=self.addlogentry)
-                # Tell widget to use private paramdb
-                self.gladeobjdict["PerfbyEntry"].paramdb=self.private_paramdb
-                self.gladeobjdict["PerfbyEntry"].set_sensitive(False)
-
-                self.private_paramdb.addparam("date",accumulatingdatesetv,build=lambda param: xmldoc.synced(param))
-                self.private_paramdb["date"].controller.adddoc(self.xmldoc,destval,"chx:date",logfunc=self.addlogentry)
-                # Tell widget to use private paramdb
-                self.gladeobjdict["DateEntry"].paramdb=self.private_paramdb
-                self.gladeobjdict["DateEntry"].set_sensitive(False)
-                pass
-
-            else: 
-                # ... in master paramdb. Use try...except block 
-                # so in case of failure we don't end up with dangling
-                # synchronization references. 
-
-                
-                
-                try: 
-                    if not self.specimen_disabled: 
-                        self.paramdb["specimen"].controller.adddoc(self.xmldoc,destval,"chx:specimen",logfunc=self.addlogentry)
-                        pass
-                    self.paramdb["perfby"].controller.adddoc(self.xmldoc,destval,"chx:perfby",logfunc=self.addlogentry)
-                    self.paramdb["date"].controller.adddoc(self.xmldoc,destval,"chx:date",logfunc=self.addlogentry)
-                    pass
-                except: 
-                    if not self.specimen_disabled:
-                        self.paramdb["specimen"].controller.remdoc(self.xmldoc,"chx:specimen",logfunc=self.addlogentry,precautionary=True)
-                        pass
-
-                    self.paramdb["perfby"].controller.remdoc(self.xmldoc,"chx:perfby",logfunc=self.addlogentry,precautionary=True)
-                    self.paramdb["date"].controller.remdoc(self.xmldoc,"chx:date",logfunc=self.addlogentry,precautionary=True)
-                    raise
-                pass
-
-
-
-            # print "specimen: "+str(self.paramdb["specimen"])
-
-            self.private_paramdb["dest"].controller.adddoc(self.xmldoc,destval,"chx:dest",logfunc=self.addlogentry)
-            # Tell widget to use private paramdb
-            self.gladeobjdict["DestEntry"].paramdb=self.private_paramdb
-
-
-            if not is_done and destoverride is not None: 
-                self.private_paramdb["dest"].requestvalstr_sync(destoverride)
-                pass
-                
-                
-            if self.done_is_save_measurement or self.has_save_measurement_step:
-                self.paramdb["notes"].controller.adddoc(self.xmldoc,destval,"chx:notes",logfunc=self.addlogentry)
-                self.shared_notes=True
-                pass
-            else: 
-                # link private notes entry do physical document
-                self.private_paramdb["notes"].controller.adddoc(self.xmldoc,destval,"chx:notes",logfunc=self.addlogentry)
-                # Tell widget to use private paramdb
-                self.gladeobjdict["NotesText"].paramdb=self.private_paramdb
-                pass
-                
-            # tell filename widget to use private paramdb
-            self.gladeobjdict["filenameentry"].paramdb=self.private_paramdb
-
-
-
-            # set window title to checklist name
-            if self.xmldoc.filename is None:  # not using filename for window title
-                self.gladeobjdict["CheckListWindow"].set_title(str(self.private_paramdb["clinfo"].dcvalue))
-                pass
-        
-            # if clinfo.text is not None and len(clinfo.text.strip()) > 0:
-            #     paramdb["clinfo"].requestvalstr(clinfo.text)
-            #     pass
-            # paramdb.addnotify("clinfo",lambda param,cond: clinfo.__setattr__("text",str(param.dcvalue)),pdb.param.NOTIFY_NEWVALUE)
-            #
-            # if specimen.text is not None and len(specimen.text.strip()) > 0:
-            #     paramdb["specimen"].requestvalstr(specimen.text)
-            #     pass
-            # paramdb.addnotify("specimen",lambda param,cond: specimen.__setattr__("text",str(param.dcvalue)),pdb.param.NOTIFY_NEWVALUE)
-        
-
-            # if perfby.text is not None and len(perfby.text.strip()) > 0:
-            #     paramdb["perfby"].requestvalstr(perfby.text)
-            #     pass
-            # paramdb.addnotify("perfby",lambda param,cond: perfby.__setattr__("text",str(param.dcvalue)),pdb.param.NOTIFY_NEWVALUE)
-        
-            # if date.text is not None and len(date.text.strip()) > 0:
-            #     paramdb["date"].requestvalstr(date.text)
-            #     pass
-            # paramdb.addnotify("date",lambda param,cond: date.__setattr__("text",str(param.dcvalue)),pdb.param.NOTIFY_NEWVALUE)
-        
-            # if dest.text is not None and len(dest.text.strip()) > 0:
-            #     paramdb["dest"].requestvalstr(dest.text)
-            #     pass
-            # paramdb.addnotify("dest",lambda param,cond: dest.__setattr__("text",str(param.dcvalue)),pdb.param.NOTIFY_NEWVALUE)
-
-            # if notes.text is not None and len(notes.text.strip()) > 0:
-            #     paramdb["notes"].requestvalstr(notes.text)
-            #    # See comment on notes lack-of-custom-widget hack, below
-            #     self.gladeobjdict["NotesText"].get_buffer().set_property("text",notes.text)
-            #    
-            #     pass
-            # paramdb.addnotify("notes",lambda param,cond: notes.__setattr__("text",str(param.dcvalue)),pdb.param.NOTIFY_NEWVALUE)
-            
-            self.build_checklistbox()
-            # self.checkdone()
-        
-            # Set savebutton background to normal condition 
-            if not "gtk" in sys.modules: # gtk3
-                ## !!!*** fixme: Probably should only create newprops once, and then add/remove it and/or enable/disable it
-                #newprops=gtk.StyleProperties.new()
-                #newprops.set_property("background-color",STATE_NORMAL,self.savebuttonnormalcolor)
-                #self.gladeobjdict["SaveButton"].get_style_context().add_provider(newprops,gtk.STYLE_PROVIDER_PRIORITY_USER)
-                self.gladeobjdict["SaveButton"].override_background_color(STATE_NORMAL,gdk.RGBA.from_color(self.savebuttonnormalcolor))
-
-                pass
-            else : # gtk2
-                newsavestyle=self.gladeobjdict["SaveButton"].get_style().copy()
-                newsavestyle.bg[STATE_NORMAL]=self.savebuttonnormalcolor
-                self.gladeobjdict["SaveButton"].set_style(newsavestyle)
-                pass
-            
-            # expand first two steps
-            # self.steps[0].gladeobjdict["steptemplate"].set_expanded(True)
-            # self.steps[1].gladeobjdict["steptemplate"].set_expanded(True)
-            
-            # expand all steps
-            # for step in self.steps:
-            #     step.gladeobjdict["steptemplate"].set_expanded(True)
-            #    pass
-
-            self.gladebuilder.connect_signals(self)
-
-            # FIXME: We should size the scroller in gtk3 too
-            # ... but it seems complicated
-            # 1. Need to subclass scroller
-            # 2. Replace signal with get_preffered_width() and get_preferred_height virtual functions (see https://developer.gnome.org/gtk3/3.0/ch25s02.html)
-            # 3. Virtual functions must be named do_get_preferred. (see http://stackoverflow.com/questions/9496322/overriding-virtual-methods-in-pygobject)
-            if "gtk" in sys.modules: 
-                # gtk2 only
-                self.gladeobjdict["Scroller"].connect("size-request",self.scroller_reqsize)
-                pass
-            else :
-                # self.gladeobjdict["Scroller"].set_property("hscrollbar-policy",gtk.PolicyType.ALWAYS)
-                pass
-            
-            pass
         except: 
             raise
         finally:
             try : 
-                self.xmldoc.unlock_rw()  # unlock and flush output to disk
+                self.xmldoc.unlock_ro()  # unlock 
                 pass
             except IOError: 
                 (exctype, excvalue) = sys.exc_info()[:2] 
@@ -901,11 +717,88 @@ class checklist(object):
                 pass
             pass
 
+
+        if not(self.done_is_save_measurement) and not(self.has_save_measurement_step) and not(self.part_of_a_measurement): 
+            # Remove MeasnumBox and MeasnumEntry if we are not a datacollect checklist that uses them
+            self.gladeobjdict["ParamBox"].remove(self.gladeobjdict["MeasnumBox"])
+            del self.gladeobjdict["MeasnumEntry"]
+            del self.gladeobjdict["MeasnumBox"]
+            pass
+                
+        if self.done_is_save_measurement or self.has_save_measurement_step:
+            self.shared_notes=True
+            self.gladeobjdict["NotesText"].paramdb=self.paramdb
+            pass
+        else:
+            self.shared_notes=False
+            # Tell widget to use private paramdb
+            self.gladeobjdict["NotesText"].paramdb=self.private_paramdb
+            pass
+        
+        # tell filename widget to use private paramdb
+        self.gladeobjdict["filenameentry"].paramdb=self.private_paramdb
+        
+        
+        
+        # set window title to checklist name
+        if self.xmldoc.filename is None:  # not using filename for window title
+            self.gladeobjdict["CheckListWindow"].set_title(os.path.split(self.origfilename)[1])
+            pass
+        
+        self.build_checklistbox(initializefromunfilled)  # adds the step to self.steps
+        # self.checkdone()
+        
+        # Set savebutton background to normal condition 
+        if "gi" in sys.modules: # gtk3
+            ## !!!*** fixme: Probably should only create newprops once, and then add/remove it and/or enable/disable it
+            #newprops=gtk.StyleProperties.new()
+            #newprops.set_property("background-color",STATE_NORMAL,self.savebuttonnormalcolor)
+            #self.gladeobjdict["SaveButton"].get_style_context().add_provider(newprops,gtk.STYLE_PROVIDER_PRIORITY_USER)
+            self.gladeobjdict["SaveButton"].override_background_color(STATE_NORMAL,gdk.RGBA.from_color(self.savebuttonnormalcolor))
+
+            pass
+        else : # gtk2
+            newsavestyle=self.gladeobjdict["SaveButton"].get_style().copy()
+            newsavestyle.bg[STATE_NORMAL]=self.savebuttonnormalcolor
+            self.gladeobjdict["SaveButton"].set_style(newsavestyle)
+            pass
+        
+        
+        self.gladebuilder.connect_signals(self)
+
+        # FIXME: We should size the scroller in gtk3 too
+        # ... but it seems complicated
+        # 1. Need to subclass scroller
+        # 2. Replace signal with get_preffered_width() and get_preferred_height virtual functions (see https://developer.gnome.org/gtk3/3.0/ch25s02.html)
+        # 3. Virtual functions must be named do_get_preferred. (see http://stackoverflow.com/questions/9496322/overriding-virtual-methods-in-pygobject)
+        if "gtk" in sys.modules: 
+            # gtk2 only
+            self.gladeobjdict["Scroller"].connect("size-request",self.scroller_reqsize)
+            pass
+        else :
+            # self.gladeobjdict["Scroller"].set_property("hscrollbar-policy",gtk.PolicyType.ALWAYS)
+            pass
+        
+        
         self.xmldoc.shouldbeunlocked()
 
 
+        # sys.stderr.write("Checklist: setting readonly to %s\n" % (str(self.readonly)))
+        self.set_readonly(self.readonly)  # set widgets to fix and do adddoc()'s as needed
+        self.gladeobjdict["ReadWriteButton"].connect("clicked",self.handle_readwrite)
+        
         pass
 
+    def is_done(self):
+        self.xmldoc.lock_ro()
+        try:
+            is_done = self.xmldoc.getattr(self.xmldoc.getroot(),"done",defaultvalue="false")=="true"
+            pass
+        finally: 
+            self.xmldoc.unlock_ro()
+            pass
+        return is_done
+    
     def get_parent(self):
         # returns hrefvalue object or None
         self.xmldoc.lock_ro()
@@ -933,6 +826,7 @@ class checklist(object):
         # NOTE: since parent is a relative reference, need to redoit 
         # if we get moved somehow
 
+        assert(not self.readonly)
 
         #sys.stderr.write("parentfile=%s" % (parentfile))
         #import pdb as pythondb
@@ -956,7 +850,8 @@ class checklist(object):
                 pass
             else : 
                 # no parent tag
-                parenttag=self.xmldoc.addelement(root,"chx:parent")
+                # insert at beginning of file for human readability
+                parenttag=self.xmldoc.insertelement(root,0,"chx:parent")
                 pass
                 
             if os.path.isabs(parentfile):
@@ -1087,7 +982,7 @@ class checklist(object):
 
 
     def dc_gui_init(self,guistate):
-        self.io=guistate.io
+        self.iohandlers=guistate.iohandlers
 
         
 
@@ -1100,23 +995,29 @@ class checklist(object):
         searchdirs=[origfiledir]
         searchdirs.extend(guistate.searchdirs)
         
-        newguistate=create_guistate(guistate.io,guistate.paramdb,searchdirs)
+        newguistate=create_guistate(guistate.iohandlers,guistate.paramdb,searchdirs)
 
                                     
         dc_initialize_widgets(self.gladeobjdict,newguistate)
 
         for step in self.steps: 
             step.dc_gui_init(newguistate)
+            step.show_all()
             pass
 
 
+        self.gladeobjdict["LowerVBox"].show_all()
+        
+        
         ## if we have all the information needed to set the filename, go ahead and do it!
         #if self.ok_set_filename():
         #    self.setchecklistfilename()
         #    pass
         
 
-        
+        # read only mode shows/hides certain components, so resetting here
+        # is a good thing. 
+        self.set_readonly(self.readonly)
 
         
         pass
@@ -1138,6 +1039,9 @@ class checklist(object):
         pass
     
     def logstarttimestamp(self):
+        if self.readonly:
+            return
+        
         self.xmldoc.lock_rw()
         try:
 
@@ -1153,7 +1057,9 @@ class checklist(object):
 
     def addlogentry(self,message,item=None,action=None,value=None,timestamp=None):
         message=str(message)
-
+        if self.readonly:
+            return
+        
         self.xmldoc.lock_rw()
         
         try: 
@@ -1198,12 +1104,16 @@ class checklist(object):
         self.gladeobjdict["CheckListWindow"].present()
         pass
 
-    def build_checklistbox(self): 
+    def build_checklistbox(self,initializefromunfilled): 
         cnt=1
 
-        
-
-        self.xmldoc.lock_rw()
+        readonly=self.readonly
+        if readonly:
+            self.xmldoc.lock_ro()
+            pass
+        else:
+            self.xmldoc.lock_rw()
+            pass
         try :
             # show rationale if present
             rationale=self.xmldoc.find("chx:rationale")
@@ -1252,6 +1162,11 @@ class checklist(object):
                 step=steptemplate(cnt,item.title,item.cls+"step",params=item.params,checklist=self,xmlpath=item.xmlpath,paramdb=self.paramdb)
             
                 self.gladeobjdict["MinorBox"].pack_start(step,True,True,0)
+
+                if initializefromunfilled:
+                    assert(not self.readonly)
+                    step.resetchecklist()
+                    pass
                 
                 self.steps.append(step)
 
@@ -1276,7 +1191,13 @@ class checklist(object):
         except:
             raise
         finally:
-            self.xmldoc.unlock_rw()
+            if readonly:
+                self.xmldoc.unlock_ro()
+                pass
+            else:
+                self.xmldoc.unlock_rw()
+                pass
+            
             pass
 
         pass
@@ -1284,6 +1205,7 @@ class checklist(object):
 
         self.xmldoc.shouldbeunlocked()
 
+        
         if self.datacollect_explogwin is not None:
             # perform explogwin pre-notification so it can open any parent
             self.datacollect_explogwin.open_checklist_parent(self)
@@ -1299,15 +1221,27 @@ class checklist(object):
             pass
 
         # Eliminate current name so it can be re-set
-        self.xmldoc.setfilename(None)
+        self.set_readonly(True) # force disconnection from file
+        self.xmldoc.setfilename(None,readonly=False)
 
+        # preset readonly flag so nothing objects to writing. 
+        self.readonly=False
+        
         # set filename field at bottom of window
         self.private_paramdb["defaultfilename"].requestvalstr_sync("") 
 
         self.xmldoc.autoflush=False
         self.chklistfile=None
 
-
+        self.xmldoc.lock_rw()
+        try : 
+            # clear done attribute of <checklist> tag
+            if self.xmldoc.hasattr(self.xmldoc.getroot(),"done"):
+                self.xmldoc.remattr(self.xmldoc.getroot(),"done")
+        finally:
+            self.xmldoc.unlock_rw()
+            pass
+        
         # make any notifications
         # WARNING: resetnotify may call requestval_sync which runs sub-mainloop
         # cnt=0
@@ -1317,12 +1251,12 @@ class checklist(object):
             #cnt+=1
             pass
 
+        
 
-
-        if "measnum" in self.private_paramdb:# reset checklist measnum entry to the empy set
-            self.private_paramdb["measnum"].requestval_sync(integersetv(set([])))
-            #sys.stderr.write("chklist measnum=%s; paramdb measnum=%s\n" % (str(self.private_paramdb["measnum"].dcvalue),str(self.paramdb["measnum"].dcvalue)))
-            pass
+        # if "measnum" in self.private_paramdb:# reset checklist measnum entry to the empy set
+        #    self.private_paramdb["measnum"].requestval_sync(integersetv(set([])))
+        #    #sys.stderr.write("chklist measnum=%s; paramdb measnum=%s\n" % (str(self.private_paramdb["measnum"].dcvalue),str(self.paramdb["measnum"].dcvalue)))
+        #    pass
         
 
         ## Get new measnum
@@ -1352,8 +1286,32 @@ class checklist(object):
                 
                 self.steps[cnt].resetchecklist()
                 pass
-            
 
+            # clear measnum
+            measnumels=self.xmldoc.xpath("dc:measnum")
+            for measnumel in measnumels:
+                self.xmldoc.remelement(measnumel)
+                pass
+
+            # clear specimen
+            specimenels=self.xmldoc.xpath("dc:specimen")
+            for specimenel in specimenels:
+                self.xmldoc.remelement(specimenel)
+                pass
+
+            # clear perfby
+            perfbyels=self.xmldoc.xpath("dc:perfby")
+            for perfbyel in perfbyels:
+                self.xmldoc.remelement(perfbyel)
+                pass
+
+            # clear date
+            dateels=self.xmldoc.xpath("dc:date")
+            for dateel in dateels:
+                self.xmldoc.remelement(dateel)
+                pass
+
+            
 
             # reset 'done' attribute
             if self.xmldoc.hasattr(self.xmldoc.getroot(),'done'):
@@ -1379,27 +1337,24 @@ class checklist(object):
         
 
 
-            # un-gray out all of the checkboxes (in case user already hit 'done'
-            for boxnum in range(len(self.steps)):
-                checkbutton=self.steps[boxnum].gladeobjdict["checkbutton"]
-                checkbutton.set_sensitive(True)
-                pass
-        
-            # un-gray out notes entry
-            self.gladeobjdict["NotesText"].start()
-
-            self.grayed_out=False
             
             # reset window title to checklist name
-            self.gladeobjdict["CheckListWindow"].set_title(str(self.private_paramdb["clinfo"].dcvalue))
+            self.gladeobjdict["CheckListWindow"].set_title(os.path.split(self.origfilename)[1])
 
             # clear notes
-            if self.shared_notes:
-                self.paramdb["notes"].requestvalstr_sync("")
+            notesels=self.xmldoc.xpath("chx:notes")
+            for notesel in notesels:
+                #sys.stderr.write("Removing notesel: %s\n" % (etree.tostring(notesel)))
+                self.xmldoc.remelement(notesel)
                 pass
-            else :
-                self.private_paramdb["notes"].requestvalstr_sync("")
-                pass
+
+
+            #if self.shared_notes:
+            #    self.paramdb["notes"].requestvalstr_sync("")
+            #    pass
+            #else :
+            #    self.private_paramdb["notes"].requestvalstr_sync("")
+            #    pass
             
             # reset checklist log
             log=self.getlog()
@@ -1413,21 +1368,10 @@ class checklist(object):
             self.logstarttimestamp()
 
             
-            if self.done_is_save_measurement or self.has_save_measurement_step:
-                # clear name of checklist file in paramdb
-                ###!!!*** possible bug: Should measchecklist param be private? 
-                ### No it shouldn't.... There is one and only one checklist
-                ### for which the save measurement button is clicked. 
-                self.paramdb["measchecklist"].requestvalstr_sync("")         
-                pass
+
+            self.set_readonly(False)
             
-            if not self.datacollectmode:
-                # un-gray out done button unless we are in datacollect mode
-                # (in datacollect mode cannot be sensitive until the filename
-                # is picked) 
-                self.gladeobjdict["SaveButton"].set_sensitive(True)
-                
-                pass
+
             pass
         except: 
             raise
@@ -1437,6 +1381,13 @@ class checklist(object):
             self.xmldoc.unlock_rw()
                        
             pass
+
+
+        
+        for cnt in range(len(self.steps)):
+            self.steps[cnt].resetchecklist()
+            pass
+        
         
         pass
 
@@ -1484,7 +1435,7 @@ class checklist(object):
         clinfo=None
         cltitle=None
 
-        if not self.checknotcurrent():
+        if self.readonly:
             return
             
 
@@ -1508,14 +1459,14 @@ class checklist(object):
             #if os.path.isabs(self.origfilename):
             #    measchecklist_context=None # use absolute path
             #else: 
-            measchecklist_context=self.xmldoc.getcontextdir()
+            # measchecklist_context=self.xmldoc.getcontextdir()
 
             #if self.xmldoc.filename is None:
             #    self.paramdb["measchecklist"].requestval_sync(checklistdb.generate_inmemory_id(self))
             #    pass
             #else : 
 
-            self.paramdb["measchecklist"].requestval_sync(hrefv.frompath(measchecklist_context,self.xmldoc.filename))
+            self.paramdb["measchecklist"].requestval_sync(hrefv.from_rel_path(".",self.xmldoc.filename))
             
             autoexps=[]
             for autoexp in self.xmldoc.xpath("chx:checkitem/dc:autoexp"):
@@ -1538,7 +1489,7 @@ class checklist(object):
             # main paramdb measnum should be one of the measnums in the set 
             # that is our private_paramdb measnum
             #assert(self.paramdb["measnum"].dcvalue.value() in self.private_paramdb["measnum"].dcvalue.value())
-            self.datacollect_explog.recordmeasurement(self.paramdb["measnum"].dcvalue.value(),self.paramdb["dest"].dcvalue.value(),clinfo=clinfo,cltitle=cltitle,extrataglist=autoexps)
+            self.datacollect_explog.recordmeasurement(self.paramdb["measnum"].dcvalue.value(),clinfo=clinfo,cltitle=cltitle,extrataglist=autoexps)
             # add in any <dc:autoexp>s with their <dc:automeas>s from the checklist 
             # sys.stderr.write("\n\ngot meastag: %s\n" % (etree.tostring(meastag)))
             pass
@@ -1549,20 +1500,251 @@ class checklist(object):
             pass
 
         pass
+
+    # dont_switch_xmldoc_mode=False is used as a flag from setfilename
+    # to indicate we're not really making the file readonly,
+    # just using readonly mode as a way to unsync from the file before we change
+    # the name
+    def set_readonly(self,readonly,dont_switch_xmldoc_mode=False):
+        if (readonly): 
+            self.readonly=True
+
+            # update xmldoc readonly flag
+            if not dont_switch_xmldoc_mode:
+                self.xmldoc.set_readonly(True)
+                pass
+            # extract values for notes, date, perfby,  specimen, and measnum fields
+            self.xmldoc.lock_ro()
+            try:
+                notesvalue=stringv("")
+                notestags=self.xmldoc.xpath("chx:notes")
+                if len(notestags) > 0:
+                    notesvalue=stringv.fromxml(self.xmldoc,notestags[0])
+                    pass
+
+                datevalue=datesetv("")
+                datetags=self.xmldoc.xpath("chx:date")
+                if len(datetags) > 0:
+                    datevalue=datesetv.fromxml(self.xmldoc,datetags[0])
+                    pass
+
+                perfbyvalue=stringv("")
+                perfbytags=self.xmldoc.xpath("chx:perfby")
+                if len(perfbytags) > 0:
+                    perfbyvalue=stringv.fromxml(self.xmldoc,perfbytags[0])
+                    pass
+
+                specimenvalue=stringv("")
+                specimentags=self.xmldoc.xpath("chx:specimen")
+                if len(specimentags) > 0:
+                    specimenvalue=stringv.fromxml(self.xmldoc,specimentags[0])
+                    pass
+                
+                measnumvalue=integerv("")
+                measnumtags=self.xmldoc.xpath("dc:measnum")
+                if len(measnumtags) > 0:
+                    measnumvalue=integerv.fromxml(self.xmldoc,measnumtags[0])
+                    pass
+                pass
+
+            
+            finally:
+                self.xmldoc.unlock_ro()
+                pass
+            
+
+            # gray out done button
+            self.gladeobjdict["SaveButton"].set_sensitive(False)
+
+
+
+            # Show "read only" warning and button
+            self.gladeobjdict["ReadonlyHBox"].show_all()
+
+            # gray out all of the steps
+            for boxnum in range(len(self.steps)):
+                self.steps[boxnum].set_readonly(readonly)
+                pass
+            
+            # gray out notes entry but keep same text
+            self.gladeobjdict["NotesText"].set_fixed(True,notesvalue)
+            # unsync notes
+            if self.shared_notes:
+                if self.notes_sync is not None:
+                    self.paramdb["notes"].controller.remdoc(*self.notes_sync)
+                    pass
+                pass
+            else: 
+                if self.notes_sync is not None:
+                    self.private_paramdb["notes"].controller.remdoc(*self.notes_sync)
+                    pass
+                pass
+            self.notes_sync=None
+
+            ## unsync dest
+            #self.gladeobjdict["DestEntry"].set_fixed(True)
+            #if self.dest_sync is not None:
+            #    self.paramdb["dest"].controller.remdoc(*self.dest_sync)
+            #    pass
+            #self.dest_sync=None
+
+            # unsync date 
+            self.gladeobjdict["DateEntry"].set_fixed(True,datevalue)
+            if self.date_sync is not None:
+                self.paramdb["date"].controller.remdoc(*self.date_sync)
+                pass
+            self.date_sync=None
+
+            # unsync perfby
+            self.gladeobjdict["PerfbyEntry"].set_fixed(True,perfbyvalue)
+            if self.perfby_sync is not None:
+                self.paramdb["perfby"].controller.remdoc(*self.perfby_sync)
+                pass
+            self.perfby_sync=None
+            
+            # unsync specimen
+            if not self.specimen_disabled:
+                self.gladeobjdict["SpecEntry"].set_fixed(True,specimenvalue)
+                if self.specimen_sync is not None:
+                    self.paramdb["specimen"].controller.remdoc(*self.specimen_sync)
+                    pass
+                self.specimen_sync=None
+                pass
+
+            # unsync measnum
+            # gray-out Measnum eentry
+            self.gladeobjdict["MeasnumEntry"].set_fixed(True,measnumvalue)
+            if self.measnum_sync is not None:
+                self.paramdb["measnum"].controller.remdoc(*self.measnum_sync)
+                pass
+            self.measnum_sync=None
+            
+                
+            pass
+        else:
+            # not readonly
+
+            self.readonly=False
+            if not dont_switch_xmldoc_mode:
+                self.xmldoc.set_readonly(False)
+                pass
+            
+            try: 
+
+
+                # set up synchronization
+                
+                # measnum is in general a set of integers. We only create it now 
+                # that we know if we have done_is_save_measurement, has_save_measurement_step or part_of_a_measurement
+                if self.done_is_save_measurement or self.has_save_measurement_step or self.part_of_a_measurement: 
+                    # sync measnum... create element if necessary, then adddoc
+
+                    if self.measnum_sync is None:
+                        self.measnum_sync = self.paramdb["measnum"].controller.adddoc(self.xmldoc,"dc:measnum",logfunc=self.addlogentry,autocreate_parentxpath=".",autocreate_tagname="dc:measnum",autocreate_insertpos=0)
+                        pass
+                    # un-gray-out Measnum eentry
+                    self.gladeobjdict["MeasnumEntry"].set_fixed(False)
+                    
+                    
+                    pass
+                
+
+
+                # sync specimen
+                if not self.specimen_disabled:
+                    if self.specimen_sync is None:
+                        self.specimen_sync=self.paramdb["specimen"].controller.adddoc(self.xmldoc,"chx:specimen",logfunc=self.addlogentry,autocreate_parentxpath=".",autocreate_tagname="chx:specimen",autocreate_insertpos=0)
+                        pass
+                    self.gladeobjdict["SpecEntry"].set_fixed(False)
+                    pass
+            
+
+                # sync perfby
+                if self.perfby_sync is None:
+                    self.perfby_sync=self.paramdb["perfby"].controller.adddoc(self.xmldoc,"chx:perfby",logfunc=self.addlogentry,autocreate_parentxpath=".",autocreate_tagname="chx:perfby",autocreate_insertpos=0)
+                    pass
+                self.gladeobjdict["PerfbyEntry"].set_fixed(False)
+                
+                # sync date:
+                if self.date_sync is None:
+                    self.date_sync=self.paramdb["date"].controller.adddoc(self.xmldoc,"chx:date",logfunc=self.addlogentry,autocreate_parentxpath=".",autocreate_tagname="chx:date",autocreate_insertpos=0)
+                    pass
+                self.gladeobjdict["DateEntry"].set_fixed(False)
+
+                ## sync dest
+                #if self.dest_sync is None:
+                #    self.dest_sync=self.paramdb["dest"].controller.adddoc(self.xmldoc,"chx:dest",logfunc=self.addlogentry,autocreate_parentxpath=".",autocreate_tagname="chx:dest",autocreate_insertpos=0)
+                #    pass
+                #self.gladeobjdict["DestEntry"].set_fixed(False)
+                
+                # sync notes
+                if self.shared_notes:
+                    if self.notes_sync is None:
+                        self.notes_sync=self.paramdb["notes"].controller.adddoc(self.xmldoc,"chx:notes",logfunc=self.addlogentry,autocreate_parentxpath=".",autocreate_tagname="chx:notes",autocreate_insertpos=0)
+                        pass
+                    pass
+                else:  # not self.shared_notes
+                    if self.notes_sync is None:
+                        self.notes_sync=self.private_paramdb["notes"].controller.adddoc(self.xmldoc,"chx:notes",logfunc=self.addlogentry,autocreate_parentxpath=".",autocreate_tagname="chx:notes",autocreate_insertpos=0)
+                        pass
+                    pass
+                self.gladeobjdict["NotesText"].set_fixed(False)
+
+
+                # un-gray out all of the checkboxes and steps
+                for boxnum in range(len(self.steps)):
+                    self.steps[boxnum].set_readonly(readonly)
+                    
+                    pass
+
+
+                # Hide "read only" warning and button
+                # sys.stderr.write("hiding ReadonlyHBox\n")
+                self.gladeobjdict["ReadonlyHBox"].hide_all()
+                
+                # un-gray out notes entry
+                self.gladeobjdict["NotesText"].set_fixed(False)
+
+                
+                if (self.datacollectmode and self.xmldoc.filename is None) or (self.datacollectmode and self.is_done()):
+                    # gray out done button if we are in datacollect mode
+                    # (in datacollect mode cannot be sensitive until the filename
+                    # is picked) or the checklist is already marked as done
+                    self.gladeobjdict["SaveButton"].set_sensitive(False)
+                    
+                    pass
+                else:
+                    self.gladeobjdict["SaveButton"].set_sensitive(True)
+                    pass
+                
+                
+                pass
+            except:
+                # exception when adding documents... switch back to readonly
+                sys.stderr.write("checklist (%s): Exception switching to read/write mode. Returning to read-only mode\n" % (self.xmldoc.filename))
+                self.set_readonly(True)
+                raise
+            pass
+        pass
+
+    def handle_readwrite(self,event):
+        # user clicked the ReadWriteButton to convert a checklist to read/write mode
+        self.set_readonly(False)
+        pass
+    
     
     def handle_done(self,event):
         # This is the save button, in datacollect mode. It makes all
         # the checkitems insensitive and clears the filename
 
         #contextdir=os.path.join(os.path.split(self.xmldoc.filename)[0],"..")
-
-        if not self.checknotcurrent():
+        if self.readonly:
             return
-
+        
         #checklistdb.print_checklists(contextdir,self.paramdb,"checklists")
 
         #sys.stderr.write("handle_done()\n")
-
+            
         self.xmldoc.shouldbeunlocked()
 
         if not self.verify_save():
@@ -1601,14 +1783,16 @@ class checklist(object):
                 donenotify(self,self.xmldoc.filename,*dnargs,**dnkwargs)
                 pass
 
-            self.grayed_out=True
-            self.pre_reset_filename=self.xmldoc.filename
+            self.set_readonly(True)
+            
+            # self.grayed_out=True
+            # self.pre_reset_filename=self.xmldoc.filename
 
             #sys.stderr.write("Notifications done\n")
             #checklistdb.print_checklists(contextdir,self.paramdb,"checklists")
 
 
-            self.xmldoc.setfilename(None) #  Inhibit future writes
+            # self.xmldoc.setfilename(None) #  Inhibit future writes
                 
 
 
@@ -1619,14 +1803,6 @@ class checklist(object):
                 pass
 
             
-            # gray out all of the checkboxes
-            for boxnum in range(len(self.steps)):
-                checkbutton=self.steps[boxnum].gladeobjdict["checkbutton"]
-                checkbutton.set_sensitive(False)
-                pass
-            
-            # gray out notes entry
-            self.gladeobjdict["NotesText"].stop()
             
             if self.done_is_save_measurement or self.has_save_measurement_step:
                 # clear out notes -- ready for next measurement
@@ -1636,21 +1812,20 @@ class checklist(object):
             #sys.stderr.write("grayed out\n")
             #checklistdb.print_checklists(contextdir,self.paramdb,"checklists")
 
-            self.xmldoc.lock_rw()
-            try : 
-                # clear done attribute of <checklist> tag
-                if self.xmldoc.hasattr(self.xmldoc.getroot(),"done"):
-                    self.xmldoc.remattr(self.xmldoc.getroot(),"done")
-            finally:
-                self.xmldoc.unlock_rw()
-                pass
 
             #sys.stderr.write("cleared out\n")
             #checklistdb.print_checklists(contextdir,self.paramdb,"checklists")
+
+            if self.done_is_save_measurement or self.has_save_measurement_step:
+                # clear name of checklist file in paramdb
+                ###!!!*** possible bug: Should measchecklist param be private? 
+                ### No it shouldn't.... There is one and only one checklist
+                ### for which the save measurement button is clicked. 
+                self.paramdb["measchecklist"].requestvalstr_sync("")         
+                pass
+
             
             
-            # gray out done button
-            self.gladeobjdict["SaveButton"].set_sensitive(False)
             pass
         except : 
             (exctype, excvalue) = sys.exc_info()[:2] 
@@ -1661,6 +1836,8 @@ class checklist(object):
         pass
 
     def handle_save(self,event):
+        if self.readonly:
+            return
 
         if not self.datacollectmode and self.xmldoc.filename is not None:
             # if filename has been set, delegate to done button
@@ -1708,15 +1885,21 @@ class checklist(object):
             
             self.xmldoc.shouldbeunlocked()
 
+            
             oldfilename=self.xmldoc.filename
-            self.xmldoc.setfilename(name,force_abs_href=True)
+
+            old_readonly=self.readonly
+            self.set_readonly(True) # force disconnection from file
+            self.xmldoc.setfilename(name)  #,force_abs_href=True)
+            self.set_readonly(old_readonly) # reconnect to file, if applicable
+            
             # WARNING: filenamenotify may call requestval_sync which runs sub-mainloop
 
             self.xmldoc.lock_rw()
             try: 
-                destl=self.xmldoc.xpath("chx:dest")
-                assert(len(destl) == 1)
-                dest=destl[0]
+                #destl=self.xmldoc.xpath("chx:dest")
+                #assert(len(destl) == 1)
+                #dest=destl[0]
                 
 
                 if self.xmldoc.hasattr(None,"parent"):
@@ -1731,7 +1914,7 @@ class checklist(object):
 
             for (filenamenotify,fnargs,fnkwargs) in self.filenamenotify:
                 
-                filenamenotify(self,self.origfilename,dest,name,oldfilename,*fnargs,**fnkwargs)
+                filenamenotify(self,self.origfilename,name,oldfilename,*fnargs,**fnkwargs)
                 pass
             
             # Now that we have a filename, "Save" button should be a "Done" button
@@ -1761,50 +1944,43 @@ class checklist(object):
             closenotify(self,*cnargs,**cnkwargs)
             pass
 
-        if "dest" in self.paramdb:
-            destval=self.paramdb["dest"].dcvalue.value()
-            pass
-        else: 
-            destval="."
-            pass
             
 
-        self.private_paramdb["clinfo"].controller.remdoc(self.xmldoc,destval,"chx:clinfo")
+        # if self.specimen_perfby_date_in_private_paramdb:
+        #     if not self.specimen_disabled: 
+        #         self.private_paramdb["specimen"].controller.remdoc(self.xmldoc,"chx:specimen",logfunc=self.addlogentry)
+        #         pass
+        #     self.private_paramdb["perfby"].controller.remdoc(self.xmldoc,"chx:perfby",logfunc=self.addlogentry)
+        #     self.private_paramdb["date"].controller.remdoc(self.xmldoc,"chx:date",logfunc=self.addlogentry)
 
-        if self.specimen_perfby_date_in_private_paramdb:
-            if not self.specimen_disabled: 
-                self.private_paramdb["specimen"].controller.remdoc(self.xmldoc,destval,"chx:specimen",logfunc=self.addlogentry)
-                pass
-            self.private_paramdb["perfby"].controller.remdoc(self.xmldoc,destval,"chx:perfby",logfunc=self.addlogentry)
-            self.private_paramdb["date"].controller.remdoc(self.xmldoc,destval,"chx:date",logfunc=self.addlogentry)
-
-            pass
-        else: 
-
-            if not self.specimen_disabled: 
-                self.paramdb["specimen"].controller.remdoc(self.xmldoc,destval,"chx:specimen",logfunc=self.addlogentry)
-                pass
-            self.paramdb["perfby"].controller.remdoc(self.xmldoc,destval,"chx:perfby",logfunc=self.addlogentry)
-            self.paramdb["date"].controller.remdoc(self.xmldoc,destval,"chx:date",logfunc=self.addlogentry)
-            pass
-
-        self.private_paramdb["dest"].controller.remdoc(self.xmldoc,destval,"chx:dest",logfunc=self.addlogentry)
+        #pass
+        #else: 
+        #
+        #    if not self.specimen_disabled: 
+        #        self.paramdb["specimen"].controller.remdoc(self.xmldoc,"chx:specimen",logfunc=self.addlogentry)
+        #        pass
+        #    self.paramdb["perfby"].controller.remdoc(self.xmldoc,"chx:perfby",logfunc=self.addlogentry)
+        #    self.paramdb["date"].controller.remdoc(self.xmldoc,"chx:date",logfunc=self.addlogentry)
+        #    pass
+        #
+        #self.private_paramdb["dest"].controller.remdoc(self.xmldoc,"chx:dest",logfunc=self.addlogentry)
 
         #notes=self.xmldoc.xpath("chx:notes")[0]
         #if "shared" in notes.attrib and notes.attrib["shared"]=="true":
-        if self.shared_notes: 
-            self.paramdb["notes"].controller.remdoc(self.xmldoc,destval,"chx:notes",logfunc=self.addlogentry)
-            pass
-        else: 
+        #if self.shared_notes: 
+        #    self.paramdb["notes"].controller.remdoc(self.xmldoc,"chx:notes",logfunc=self.addlogentry)
+        #    pass
+        #else: 
             # unlink private notes entry from physical document
-            self.private_paramdb["notes"].controller.remdoc(self.xmldoc,destval,"chx:notes",logfunc=self.addlogentry)
-            pass
+        #    self.private_paramdb["notes"].controller.remdoc(self.xmldoc,"chx:notes",logfunc=self.addlogentry)
+        #    pass
 
         # unlink measnum from private paramdb
-        if "measnum" in self.private_paramdb: 
-            self.private_paramdb["measnum"].controller.remdoc(self.xmldoc,destval,"dc:measnum")
-            pass
-            
+        #if "measnum" in self.private_paramdb: 
+        #    self.private_paramdb["measnum"].controller.remdoc(self.xmldoc,"dc:measnum")
+        #    pass
+
+        self.set_readonly(True)
 
         self.closed=True
 
@@ -1814,7 +1990,7 @@ class checklist(object):
         del self.gladeobjdict
         del self.gladebuilder
         del self.parsedchecklist
-        self.io=None
+        self.iohandlers=None
 
         for step in self.steps: 
             if hasattr(step,"destroystep"):
@@ -1971,23 +2147,24 @@ class checklist(object):
     def setchecklistfilename(self):
         # should have already passed ok_set_filename test before calling this!!!
 
-        if not self.checknotcurrent():
-            return
+        if self.readonly:
+            return 
         
 
         self.xmldoc.lock_rw()
         
         try : 
-            destl=self.xmldoc.xpath("chx:dest")
-            assert(len(destl) == 1)
-            dest=destl[0]
-            
-            desttext=""
-            if dest.text is not None:
-                desttext=dest.text.strip()
+            #destl=self.xmldoc.xpath("chx:dest")
+            #assert(len(destl) == 1)
+            #dest=destl[0]
+
+            if self.filleddir is not None:
+                destdir=self.filleddir
+                pass
+            else:
+                destdir=self.paramdb["dest"].dcvalue.getpath(".")
                 pass
             
-        
             filename=self.requestedfilename()
         
         
@@ -1997,7 +2174,7 @@ class checklist(object):
             if self.datacollectmode and (self.done_is_save_measurement or self.has_save_measurement_step or self.part_of_a_measurement): 
                 # automatically set the filename
 
-                assert("measnum" in self.private_paramdb)
+                # assert("measnum" in self.private_paramdb)
                 # Make sure current experiment log measnum is in the checklist measnum set
 
                 # assert(self.paramdb["measnum"].dcvalue.value() in self.private_paramdb["measnum"].dcvalue.value())
@@ -2007,13 +2184,13 @@ class checklist(object):
             
                 if self.done_is_save_measurement or self.has_save_measurement_step: 
                     chklistfile="%s-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),fileext)
-                    chklistpath=os.path.join(desttext,chklistfile)
+                    chklistpath=os.path.join(destdir,chklistfile)
                     
                     cnt=1
                     while (os.path.exists(chklistpath)) :
 
                         chklistfile="%s-%.4d-%d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),cnt,fileext)
-                        chklistpath=os.path.join(desttext,chklistfile)
+                        chklistpath=os.path.join(destdir,chklistfile)
                         
                         cnt+=1
 
@@ -2045,19 +2222,28 @@ class checklist(object):
                     chklistfile="%s-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),fileext)
                     cnt=0
                     
-                    while os.path.exists(os.path.join(desttext,chklistfile)):
+                    while os.path.exists(os.path.join(destdir,chklistfile)):
                         cnt+=1
                     
                         chklistfile="%s-%.4d-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),cnt,fileext)
                         pass
 
 
-                    chklistpath=os.path.join(desttext,chklistfile)
+                    chklistpath=os.path.join(destdir,chklistfile)
                     
                     
                     pass
+
+                #sys.stderr.write("before rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
+                oldreadonly=self.readonly
+                self.set_readonly(True,dont_switch_xmldoc_mode=True) # Set readonly to disconnect from file
+                #sys.stderr.write("intermed rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
                 oldfilename=self.xmldoc.filename
-                self.xmldoc.setfilename(os.path.join(desttext,chklistfile))
+                self.xmldoc.setfilename(os.path.join(destdir,chklistfile))
+                #sys.stderr.write("after rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
+                self.set_readonly(oldreadonly) # reconnect to file if applicable
+                #sys.stderr.write("wayafter rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
+                
                 self.gladeobjdict["SaveButton"].set_sensitive(True)
 
 
@@ -2074,7 +2260,7 @@ class checklist(object):
                         self.set_parent(self.xmldoc.getcontextdir(),canonicalize_path.canonicalize_relpath(os.path.split(reffilename)[0],self.xmldoc.getattr(None,"parent")))
                         pass
                     else: 
-                        self.set_parent(self.xmldoc,getcontextdir(),self.xmldoc.getattr(None,"parent"))
+                        self.set_parent(self.xmldoc.getcontextdir(),self.xmldoc.getattr(None,"parent"))
                         pass
                     pass
 
@@ -2083,7 +2269,7 @@ class checklist(object):
                 # WARNING: filenamenotify may call requestval_sync which runs sub-mainloop
                 # ***!!! Possible bug because shouldn't do this with stuff locked
                 for (filenamenotify,fnargs,fnkwargs) in  self.filenamenotify: 
-                    filenamenotify(self,self.origfilename,dest,chklistfile,oldfilename,*fnargs,**fnkwargs)
+                    filenamenotify(self,self.origfilename,chklistfile,oldfilename,*fnargs,**fnkwargs)
                     pass
             
                 # enable save button
@@ -2114,19 +2300,23 @@ class checklist(object):
             
                 chklistfile=filename
             
-                while os.path.exists(os.path.join(desttext,chklistfile)):
+                while os.path.exists(os.path.join(destdir,chklistfile)):
                     cnt+=1
                     
                     chklistfile="%s-%.4d%s" % (filebasename,cnt,fileext)
                     pass
 
-                newfilename=os.path.join(desttext,chklistfile)
+                newfilename=os.path.join(destdir,chklistfile)
 
                 #sys.stderr.write("newfilename=%s\n" % (newfilename))
                 
                 try : 
                     
+                    oldreadonly=self.readonly
+                    self.set_readonly(True) # Set readonly to disconnect from file
+                    oldfilename=self.xmldoc.filename
                     self.xmldoc.setfilename(newfilename)
+                    self.set_readonly(oldreadonly) # reconnect to file if applicable
                     pass
                 except: 
                     (exctype, excvalue) = sys.exc_info()[:2] 
@@ -2151,13 +2341,13 @@ class checklist(object):
                 for (filenamenotify,fnargs,fnkwargs) in self.filenamenotify: 
                     #import pdb as pythondb
                     #try: 
-                    filenamenotify(self,self.origfilename,dest,chklistfile,oldfilename,*fnargs,**fnkwargs)
+                    filenamenotify(self,self.origfilename,chklistfile,oldfilename,*fnargs,**fnkwargs)
                     #except:
                     #    pythondb.post_mortem()
                     pass
                 self.chklistfile=chklistfile  # store for convenience
 
-                # self.xmldoc.setfilename(os.path.join(desttext,chklistfile))
+                # self.xmldoc.setfilename(os.path.join(destdir,chklistfile))
 
                 # set filename field at bottom of window
                 self.private_paramdb["defaultfilename"].requestvalstr_sync(chklistfile) 
@@ -2182,38 +2372,10 @@ class checklist(object):
         pass
     
 
-    def checknotcurrent(self):
-        if "measnum" in self.private_paramdb:
-            curmeasnum=self.paramdb["measnum"].dcvalue.value()
-            if curmeasnum is not None and curmeasnum not in self.private_paramdb["measnum"].dcvalue.value():
-                # raise ValueError("Not Current: curmeasnum=%s; checklistmeasnum=%s" % (curmeasnum,self.private_paramdb["measnum"].dcvalue.value()))
-                if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
-                    # gtk3
-                    notcurrentdialog=gtk.MessageDialog(type=gtk.MessageType.WARNING,buttons=gtk.ButtonsType.NONE)
-                    pass
-                else : 
-                    notcurrentdialog=gtk.MessageDialog(type=gtk.MESSAGE_WARNING,buttons=gtk.BUTTONS_NONE)
-                    pass
-                    
-                notcurrentdialog.set_markup("This measurement checklist is not current.\nChecklist measnum=%s; current measnum=%d." % (str(self.private_paramdb["measnum"].dcvalue),curmeasnum))
-                notcurrentdialog.add_button("Continue",1)
-                notcurrentdialog.add_button("Cancel operation",0)
-                
-                notcurrentdialogval=notcurrentdialog.run()
-                
-                notcurrentdialog.destroy()
-
-                return notcurrentdialogval==1  # Whether we should continue
-
-                
-            pass
-        return True
-    
-
 
     def handle_check(self,obj,boxnum):
         
-        if self.grayed_out:
+        if self.readonly:
             return
 
         measname_mismatch_ok=False
@@ -2302,14 +2464,9 @@ class checklist(object):
                 measname_mismatch_ok=True
                 pass
             pass
-        # make sure that checklist is now current
-        if not measname_mismatch_ok:
-            if not self.checknotcurrent():
-                return
-            pass
 
-
-
+        self.steps[boxnum].handle_check(self.steps[boxnum].gladeobjdict["checkbutton"].get_property("active"))
+        
         self.xmldoc.lock_rw()
         
         try : 
@@ -2381,7 +2538,7 @@ class checklist(object):
         if self.checkdone():
             # set a color on the SaveButton to indicate done...
 
-            if not "gtk" in sys.modules: # gtk3  ... currently INOPERABLE
+            if "gi" in sys.modules: # gtk3  ... currently INOPERABLE
                 # !!!*** fixme: Probably should only create newprops once, and then add/remove it and/or enable/disable it
                 #newprops=gtk.StyleProperties.new()
                 #newprops.set_property("background-color",STATE_NORMAL,self.savebuttonreadycolor)
@@ -2395,8 +2552,19 @@ class checklist(object):
                 self.gladeobjdict["SaveButton"].set_style(newsavestyle)
                 pass
             pass
+        else:
 
-
+            if "gi" in sys.modules: # gtk3  ... currently INOPERABLE
+            # set color to indicate not done
+                self.gladeobjdict["SaveButton"].override_background_color(STATE_NORMAL,gdk.RGBA.from_color(self.savebuttonnormalcolor))
+                pass
+            else: # gtk2
+                newsavestyle=self.gladeobjdict["SaveButton"].get_style().copy()
+                newsavestyle.bg[STATE_NORMAL]=self.savebuttonnormalcolor
+                self.gladeobjdict["SaveButton"].set_style(newsavestyle)
+                pass
+            pass
+        
         pass
 
     def scroller_reqsize(self,obj,requisition):
