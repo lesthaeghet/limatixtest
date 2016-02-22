@@ -343,12 +343,12 @@ def timestamp_abbreviate(isotimestamp):
     return "%s-%sT%s:%s" % (month,day,hour,minute)
 
 class checklistdbwin(gtk.Window):
-    contextdir=None # context directory for filenames in <dc:checklist> tags within paramdb[clparamname]
+    contexthref=None
     paramdb=None  
     clparamname=None
     popupcallback=None
     popupcallbackargs=None
-
+    
     allchecklists=None
     allplans=None
     liststorerows=None # count of rows in the liststore
@@ -356,11 +356,13 @@ class checklistdbwin(gtk.Window):
     treeview=None  # TreeView that displays the ListStore
     checklists=None # list of class checklistdb.checklistentry
 
+    checklistsbyabsurl=None # Dictionary of checklists, indexed by entry.filehref.absurl()
+
     scrolled=None # gtk.ScrolledWindow object
     viewport=None # vtk.Viewport object
 
     # Must match titles and types, in __init__ (below), and bottom of liststoreupdate() (below)... also be sure to update query_tooltip() and see also doabbrev() calls. 
-    COLUMN_ORIGFILENAME=0
+    COLUMN_ORIGHREF=0
     #COLUMN_CLINFO=1
     #COLUMN_CLTYPE=2
     COLUMN_FILENAME=1
@@ -369,12 +371,12 @@ class checklistdbwin(gtk.Window):
     COLUMN_IS_OPEN=4
     COLUMN_ALLCHECKED=5
     COLUMN_IS_DONE=6
-    COLUMN_EXTRA_CANONPATH=7  # hidden
+    COLUMN_EXTRA_HREF=7  # hidden
     COLUMN_EXTRA_SHOWTHISROW=8 # hidden, flag for whether this row should be shown or filtered (not yet implemented)
 
-    def __init__(self,contextdir,paramdb,clparamname,popupcallback=None,popupcallbackargs=[],allchecklists=False,allplans=False):
+    def __init__(self,contexthref,paramdb,clparamname,popupcallback=None,popupcallbackargs=[],allchecklists=False,allplans=False):
         gobject.GObject.__init__(self)
-        self.contextdir=contextdir
+        self.contexthref=contexthref
         self.paramdb=paramdb
         self.clparamname=clparamname
         #self.explogwin=explogwin
@@ -389,7 +391,7 @@ class checklistdbwin(gtk.Window):
 
         self.set_title("datacollect2 %s" % (clparamname))
 
-        titles=["Orig filename","Filename","Measnum","Start Timestamp","Open","All Checked","Done"]
+        titles=["Orig Name","Filename","Measnum","Start Timestamp","Open","All Checked","Done"]
 
         types=[gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_LONG,gobject.TYPE_STRING,gobject.TYPE_BOOLEAN,gobject.TYPE_BOOLEAN,gobject.TYPE_BOOLEAN,gobject.TYPE_STRING,gobject.TYPE_BOOLEAN]
         
@@ -494,29 +496,33 @@ class checklistdbwin(gtk.Window):
                 columnnum=column.get_sort_column_id() # since we set this property to match up with colnum when we created the TreeViewColumns. 
 
                 #model.get(tviter,column)
-                canonpath=model.get_value(tviter,self.COLUMN_EXTRA_CANONPATH)
-                #sys.stderr.write("query_tooltip got canonpath %s\n" % (canonpath))
-
-                # find checklistentry
+                href_absurl=model.get_value(tviter,self.COLUMN_EXTRA_HREF)
                 checklistentry=None
-                for entry in self.checklists:
-                    if entry.canonicalpath==canonpath:
-                        checklistentry=entry
-                        break
+                if href_absurl in self.checklistsbyabsurl:
+                    checklistentry=self.checklistsbyabsurl[href_absurl]
                     pass
+                #sys.stderr.write("query_tooltip got href %s\n" % (href))
+
+                ## find checklistentry
+                #checklistentry=None
+                #for entry in self.checklists:
+                #    if entry.filehref==href:
+                #        checklistentry=entry
+                #        break
+                #    pass
                 
                 if checklistentry is None:
                     return False # no checklist found
                 
                 # only need columns that are abbreviated here...
-                if columnnum==self.COLUMN_ORIGFILENAME:
-                    text=checklistentry.origfilename
+                if columnnum==self.COLUMN_ORIGHREF:
+                    text=checklistentry.orighref.absurl()
                     pass
                 #elif columnnum==self.COLUMN_CLINFO:
                 #    text=checklistentry.clinfo
                 #    pass
                 elif columnnum==self.COLUMN_FILENAME:
-                    text=checklistentry.path
+                    text=checklistentry.filehref.absurl()
                     pass
                 elif columnnum==self.COLUMN_MEASNUM:
                     if checklistentry.measnum is not None:
@@ -561,8 +567,16 @@ class checklistdbwin(gtk.Window):
 
     def rowactivate(self,widget,path,column):
         cur_iter=self.liststore.get_iter(path)
-        canonpath=self.liststore.get_value(cur_iter,self.COLUMN_EXTRA_CANONPATH)
-        self.popupcallback(canonpath,*self.popupcallbackargs)
+        href_absurl=self.liststore.get_value(cur_iter,self.COLUMN_EXTRA_HREF)
+
+        #import pdb as pythondb
+        #pythondb.set_trace()
+        
+        if href_absurl not in self.checklistsbyabsurl:
+            return  # Can't find href in our database (?)
+        
+        href=self.checklistsbyabsurl[href_absurl].filehref
+        self.popupcallback(href,*self.popupcallbackargs)
         pass
 
 
@@ -573,17 +587,19 @@ class checklistdbwin(gtk.Window):
         # self.checklists is a list of class checklistdb.checklistentry
 
         # indexes for easy lookup
-        checklistsbycanonpath=dict((entry.canonicalpath,entry) for entry in self.checklists)
+        checklistsbyhref=dict((entry.filehref,entry) for entry in self.checklists)
         checklistsbyid=dict((id(entry.checklist),entry) for entry in self.checklists if entry.checklist is not None)
+
+
         
-        updchecklists=checklistdb.getchecklists(self.contextdir,self.paramdb,self.clparamname,None,allchecklists=self.allchecklists,allplans=self.allplans)
-        updchecklistsbycanonpath=dict((entry.canonicalpath,entry) for entry in updchecklists)
+        updchecklists=checklistdb.getchecklists(self.contexthref,self.paramdb,self.clparamname,None,allchecklists=self.allchecklists,allplans=self.allplans)
+        updchecklistsbyhref=dict((entry.filehref,entry) for entry in updchecklists)
         updchecklistsbyid=dict((id(entry.checklist),entry) for entry in updchecklists if entry.checklist is not None)
 
         # go through current list of checklists, search for any that have been removed
         clnum=0
         while clnum < len(self.checklists):
-            if self.checklists[clnum].canonicalpath not in updchecklistsbycanonpath and id(self.checklists[clnum]) not in updchecklistsbyid:
+            if self.checklists[clnum].filehref not in updchecklistsbyhref and id(self.checklists[clnum]) not in updchecklistsbyid:
                 # Remove 
 
                 #if hasattr(gtk.TreeRowReference,"new"): # gtk3 requires use of gtk.TreeRowReference.new and gtk.TreePath
@@ -608,20 +624,20 @@ class checklistdbwin(gtk.Window):
         # look for any checklists that have changed path
 
         for clid in checklistsbyid:
-            oldpath=checklistsbyid[clid].canonicalpath
-            newpath=None
+            oldhref=checklistsbyid[clid].filehref
+            newhref=None
             if clid in updchecklistsbyid:
-                newpath=updchecklistsbyid[clid].canonicalpath
+                newhref=updchecklistsbyid[clid].filehref
                 pass
-            if oldpath != newpath:
-                if newpath is None or newpath.startswith("mem://"): # a reset ... leave this entry under its old name; add a new entry
+            if ((oldhref is None) ^ (newhref is None)) or oldhref != newhref:  # ^ is XOR ... use this because can't compare hrefs to None
+                if newhref is None or newhref.ismem(): # a reset ... leave this entry under its old name; add a new entry
                     checklistsbyid[clid].checklist=None  # old checklist no longer has a checklist object
 
                     # The new (resetted) checklist will get a new entry below when we sort through by name
                     pass
                 else : 
                     # self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyid[clid])),self.COLUMN_FILENAME,newpath)
-                    checklistsbyid[clid].canonicalpath=newpath
+                    checklistsbyid[clid].filehref=newhref
                     pass
                 pass
             pass
@@ -629,8 +645,8 @@ class checklistdbwin(gtk.Window):
         # rebuild checklistsbyid according to modified list of checklists. 
         checklistsbyid=dict((id(entry.checklist),entry) for entry in self.checklists if entry.checklist is not None)
 
-        # rebuild checklistsbycanonpath according to modified list of checklists. 
-        checklistsbycanonpath=dict((entry.canonicalpath,entry) for entry in self.checklists)
+        # rebuild checklistsbyhref according to modified list of checklists. 
+        checklistsbyhref=dict((entry.filehref,entry) for entry in self.checklists)
 
         # be able to look up row numbers by checklist id
         rownumsbyentryid={}
@@ -643,14 +659,14 @@ class checklistdbwin(gtk.Window):
 
         # now go through by name and add entries as needed
         for checklist in updchecklists: 
-            if checklist.canonicalpath not in checklistsbycanonpath: 
+            if checklist.filehref not in checklistsbyhref: 
                 # need to add this one
                 self.checklists.append(checklist)
                 # Don't forget to add to the liststore somewhere!
                 pass
             else : 
                 # copy in new information --- replace old entry
-                self.checklists[rownumsbyentryid[id(checklistsbycanonpath[checklist.canonicalpath])]]=checklist
+                self.checklists[rownumsbyentryid[id(checklistsbyhref[checklist.filehref])]]=checklist
                 pass
                 
             pass
@@ -680,6 +696,7 @@ class checklistdbwin(gtk.Window):
         #doabbrev(self.checklists,"clinfo","clinfo_abbrev")
         #doabbrev(self.checklists,"origfilename","origfilename_abbrev",separator="/")
             
+        self.checklistsbyabsurl=dict((entry.filehref.absurl(),entry) for entry in self.checklists)
 
 
         # fill in a row for each entry
@@ -692,17 +709,17 @@ class checklistdbwin(gtk.Window):
                 pass
             clid=id(entry)
 
-            # first (0) column is abbreviated origfilename
+            # first (0) column is abbreviated orighref
             #import pdb as pythondb
             #try:
             #
-            origfilenamefilepart=""
-            if entry.origfilename is not None:
-                origfilenamefilepart=os.path.split(entry.origfilename)[1]
+            orighreffilepart=""
+            if entry.orighref is not None:
+                orighreffilepart=entry.orighref.get_bare_unquoted_filename()
                 pass
             
-            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ORIGFILENAME) != origfilenamefilepart:
-                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ORIGFILENAME, origfilenamefilepart)
+            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ORIGHREF) != orighreffilepart:
+                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_ORIGHREF, orighreffilepart)
             # 2nd (1) column is abbreviated clinfo
             #import pdb as pythondb
             #try:
@@ -767,9 +784,9 @@ class checklistdbwin(gtk.Window):
                 pass
 
 
-            # 8th (7) column is EXTRA_CANONPATH
-            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_EXTRA_CANONPATH) != entry.canonicalpath:
-                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_EXTRA_CANONPATH, entry.canonicalpath)
+            # 8th (7) column is EXTRA_HREF
+            if self.liststore.get_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_EXTRA_HREF) != entry.filehref.absurl():
+                self.liststore.set_value(self.liststore.iter_nth_child(None,rownumsbyentryid[clid]),self.COLUMN_EXTRA_HREF, entry.filehref.absurl())
                 pass
 
             # 9th (8) column is EXTRA_SHOWTHISROW (not yet implemented)

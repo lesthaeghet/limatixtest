@@ -4,6 +4,23 @@ import sys
 import urllib
 from lxml import etree
 
+
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    pass
+
+
 import xmldoc
 import dc_value
 import canonicalize_path
@@ -28,7 +45,7 @@ paramdbfile_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink"
     
 
 
-def save_params(configfhrefs,guis,paramdb,fname,xmldocfilename,SingleSpecimen,non_settable=False,dcc=True,gui=True,chx=True,plans=True,xlg=True,synced=False):
+def save_params(configfhrefs,guis,paramdb,fname,xmldochref,SingleSpecimen,non_settable=False,dcc=True,gui=True,chx=True,plans=True,xlg=True,synced=False):
     # Save parameters in file fname. 
     # Parameters: 
     # configfhrefs:  list of .dcc files to include (dc_value.hrefvalue)
@@ -47,9 +64,11 @@ def save_params(configfhrefs,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
     # synced:        Save parameters that are normally synced to the global
     #                experiment log
 
-    contextdir=os.path.split(fname)[0]
+    #contextdir=os.path.split(fname)[0]
 
-    paramdoc=xmldoc.xmldoc.newdoc("dc:params",filename=fname,nsmap=paramdbfile_nsmap)
+    paramdoc=xmldoc.xmldoc.newdoc("dc:params",nsmap=paramdbfile_nsmap)
+    paramdoc.set_href(dc_value.hrefvalue(pathname2url(fname)),readonly=False)
+    
     
     if dcc:
         configfiles=paramdoc.addelement(paramdoc.getroot(),"dc:configfiles")
@@ -99,7 +118,7 @@ def save_params(configfhrefs,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
                 entry.checklist.xmldoc.unlock_ro()                    
                 pass
 
-            chxhref=dc_value.hrefvalue.from_rel_or_abs_path(".",entry.checklist.xmldoc.filename)
+            chxhref=entry.checklist.xmldoc.get_filehref()
             
             chxtag=paramdoc.addelement(chxs,"dc:chx")
             chxhref.xmlrepr(paramdoc,chxtag)
@@ -122,7 +141,7 @@ def save_params(configfhrefs,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
                 # has a parent... don't include it (should come from parent!) 
                 continue
 
-            planhref=dc_value.hrefvalue.from_rel_or_abs_path(".",entry.checklist.xmldoc.filename)
+            planhref=entry.checklist.xmldoc.get_filehref()
                     
                 
             plantag=paramdoc.addelement(plans,"dc:plan")
@@ -132,11 +151,10 @@ def save_params(configfhrefs,guis,paramdb,fname,xmldocfilename,SingleSpecimen,no
 
     if xlg:
 
-        if xmldocfilename is not None:
+        if xmldochref is not None:
             # include link to experiment log
             explog=paramdoc.addelement(paramdoc.getroot(),"dc:explog")
-            xmldoc_href=dc_value.hrefvalue.from_rel_or_abs_path(".",xmldocfilename)
-            xmldoc_href.xmlrepr(paramdoc,explog)
+            xmldochref.xmlrepr(paramdoc,explog)
             pass
         
         # Indicate whether single- or multi-specimen

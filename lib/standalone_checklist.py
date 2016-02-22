@@ -162,11 +162,11 @@ def open_checklist_parent(chklist,paramdb,iohandlers):
 
     if parent is not None and parent.getpath() is not None:
         # check if parent is already open in-memory
-        (parentclobj,parentcanonfname)=dc2_misc.searchforchecklist(parent.getpath())
+        (parentclobj,parenthref)=dc2_misc.searchforchecklist(parent)
         
         if parentclobj is None:
             # if not, open the parent checklist
-            open_checklist(parentcanonfname,paramdb,iohandlers)
+            open_checklist(parent,paramdb,iohandlers)
             pass
         pass
     pass
@@ -180,8 +180,8 @@ def handle_checklist_close(param1,param2,chklist):
         pass
     return False
 
-def open_checklist(fname,paramdb,iohandlers):
-    chklist=checklist.checklist(fname,paramdb)
+def open_checklist(href,paramdb,iohandlers):
+    chklist=checklist.checklist(href,paramdb)
 
     # insert menu
     insert_menu(chklist,paramdb,iohandlers)
@@ -189,7 +189,7 @@ def open_checklist(fname,paramdb,iohandlers):
 
     # each checklist opened has its own private guistate
 
-    guistate=create_guistate(iohandlers,paramdb,[os.path.split(fname)[0]])
+    guistate=create_guistate(iohandlers,paramdb)
     
     
     chklist.dc_gui_init(guistate)
@@ -197,7 +197,7 @@ def open_checklist(fname,paramdb,iohandlers):
     open_checklist_parent(chklist,paramdb,iohandlers) # open our parent, if necessary
 
     
-    if fname.endswith(".plx") or fname.endswith(".plf"):
+    if href.get_bare_unquoted_filename.endswith(".plx") or href.get_bare_unquoted_filename.endswith(".plf"):
         checklistdb.newchecklistnotify(chklist,True)
         pass
     else:

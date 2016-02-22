@@ -63,7 +63,7 @@ class dc_paramstep(gtk.HBox):
     __proplist = ["paramname","labelmarkup","description"]
 
     __dcvalue_xml_properties={} # dictionary by property of dc_value class to be transmitted as a serialized  xmldoc
-    __dcvalue_href_properties=frozenset([]) # set of properties to be transmitted as an hrefvalue with the current directory as contextdir
+    __dcvalue_href_properties=frozenset([]) # set of properties to be transmitted as an hrefvalue with the checklist context as contexthref
 
     __nonparameter_elements=frozenset([]) # list non-parameter chx namespace elements of the <checkitem> tag here
     
