@@ -439,7 +439,7 @@ def xmldocelementaccessed(xmldocu,element):
     if xmldocu is None:
         return
     
-    elementaccessed(xmldocu.filename,xmldocu.doc,element)
+    elementaccessed(xmldocu._filename,xmldocu.doc,element)
     pass
 
 def elementaccessed(filepath,doc,element):
@@ -605,7 +605,7 @@ def find_process_el(xmldocu,processdict,element,uuidcontent):
         pass
     # print "Success!"
 
-    return canonicalize_path.create_canonical_etxpath(xmldocu.filename,xmldocu.doc,process)
+    return canonicalize_path.create_canonical_etxpath(xmldocu._filename,xmldocu.doc,process)
 
 def checkallprovenance(xmldocu):
     # xmldocu must be locked in memory 
@@ -628,9 +628,9 @@ def checkallprovenance(xmldocu):
             refuuids_or_mtime=str(descendent.attrib[DCP+"wasgeneratedby"])
             pass
         else : 
-            globalmessagelists["warning"].append("Element %s in file %s does not have dcp:wasgenerateby provenance" % (canonicalize_path.etxpath2human(canonicalize_path.getelementetxpath(xmldocu.doc,descendent),nsmap=xmldocu.nsmap),xmldocu.filename))
+            globalmessagelists["warning"].append("Element %s in file %s does not have dcp:wasgenerateby provenance" % (canonicalize_path.etxpath2human(canonicalize_path.getelementetxpath(xmldocu.doc,descendent),nsmap=xmldocu.nsmap),xmldocu._filename))
             pass
-        element_etxpath=canonicalize_path.create_canonical_etxpath(xmldocu.filename,xmldocu.doc,descendent)
+        element_etxpath=canonicalize_path.create_canonical_etxpath(xmldocu._filename,xmldocu.doc,descendent)
         checkprovenance(element_etxpath,refuuids_or_mtime,nsmap=xmldocu.nsmap,docdict=docdict,processdict=processdict,processdictbypath=processdictbypath,processdictbyusedelement=processdictbyusedelement,elementdict=elementdict,globalmessagelists=globalmessagelists)
         pass
 
@@ -776,7 +776,7 @@ def suggest(docdict,processdict,processdictbypath,processdictbyusedelement,eleme
                         # prxfile is path relative to the first non-dcp:process ancestor
                         
                         (context_node,append_path)=getnonprocessparent(foundelement[0])
-                        foundelement_etxpath=canonicalize_path.create_canonical_etxpath(xmldocu.filename,xmldocu.doc,foundelement[0])
+                        foundelement_etxpath=canonicalize_path.create_canonical_etxpath(xmldocu._filename,xmldocu.doc,foundelement[0])
                         # print "foundelement_etxpath=",foundelement_etxpath
                         # print "append_path=",append_path
                         # print "prxfile=",prxfile
@@ -1002,7 +1002,7 @@ def checkprovenance(element_etxpath,refuuids_or_mtime,nsmap={},referrer_etxpath=
                 for usedtag in foundelement[0].xpath("dcp:used",namespaces={"dcp": dcp}):
                     if not "type" in usedtag.attrib:
                         # add error message to message list
-                        processdict[uuid][2]["error"].append("dcp:used tag %s does not have a type attribute" % (canonicalize_path.etxpath2human(canonicalize_path.create_canonical_etxpath(xmldocu.filename,xmldocu.doc,usedtag),nsmap)))
+                        processdict[uuid][2]["error"].append("dcp:used tag %s does not have a type attribute" % (canonicalize_path.etxpath2human(canonicalize_path.create_canonical_etxpath(xmldocu._filename,xmldocu.doc,usedtag),nsmap)))
                         continue
 
                     # Extract common attributes
@@ -1028,7 +1028,7 @@ def checkprovenance(element_etxpath,refuuids_or_mtime,nsmap={},referrer_etxpath=
                         newetxpath=canonicalize_path.canonicalize_etxpath(canonicalize_path.canonical_etxpath_join(element_etxpath,append_path,usedtag.text))
                         if "absetxpath" in usedtag.attrib and newetxpath != usedtag.attrib["absetxpath"]:
                             # add error message to message list
-                            processdict[uuid][2]["warning"].append("Relative ETXPath %s on %s resolves to %s which does not match absolute path %s. Using relative path.\n" % (usedtag.text,canonicalize_path.etxpath2human(canonicalize_path.create_canonical_etxpath(xmldocu.filename,xmldocu.doc,usedtag),nsmap),newetxpath,usedtag.attrib["absetxpath"]))
+                            processdict[uuid][2]["warning"].append("Relative ETXPath %s on %s resolves to %s which does not match absolute path %s. Using relative path.\n" % (usedtag.text,canonicalize_path.etxpath2human(canonicalize_path.create_canonical_etxpath(xmldocu._filename,xmldocu.doc,usedtag),nsmap),newetxpath,usedtag.attrib["absetxpath"]))
                             pass
                         
                         uuids_or_mtime=None
@@ -1052,7 +1052,7 @@ def checkprovenance(element_etxpath,refuuids_or_mtime,nsmap={},referrer_etxpath=
                         pass
                     else:
                         # add error message to message list
-                        processdict[uuid][2]["error"].append("dcp:used tag %s does has unknown type attribute %s" % (canonicalize_path.etxpath2human(canonicalize_path.create_canonical_etxpath(xmldocu.filename,xmldocu.doc,usedtag),nsmap),usedtag.attrib["type"]))
+                        processdict[uuid][2]["error"].append("dcp:used tag %s does has unknown type attribute %s" % (canonicalize_path.etxpath2human(canonicalize_path.create_canonical_etxpath(xmldocu._filename,xmldocu.doc,usedtag),nsmap),usedtag.attrib["type"]))
                         pass
                         
                     pass

@@ -50,7 +50,15 @@ else:
 
 # list of dirs to search if checklistpath is blank
 # non-absolute paths are relative to the path of the original (unfilled) checklist currently being run
-checklistdirs=['.','..','/databrowse/SOPs']
+#checklistdirs=['.','..','/databrowse/SOPs']
+
+
+def href_exists(href):
+    # Check to see if a referenced href exists.
+    # Once we support http, etc. this will have to be rewritten
+
+    hrefpath=href.getpath()
+    return os.path.exists(hrefpath)
 
 
 # gtk superclass should be first of multiple inheritances
@@ -91,7 +99,11 @@ class runcheckliststep(gtk.HBox):
         }
     #__proplist = ["checklistname","checklistpath","description"]
     __proplist = ["standardchecklist","customchecklist","description"]
-    
+
+    # set of properties to be transmitted as an hrefvalue with the checklist context as contexthref
+    __dcvalue_href_properties=frozenset([ "standardchecklist",
+                                          "customchecklist"])
+
     myprops=None
 
                       
@@ -665,33 +677,29 @@ class runcheckliststep(gtk.HBox):
         if self.myprops["customchecklist"] != "":
             # use a custom checklist... destdir is the same 
             # location as the custom checklist
-            checklistfile=self.myprops["customchecklist"]
-            destdir=os.path.split(checklistfile)[0]
+            checklisthref=dc_value.hrefvalue(self.myprops["customchecklist"],self.checklist.getcontexthref())
             inplace=True
             pass
         elif self.myprops["standardchecklist"] != "":
             # use a standard checklist... destdir is the same 
             # location as our checklist
-            checklistfile=self.myprops["standardchecklist"]
-            destdir=self.checklist.xmldoc.getcontextdir()
+            checklisthref=dc_value.hrefvalue(self.myprops["standardchecklist"],self.checklist.getcontexthref())
 
-            # search path for checklistfile
-            if not os.path.isabs(checklistfile):
-                if os.path.exists(os.path.join(destdir,checklistfile)):
-                    checklistfile=os.path.join(destdir,checklistfile)
-                    pass
-                else: 
-                    for checklistdir in checklistdirs:
-                        if os.path.exists(os.path.join(checklistdir,checklistfile)):
-                            checklistfile=os.path.join(checklistdir,checklistfile)
-                            break
-                        pass
-                    pass
-                pass
+            ## search path for checklistfile
+            #if not os.path.isabs(checklistfile):
+            #    if os.path.exists(os.path.join(destdir,checklistfile)):
+            #        checklistfile=os.path.join(destdir,checklistfile)
+            #        pass
+            #    else: 
+            #        for checklistdir in checklistdirs:
+            #            if os.path.exists(os.path.join(checklistdir,checklistfile)):
+            #                checklistfile=os.path.join(checklistdir,checklistfile)
+            #                break
+            #            pass
+            #        pass
+            #    pass
             
-                
-
-
+            
             pass
 
             
@@ -712,9 +720,9 @@ class runcheckliststep(gtk.HBox):
         #    checklistfile=os.path.join(self.myprops["checklistpath"],self.myprops["checklistname"])
         #    pass
         
-        if checklistfile is None or not os.path.exists(checklistfile):
+        if checklisthref is None or not href_exists(checklisthref):
             nofiledialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
-            nofiledialog.set_markup("Error: Requested checklist file %s not found" % (checklistfile))
+            nofiledialog.set_markup("Error: Requested checklist file %s not found" % (str(checklisthref)))
             nofiledialog.run()
             nofiledialog.destroy()
             return
@@ -726,7 +734,7 @@ class runcheckliststep(gtk.HBox):
             
             subchecklist=self.checklist.datacollect_explogwin.open_checklist(checklistfile,inplace=inplace)
             # set parent attribute
-            subchecklist.set_parent(self.checklist.xmldoc.getcontextdir(),self.checklist.xmldoc.filename)
+            subchecklist.set_parent(self.checklist.xmldoc.get_filehref())
             checklistdb.addchecklisttoparamdb(subchecklist,self.private_paramdb,"subchecklists")
 
             
@@ -761,10 +769,10 @@ class runcheckliststep(gtk.HBox):
 
 
 
-            subchecklist=standalone_checklist.open_checklist(checklistfile,self.paramdb,self.dc_gui_iohandlers)
+            subchecklist=standalone_checklist.open_checklist(checklisthref,self.paramdb,self.dc_gui_iohandlers)
             # set parent attribute
 
-            subchecklist.set_parent(self.checklist.xmldoc.getcontextdir(),self.checklist.xmldoc.filename)
+            subchecklist.set_parent(self.checklist.xmldoc.get_filehref())
 
             # register checklist with our private paramdb in checklistdb
             checklistdb.addchecklisttoparamdb(subchecklist,self.private_paramdb,"subchecklists")
@@ -787,8 +795,9 @@ class runcheckliststep(gtk.HBox):
 
 
     def printcallback(self,*args):
+        ###**** Needs updating
         #self.update_status()
-        checklistfile=None
+        checklisthref=None
         if self.myprops["checklistpath"]=="":        
             reldir=os.path.split(self.checklist.origfilename)[0]
             for chklistdir in checklistdirs:

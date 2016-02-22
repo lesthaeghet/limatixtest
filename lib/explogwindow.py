@@ -1,12 +1,29 @@
 import subprocess
 import os
 import os.path
+import posixpath
 import sys
 import string
 import copy
 import json
 import urllib
 import pdb as pythondb
+
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    pass
+
 
 import paramdbfile
 
@@ -53,6 +70,9 @@ import xmlexplog
 import paramdb2_editor
 import checklistdb
 import checklistdbwin
+
+
+
 
 import ricohcamera
 
@@ -108,7 +128,7 @@ class explogwindow(gtk.Window):
     dest=None # destination directory for dgs, settings, chf files, etc. 
 
 
-    checklistmenushortcuts=None # dictionary of menuitems, added as shortcuts to the checklist menu, indexed by file name
+    checklistmenushortcuts=None # dictionary of menuitems, added as shortcuts to the checklist menu, indexed by href
     checklistmenuorigentries=None # original count of glade menu entries
     
     checklistmenurealtimeentries=None
@@ -280,10 +300,10 @@ class explogwindow(gtk.Window):
         self.paramdb["checklists"].controller.adddoc(self.explog,"dc:summary/dc:checklists")
         self.paramdb["plans"].controller.adddoc(self.explog,"dc:summary/dc:plans")
 
-        if self.explog.filename is not None:
-            # Re-register checklists and plans with checklistdb, with contextdir set
-            checklistdb.register_paramdb(self.paramdb,"checklists",os.path.split(self.explog.filename)[0],False)
-            checklistdb.register_paramdb(self.paramdb,"plans",os.path.split(self.explog.filename)[0],True)
+        if self.explog.filehref is not None:
+            # Re-register checklists and plans with checklistdb, with contexthref set
+            checklistdb.register_paramdb(self.paramdb,"checklists",self.explog.filehref,False)
+            checklistdb.register_paramdb(self.paramdb,"plans",self.explog.filehref,True)
             pass
         pass
 
@@ -315,11 +335,11 @@ class explogwindow(gtk.Window):
     
 
     def assign_title(self):
-        if self.explog is None or self.explog.filename is None:
+        if self.explog is None or self.explog.filehref is None:
             self.set_title("Experiment log (no file)")
             pass
         else:
-            self.set_title(os.path.split(self.explog.filename)[-1])
+            self.set_title(self.explog.filehref.get_bare_unquoted_filename())
             pass
         
         pass
@@ -368,11 +388,16 @@ class explogwindow(gtk.Window):
         return suggestion
 
     def set_dest(self):
-        (direc,fname)=os.path.split(self.explog.filename)
-        (fbase,ext)=os.path.splitext(fname)
+        contexthref=self.explog.filehref.leafless()
+        filepart=self.explog.filehref.get_bare_unquoted_filename()
+        
+        (fbase,ext)=posixpath.splitext(filepart)
 
-        self.paramdb["dest"].requestval_sync(dcv.hrefvalue.from_rel_or_abs_path(".",os.path.join(direc,fbase+"_files")))
-        physdir=self.paramdb["dest"].dcvalue.getpath(contextdir=".")
+        
+        
+        self.paramdb["dest"].requestval_sync(dcv.hrefvalue(quote(fbase+"_files/"),contexthref=contexthref))
+        
+        physdir=self.paramdb["dest"].dcvalue.getpath()
         if not os.path.exists(physdir):
             os.mkdir(physdir)
             pass
@@ -401,18 +426,20 @@ class explogwindow(gtk.Window):
         fname=newexplogchooser.get_filename()
         newexplogchooser.destroy()
 
+        href=dcv.hrefvalue(pathname2url(fname))
+        
         if result==RESPONSE_OK:
-            self.new_explog(fname)
+            self.new_explog(href)
         
             pass
         
         pass
 
-    def new_explog(self,fname,parentchecklistpath=None):
+    def new_explog(self,href,parentchecklistpath=None):
         # parentchecklistpath, if given, should be 
         # relative to the directory fname is in. 
 
-        if (os.path.exists(fname)) :
+        if (checklist.href_exists(href)) :
             if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
                 # gtk3
                 existsdialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.OK)
@@ -421,7 +448,7 @@ class explogwindow(gtk.Window):
                 existsdialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
                 pass
 
-            existsdialog.set_markup("Error: File %s exists.\nWill not overwrite\n(Try -a option if you want to append to an existing experiment log)" % (fname))
+            existsdialog.set_markup("Error: URL %s exists.\nWill not overwrite\n(Try -a option if you want to append to an existing experiment log)" % (str(href)))
             existsdialog.run()
             existsdialog.destroy()
             return
@@ -436,7 +463,7 @@ class explogwindow(gtk.Window):
         
         # self.unsyncexplog()  # need to restart synchronization once dest has changed
 
-        self.explog=xmlexplog.explog(fname,self.dc_gui_iohandlers,self.paramdb,use_locking=True,debug=False) # ,autoflush=self.autoflush,autoresync=self.autoresync)
+        self.explog=xmlexplog.explog(href,self.dc_gui_iohandlers,self.paramdb,use_locking=True,debug=False) # ,autoflush=self.autoflush,autoresync=self.autoresync)
         try: 
             pass
         finally:
@@ -449,15 +476,16 @@ class explogwindow(gtk.Window):
 
         self.syncexplog()
         
-        if self.explog.filename is not None:
-            # Re-register checklists and plans with checklistdb, with contextdir set
-            checklistdb.register_paramdb(self.paramdb,"checklists",os.path.split(self.explog.filename)[0],False)
-            checklistdb.register_paramdb(self.paramdb,"plans",os.path.split(self.explog.filename)[0],True)
+        if self.explog.filehref is not None:
+            # Re-register checklists and plans with checklistdb, with contexthref set
+            checklistdb.register_paramdb(self.paramdb,"checklists",self.explog.filehref,False)
+            checklistdb.register_paramdb(self.paramdb,"plans",self.explog.filehref,True)
             pass
 
 
-        
-        self.paramdb["explogname"].requestvalstr_sync(os.path.split(fname)[-1])
+        filepart=href.get_bare_unquoted_filename()
+
+        self.paramdb["explogname"].requestvalstr_sync(filepart)
         
         # self.explog.flush()
         
@@ -518,8 +546,8 @@ class explogwindow(gtk.Window):
                     if prefix != "dc":
                         continue # silently ignore prefixes not in the dc: namespace
 
-                    if dctag=="measnum" or dctag=="recordmeastimestamp" or dctag=="hostname" or dctag=="measchecklist" or dctag=="date":
-                        # silently ignore measnum, timestamp, hostname, measchecklist, and date
+                    if dctag=="measnum" or dctag=="notes" or dctag=="recordmeastimestamp" or dctag=="hostname" or dctag=="measchecklist" or dctag=="date":
+                        # silently ignore measnum, notes, timestamp, hostname, measchecklist, and date
                         continue
 
                     if not dctag in self.paramdb:
@@ -614,9 +642,9 @@ class explogwindow(gtk.Window):
             pass
         pass
 
-    def open_explog(self,fname,autoloadconfig=False):
+    def open_explog(self,href,autoloadconfig=False):
         
-        if (not os.path.exists(fname)) :
+        if (not checklist.href_exists(href)) :
             if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
                 # gtk3
                 existsdialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.OK)
@@ -624,7 +652,7 @@ class explogwindow(gtk.Window):
             else : 
                 existsdialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
                 pass
-            existsdialog.set_markup("Error: File %s does not exist." % (fname))
+            existsdialog.set_markup("Error: File at URL %s does not exist." % (str(href)))
             existsdialog.run()
             existsdialog.destroy()
             return
@@ -639,7 +667,7 @@ class explogwindow(gtk.Window):
                 self.unsyncexplog()
                 self.explog.close()
                 pass
-            self.explog=xmlexplog.explog(fname,self.dc_gui_iohandlers,self.paramdb,oldfile=True,use_locking=True) # autoflush=self.autoflush,autoresync=self.autoresync)            
+            self.explog=xmlexplog.explog(href,self.dc_gui_iohandlers,self.paramdb,oldfile=True,use_locking=True) # autoflush=self.autoflush,autoresync=self.autoresync)            
 
             try: 
                 # self.set_dest()  -- since dest will already exist from prior call, sync operation below will set dest. 
@@ -658,7 +686,7 @@ class explogwindow(gtk.Window):
                     dc_configfiles=self.explog.xpath("dc:config[last()]/dc:configfile")
                     for dc_configfile in dc_configfiles:
                         configfhref=dcv.hrefvalue.fromxml(self.explog,dc_configfile)
-                        self.load_config(configfhref.getpath(contextdir="."))
+                        self.load_config(configfhref)
                         pass
 
                     has_measelements = len(self.explog.xpath("dc:measurement[last()]")) > 0
@@ -672,27 +700,30 @@ class explogwindow(gtk.Window):
                 pass
 
             # Go through all checklists and plans, find those not marked 'done', and open them if possible
-            checklistentries=checklistdb.getchecklists(self.explog.getcontextdir(),self.paramdb,"checklists",None,allchecklists=True)
-            planentries=checklistdb.getchecklists(self.explog.getcontextdir(),self.paramdb,"plans",None,allplans=True)
+            checklistentries=checklistdb.getchecklists(self.explog.getcontexthref(),self.paramdb,"checklists",None,allchecklists=True)
+            planentries=checklistdb.getchecklists(self.explog.getcontexthref(),self.paramdb,"plans",None,allplans=True)
 
             allentries=[]
             allentries.extend(checklistentries)
             allentries.extend(planentries)
             for entry in allentries:
-                if not entry.is_open and entry.path is not None:
-                    chxdoc=xmldoc.xmldoc.loadfile(entry.path,chx_nsmap,readonly=True)
+                # Open checklists that are not already open, that have a url and that are not mem:// URLs
+                if not entry.is_open and entry.filehref is not None and not entry.filehref.ismem(): 
+                    chxdoc=xmldoc.xmldoc.loadhref(entry.filehref,chx_nsmap,readonly=True)
                     is_done = chxdoc.getattr(chxdoc.getroot(),"done",defaultvalue="false")=="true"
                     if not is_done:
                         if entry in planentries:
-                            self.open_plan(entry.path)
+                            self.open_plan(entry.filehref)
                             pass
                         else:
-                            self.open_checklist(entry.path)
+                            self.open_checklist(entry.filehref)
                             pass
                         pass
                     pass
                 pass
-            self.paramdb["explogname"].requestvalstr_sync(os.path.split(fname)[-1])
+            filepart=entry.filehref.get_bare_unquoted_filename()
+
+            self.paramdb["explogname"].requestvalstr_sync(filepart)
             
                 
                 
@@ -706,7 +737,7 @@ class explogwindow(gtk.Window):
                 else:
                     loadparamsdialog=gtk.MessageDialog(type=gtk.MESSAGE_QUESTION,buttons=gtk.BUTTONS_YES_NO)
                     pass
-                loadparamsdialog.set_markup("Loaded experiment log %s.\nAttempt to load non-dangerous parameters from most recent experiment log entry?" % (fname))
+                loadparamsdialog.set_markup("Loaded experiment log URL %s.\nAttempt to load non-dangerous parameters from most recent experiment log entry?" % (str(href)))
                 loadparamsanswer=loadparamsdialog.run()
                 loadparamsdialog.destroy()
                 
@@ -734,7 +765,7 @@ class explogwindow(gtk.Window):
                 exceptdialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_NONE)
                 pass
 
-            exceptdialog.set_markup("<b>Error opening/syncing with file %s.</b>\n%s: %s\n%s\nMust exit." % (xml.sax.saxutils.escape(fname),xml.sax.saxutils.escape(str(exctype.__name__)),xml.sax.saxutils.escape(str(excvalue)),xml.sax.saxutils.escape(str(traceback.format_exc()))))
+            exceptdialog.set_markup("<b>Error opening/syncing with URL %s.</b>\n%s: %s\n%s\nMust exit." % (xml.sax.saxutils.escape(str(href)),xml.sax.saxutils.escape(str(exctype.__name__)),xml.sax.saxutils.escape(str(excvalue)),xml.sax.saxutils.escape(str(traceback.format_exc()))))
             exceptdialog.add_button("Debug",1)
             exceptdialog.add_button("Exit",0)
             exceptdialogval=exceptdialog.run()
@@ -810,7 +841,7 @@ class explogwindow(gtk.Window):
             pass
         else:
             if self.explog is not None:
-                loadconfigchooser.set_current_folder(self.explog.getcontextdir())
+                loadconfigchooser.set_current_folder(self.explog.getcontexthref().getpath())
                 pass
             else:
                 loadconfigchooser.set_current_folder(".")
@@ -850,17 +881,19 @@ class explogwindow(gtk.Window):
                 # central config files are always referred to
                 # via absolute path
                 fname=canonicalize_path.canonicalize_path(fname)
+                href=dcv.hrefvalue(pathname2url(fname))
                 pass
             else:
                 # custom config files are always referred to
                 # via relative path
-                fname=canonicalize_path.relative_path_to(".",fname)
+                fname=canonicalize_path.relative_path_to(self.explog.getcontexthref(),fname)
+                href=dcv.hrefvalue(pathname2url(fname),contexthref=self.explog.getcontexthref())
                 pass
             
             #sys.stderr.write("fname=%s" % (fname))
             
-            self.load_config(fname)
-
+            self.load_config(href)
+            
             pass
         
         pass
@@ -918,7 +951,7 @@ class explogwindow(gtk.Window):
 
             # load config file here...
             # imp.load_source("datacollect_config",fname)
-            paramdbfile.save_params(self.configfhrefs, [gui[3] for gui in self.guis],self.paramdb,fname,self.explog.filename,self.SingleSpecimen,non_settable=nonsettablecheckbox.get_active(),dcc=dcccheckbox.get_active(),gui=guicheckbox.get_active(),chx=chxcheckbox.get_active(),xlg=xlgcheckbox.get_active(),synced=syncedcheckbox.get_active())
+            paramdbfile.save_params(self.configfhrefs, [gui[3] for gui in self.guis],self.paramdb,fname,self.explog.filehref,self.SingleSpecimen,non_settable=nonsettablecheckbox.get_active(),dcc=dcccheckbox.get_active(),gui=guicheckbox.get_active(),chx=chxcheckbox.get_active(),xlg=xlgcheckbox.get_active(),synced=syncedcheckbox.get_active())
             
 
             pass
@@ -934,9 +967,9 @@ class explogwindow(gtk.Window):
         pass
     
 
-    def load_config(self,fname):
+    def load_config(self,href):
         
-        output=dc2_misc.load_config(fname,self.paramdb,self.dc_gui_iohandlers,self.createparamserver)
+        output=dc2_misc.load_config(href,self.paramdb,self.dc_gui_iohandlers,self.createparamserver)
 
 
         # turn off load config menu items
@@ -947,7 +980,7 @@ class explogwindow(gtk.Window):
         self.gladeobjdict["explogfileopen"].set_sensitive(True)
 
         self.configfstrs.append(output)
-        self.configfhrefs.append(dcv.hrefvalue.from_rel_or_abs_path(".",fname))
+        self.configfhrefs.append(href)
 
         pass
     
@@ -1071,12 +1104,11 @@ class explogwindow(gtk.Window):
 
     def choose_openchecklists(self,event):
         # open the checklists (checklistdbwin) window
-        if self.explog.filename is None:
+        if self.explog.filehref is None:
             return
         if self.checklistdbwin is None:
-            contextdir=os.path.split(self.explog.filename)[0]
 
-            self.checklistdbwin=checklistdbwin.checklistdbwin(contextdir,self.paramdb,"checklists",self.popupchecklist,[],True,True)
+            self.checklistdbwin=checklistdbwin.checklistdbwin(self.explog.filehref,self.paramdb,"checklists",self.popupchecklist,[],True,True)
             self.checklistdbwin.show()
             pass
         else:
@@ -1117,7 +1149,7 @@ class explogwindow(gtk.Window):
             pass
         else:
             if self.explog is not None:
-                checklistchooser.set_current_folder(self.explog.getcontextdir())
+                checklistchooser.set_current_folder(self.explog.getcontexthref().getpath())
                 pass
             else:
                 checklistchooser.set_current_folder(".")
@@ -1135,17 +1167,17 @@ class explogwindow(gtk.Window):
                 # via absolute path
                 
                 #fname=canonicalize_path.canonicalize_path(fname)
-                fnamehref=dcv.hrefvalue.from_rel_or_abs_path(None,fname)
+                fnamehref=dcv.hrefvalue(pathname2url(fname))
                 pass
             else:
                 # custom checklists are always referred to
                 # via relative path
-                fnamehref=dcv.hrefvalue.from_rel_path(self.explog.getcontextdir(),fname)
+                fnamehref=dcv.hrefvalue(pathname2url(canonicalize_path.relative_path_to(self.explog.getcontexthref().getpath(),fname)),self.explog.getcontexthref())
                 pass
             
             
-            self.addtochecklistmenu(fnamehref.getpath())
-            self.open_checklist(fnamehref.getpath())
+            self.addtochecklistmenu(fnamehref)
+            self.open_checklist(fnamehref)
 
             pass
         
@@ -1168,27 +1200,23 @@ class explogwindow(gtk.Window):
         newitem.show()
 
         for cnt in range(len(openchecklists)):
-            if openchecklists[cnt].filename is None: # use mem:// url
-                newitem=gtk.MenuItem(label=openchecklists[cnt].canonicalpath,use_underline=False)
-            else:
-                newitem=gtk.MenuItem(label=openchecklists[cnt].filename,use_underline=False)
-                pass
-            newitem.connect("activate",self.checklistmenu_realtime,openchecklists[cnt].canonicalpath)
+            newitem=gtk.MenuItem(label=openchecklists[cnt].filehref.absurl(),use_underline=False)
+            newitem.connect("activate",self.checklistmenu_realtime,openchecklists[cnt].filehref)
             self.gladeobjdict["explogchecklistmenu"].append(newitem)
             newitem.show()
             # sys.stderr.write("adding checklist menu item: %s\n" % (openchecklists[cnt].filename))
             pass
         pass
 
-    def addtochecklistmenu(self,fname):
-        if fname in self.checklistmenushortcuts: 
+    def addtochecklistmenu(self,href):
+        if href in self.checklistmenushortcuts: 
             # already present
             return
 
-        Item=gtk.MenuItem(label=fname,use_underline=False)
-        Item.set_name("prevchecklist_%s" % (fname))
-        Item.connect("activate",self.checklistmenu_prevchecklist,fname)
-        self.checklistmenushortcuts[fname]=Item
+        Item=gtk.MenuItem(label=href.absurl(),use_underline=False)
+        Item.set_name("prevchecklist_%s" % (href.absurl()))
+        Item.connect("activate",self.checklistmenu_prevchecklist,href)
+        self.checklistmenushortcuts[href]=Item
         
         menuentries=self.gladeobjdict["explogchecklistmenu"].get_children()
         for cnt in range(len(self.checklistmenushortcuts)):
@@ -1204,14 +1232,14 @@ class explogwindow(gtk.Window):
 
         pass
 
-    def checklistmenu_realtime(self,event,canonicalname):
+    def checklistmenu_realtime(self,event,href):
 
-        self.popupchecklist(canonicalname)
+        self.popupchecklist(href)
         
         return True
 
-    def checklistmenu_prevchecklist(self,event,fname):
-        self.open_checklist(fname)
+    def checklistmenu_prevchecklist(self,event,href):
+        self.open_checklist(href)
         
         return True
 
@@ -1240,31 +1268,32 @@ class explogwindow(gtk.Window):
             #sys.stderr.write("open_checklist_parent: parentpath=%s\n" % (parentpath))
 
             # check if parent is already open in-memory
-            (parentclobj,parentcanonfname)=dc2_misc.searchforchecklist(parent.getpath("/"))
+            (parentclobj,parenthref)=dc2_misc.searchforchecklist(parent)
             # sys.stderr.write("parentcanonfname=%s\n" % (parentcanonfname))
 
             #sys.stderr.write("open_checklist_parent: parentcanonfname=%s\n" % (parentcanonfname))
 
             if parentclobj is None:
-                # if not, open the parent checklist
-                if os.path.splitext(parentcanonfname)[1].lower()==".plx" or os.path.splitext(parentcanonfname)[1].lower()==".plf":
-                    self.open_plan(parentcanonfname)
+
+                filepart=parenthref.get_bare_unquoted_filename()
+                if posixpath.splitext(filepart)[1].lower=="plx" or posixpath.splitext(filepart)[1].lower=="plf":
+                    self.open_plan(parenthref)
                 else : 
-                    self.open_checklist(parentcanonfname)
+                    self.open_checklist(parenthref)
                 pass
             pass
         pass
 
 
-    def open_checklist(self,fname,inplace=False):
+    def open_checklist(self,href,inplace=False):
 
         
         
         if inplace:
-            chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self,filleddir=os.path.split(fname)[0])
+            chklist=checklist.checklist(href,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self,filledhref=href.leafless())
             pass
         else:
-            chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self)
+            chklist=checklist.checklist(href,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self)
             pass
 
             
@@ -1272,7 +1301,7 @@ class explogwindow(gtk.Window):
         
         chklist.dc_gui_init(self.guistate)
 
-        contextdir=os.path.split(self.explog.filename)[0]
+        #contextdir=os.path.split(self.explog.filename)[0]
 
         self.open_checklist_parent(chklist) # open our parent, if necessary
 
@@ -1292,19 +1321,20 @@ class explogwindow(gtk.Window):
         return chklist
 
 
-    def popupchecklist(self,fname):
+    def popupchecklist(self,href):
         # bring up checklist if it is open
         # otherwise open it
-        (chklistobj,canonfname)=dc2_misc.searchforchecklist(fname)
+        (chklistobj,hrefobj)=dc2_misc.searchforchecklist(href)
 
-        if chklistobj is None:
+        if chklistobj is None and not hrefobj.ismem():
             # open the checklist
-            if os.path.splitext(fname)[1].lower()==".plx" or os.path.splitext(fname)[1].lower()==".plf":
-                return self.open_plan(fname)
+            filepart=href.get_bare_unquoted_filename()
+            if posixpath.splitext(filepart)[1].lower=="plx" or posixpath.splitext(filepart)[1].lower=="plf":
+                return self.open_plan(href)
             else : 
-                return self.open_checklist(fname)
+                return self.open_checklist(href)
             pass
-        else:
+        elif chklistobj is not None:
             # bring it to front 
             chklistobj.present()
             return chklistobj
@@ -1333,7 +1363,7 @@ class explogwindow(gtk.Window):
         checklistchooser.add_filter(plffilter)
 
         if self.explog is not None:
-            checklistchooser.set_current_folder(self.explog.getcontextdir())
+            checklistchooser.set_current_folder(self.explog.getcontexthref().getpath())
             pass
         else:
             checklistchooser.set_current_folder(".")
@@ -1348,25 +1378,25 @@ class explogwindow(gtk.Window):
         if result==RESPONSE_OK:
             # plans are always referred to
             # via relative path
-            fname=canonicalize_path.relative_path_to(".",fname)
+            fnamehref=dcv.hrefvalue(pathname2url(canonicalize_path.relative_path_to(self.explog.getcontexthref().getpath(),fname)),self.explog.getcontexthref())
             
-            self.open_plan(fname)
+            self.open_plan(fnamehref)
 
             pass
         
         pass
 
 
-    def open_plan(self,fname):
+    def open_plan(self,href):
 
         
-        chklist=checklist.checklist(fname,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self)
+        chklist=checklist.checklist(href,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self)
             
         self.checklists.append(chklist)
         
         chklist.dc_gui_init(self.guistate)
         
-        contextdir=os.path.split(self.explog.filename)[0]
+        #contextdir=os.path.split(self.explog.filename)[0]
 
         checklistdb.addchecklisttoparamdb(chklist,self.paramdb,"plans")
         checklistdb.newchecklistnotify(chklist,False)

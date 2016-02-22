@@ -19,7 +19,7 @@ class explog(xmldoc.xmldoc):
 
     # summaryparams must be registered with the document through creation using xmldoc.synced as the controller
 
-    def __init__(self,filename,iohandlers,paramdb,maintagname="dc:experiment",summarytagname="dc:summary",oldfile=False,use_locking=False,debug=False): #autoflush=False,autoresync=False):  # if oldfile is False, create a new file, overwriting any preexisting file of the same name
+    def __init__(self,href,iohandlers,paramdb,maintagname="dc:experiment",summarytagname="dc:summary",oldfile=False,use_locking=False,debug=False): #autoflush=False,autoresync=False):  # if oldfile is False, create a new file, overwriting any preexisting file of the same name
         self.iohandlers=iohandlers
         self.paramdb=paramdb
         self.paramdb_ext=pdb.etree_paramdb_ext(paramdb)
@@ -27,11 +27,11 @@ class explog(xmldoc.xmldoc):
         self.summarytagname=summarytagname
 
         if oldfile:
-            xmldoc.xmldoc.__init__(self,filename,maintagname=None,use_locking=use_locking,debug=debug) #autoflush=autoflush,autoresync=autoresync) # maintagname=None says "don't create a new file!" 
+            xmldoc.xmldoc.__init__(self,href,maintagname=None,use_locking=use_locking,debug=debug) #autoflush=autoflush,autoresync=autoresync) # maintagname=None says "don't create a new file!" 
             # summaryel=self.getsingleelement("/%s/%s" % (self.maintagname,self.summarytagname)) # get the summary element
             pass
         else :
-            xmldoc.xmldoc.__init__(self,filename,maintagname,use_locking=use_locking) #autoflush=autoflush,autoresync=autoresync)
+            xmldoc.xmldoc.__init__(self,href,maintagname,use_locking=use_locking) #autoflush=autoflush,autoresync=autoresync)
             self.addelement(self.doc.getroot(),summarytagname)
             pass
 

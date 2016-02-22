@@ -47,6 +47,7 @@ import canonicalize_path
 from dc_gtksupp import build_from_file
 from dc_gtksupp import dc_initialize_widgets
 import dc2_misc
+import dc_value
 
 __pychecker__="no-import no-argsused"
 
@@ -54,6 +55,18 @@ xpathnamespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http:
 
 
 # TODO : Should add an "abort script" button and status field
+
+def href_exists(href):
+    # Check to see if a referenced href exists.
+    # Once we support http, etc. this will have to be rewritten
+
+    hrefpath=href.getpath()
+    return os.path.exists(hrefpath)
+
+
+####*** IMPORTANT... SHOULD USE FILENAMENOTIFY ABILITIES TO
+#### UPDATE HREF PARAMS (DEFINED RELATIVE TO CHECKLIST.XMLDOC.GETCONTEXTHREF())
+#### WHEN FILENAME IS CHANGED. 
 
 
 # gtk superclass should be first of multiple inheritances
@@ -122,6 +135,18 @@ class rundatacollectstep(gtk.HBox):
                      gobject.PARAM_READWRITE), # flags
         
         }
+
+    # set of properties to be transmitted as an hrefvalue with the checklist context as contexthref
+    __dcvalue_href_properties=frozenset([ "datacollectconfig",
+                                          "datacollectconfig2",
+                                          "datacollectconfig3",
+                                          "dcparamdb",
+                                          "planfile",
+                                          "gui",
+                                          "gui2",
+                                          "gui3"])
+    
+    
     checklist=None
     xmlpath=None
 
@@ -228,17 +253,16 @@ class rundatacollectstep(gtk.HBox):
         if len(self.planfile)==0:
             status="No planfile"
             pass
-        elif (not os.path.isabs(self.planfile) and self.checklist.xmldoc.filename is None):
+        elif (self.checklist.xmldoc.href is None):
             status="Planfile relative to undetermined checklist location"
+        
         else :
-            planfile=self.planfile
-            if not os.path.isabs(planfile):
-                planfile=os.path.join(os.path.split(self.checklist.xmldoc.filename)[0],planfile)
-                pass
-
-            basename=os.path.splitext(planfile)[0]            
-            basefilename=os.path.split(basename)[1]
-
+            
+            planhref=dc_value.hrefvalue(self.planfile,self.checklist.getcontexthref())
+            planhrefcontext=planhref.leafless()
+            planhrefbarefilename=planhref.get_bare_unquoted_filename()
+            basename=posixpath.splitext(blanhrefbarefilename)[0]
+            
             if self.suffix=="":
                 suffix=""
                 pass
@@ -246,39 +270,40 @@ class rundatacollectstep(gtk.HBox):
                 suffix="_%s" % (self.suffix)
                 pass
             
-            xlgfile=basename+suffix+".xlg"
-            xlgdir=basename+suffix+"_files"
+            xlghref=dc_value.hrefvalue(quote(basename+suffix+".xlg"),planhrefcontext))
+            xlgdir=dc_value.hrefvalue(quote(basename+suffix+"_files/",planhrefcontext))
             
-            filledplan=os.path.join(xlgdir,basefilename+suffix+".plf")
             
-            if not os.path.exists(xlgfile) or not os.path.exists(filledplan):
+            filledplanhref=dc_value.hrefvalue(quote(basename+suffix+".plf"),xlgdir)
+            
+            if not href_exists(xlghref) or not href_exists(filledplanhref):
                 status="No output files"
                 pass
             else :
                 # update parsed copy of experiment log if needed
-                xlgtime=os.stat(xlgfile).st_mtime                
+                xlgtime=os.stat(xlghref.getpath()).st_mtime                
                 if xlgtime != self.xlgtime:
                     self.xlgtime=xlgtime
                     try: 
                         self.xlgparsed=None
-                        self.xlgparsed=etree.parse(xlgfile)
+                        self.xlgparsed=etree.parse(xlghref.getpath())
                         pass
                     except:
                         pass
                     pass
 
-                plftime=os.stat(filledplan).st_mtime
+                plftime=os.stat(filledplanhref.getpath()).st_mtime
                 if plftime != self.plftime:
                     self.plftime=plftime
                     try: 
                         self.plfparsed=None
-                        self.plfparsed=etree.parse(filledplan)
+                        self.plfparsed=etree.parse(filledplanhref.getpath())
                         pass
                     except:
                         pass
                     pass
 
-                if os.path.exists(xlgfile) and not self.checklist.readonly:
+                if href_exists(xlghref) and not self.checklist.readonly:
                     # store in checklist
                     self.checklist.xmldoc.lock_rw()
                     try:
@@ -292,10 +317,7 @@ class rundatacollectstep(gtk.HBox):
                             pass
 
                         # set <dc:explog xlink:href="..."> attribute if it's not already set
-                        url=urllib.pathname2url(canonicalize_path.relative_path_to(self.checklist.xmldoc.getcontextdir(),xlgfile))
-                        if self.checklist.xmldoc.getattr(explogel,"xlink:href","") != url:
-                            self.checklist.xmldoc.setattr(explogel,"xlink:href",url)
-                            pass
+                        xlghref.xmlrepr(self.checklist.xmldoc,explogel)
                         pass
                     finally:
                         self.checklist.xmldoc.unlock_rw()
@@ -326,10 +348,7 @@ class rundatacollectstep(gtk.HBox):
                         
                         
                         # set <dc:checklist xlink:href="..."> attribute if it's not already set
-                        url=urllib.pathname2url(canonicalize_path.relative_path_to(self.checklist.xmldoc.getcontextdir(),filledplan))
-                        if self.checklist.xmldoc.getattr(dcchecklistel,"xlink:href","") != url:
-                            self.checklist.xmldoc.setattr(dcchecklistel,"xlink:href",url)
-                            pass
+                        filledplanhref.xmlrepr(self.checklist.xmldoc,dcchecklistel)
                         pass
                     finally:
                         self.checklist.xmldoc.unlock_rw()
@@ -453,7 +472,7 @@ class rundatacollectstep(gtk.HBox):
         cpdest=None
         cpparent=None
 
-        if self.checklist.xmldoc.filename is None or len(self.planfile)==0:
+        if self.checklist.xmldoc.filehref is None or len(self.planfile)==0:
 
             #if len(self.planfile)==0 or (not os.path.isabs(self.planfile) and self.checklist.xmldoc.filename is None):
             return (None,None,None,None,['datacollect2'],'datacollect2')
@@ -505,22 +524,22 @@ class rundatacollectstep(gtk.HBox):
 
         if len(self.dcparamdb) > 0:
             commandlist.append('-d')
-            commandlist.append(self.dcparamdb)
+            commandlist.append(dc_value.hrefvalue(self.dcparamdb,self.checklist.getcontexthref()).getpath())
             pass
 
         if len(self.datacollectconfig) > 0:
             commandlist.append('-f')
-            commandlist.append(self.datacollectconfig)
+            commandlist.append(dc_value.hrefvalue(self.datacollectconfig,self.checklist.getcontexthref()).getpath())
             pass 
 
         if len(self.datacollectconfig2) > 0:
             commandlist.append('-f')
-            commandlist.append(self.datacollectconfig2)
+            commandlist.append(dc_value.hrefvalue(self.datacollectconfig2,self.checklist.getcontexthref()).getpath())
             pass 
 
         if len(self.datacollectconfig3) > 0:
             commandlist.append('-f')
-            commandlist.append(self.datacollectconfig3)
+            commandlist.append(dc_value.hrefvalue(self.datacollectconfig3,self.checklist.getcontexthref()).getpath())
             pass 
 
         if not os.path.exists(xlgfile):
@@ -538,17 +557,17 @@ class rundatacollectstep(gtk.HBox):
 
         if len(self.gui) > 0:
             commandlist.append('-g')
-            commandlist.append(self.gui)
+            commandlist.append(dc_value.hrefvalue(self.gui,self.checklist.getcontexthref()).getpath())
             pass
 
         if len(self.gui2) > 0:
             commandlist.append('-g')
-            commandlist.append(self.gui2)
+            commandlist.append(dc_value.hrefvalue(self.gui2,self.checklist.getcontexthref()).getpath())
             pass
 
         if len(self.gui3) > 0:
             commandlist.append('-g')
-            commandlist.append(self.gui3)
+            commandlist.append(dc_value.hrefvalue(self.gui3,self.checklist.getcontexthref()).getpath())
             pass
 
         # create full shell-compatible command

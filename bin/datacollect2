@@ -7,6 +7,22 @@ import string
 import datetime
 import socket
 
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    pass
+
+
 if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
     import gi
     gi.require_version('Gtk','3.0')
@@ -350,11 +366,11 @@ if len(explogwin.configfhrefs) > 0 or (autoloadconfig and explogfile is not None
 
     if explogfile is not None and newlog:
         #sys.stderr.write("new_explog(%s)\n" % (explogfile))
-        explogwin.new_explog(explogfile,parentchecklistpath=parentchecklistpath)
+        explogwin.new_explog(hrefv(pathname2url(explogfile)),parentchecklistpath=parentchecklistpath)
         pass
     elif explogfile is not None and not newlog:
         #sys.stderr.write("open_explog(%s)\n" % (explogfile))
-        explogwin.open_explog(explogfile,autoloadconfig=autoloadconfig)
+        explogwin.open_explog(hrefv(pathname2url(explogfile)),autoloadconfig=autoloadconfig)
         pass
     pass
 else :
@@ -367,7 +383,7 @@ else :
 
 
 
-if len(explogwin.configfhrefs) > 0 and explogwin.explog.filename is not None:
+if len(explogwin.configfhrefs) > 0 and explogwin.explog.filehref is not None:
     for gui in guis:
         explogwin.open_gui(gui)
         pass

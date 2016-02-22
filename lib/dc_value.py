@@ -10,7 +10,22 @@ import collections
 import numbers
 import urlparse
 import urllib
+import posixpath
 
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    pass
 from lxml import etree
 
 treesync=None
@@ -22,7 +37,7 @@ except ImportError:
     pass
 
 
-import canonicalize_path
+#import canonicalize_path
 
 import dc_provenance as provenance
 import xmldoc
@@ -183,7 +198,7 @@ class value(object):
 
     
     @classmethod
-    def merge(cls,parent,descendentlist,contextdir=None):
+    def merge(cls,parent,descendentlist,contexthref=None):
         # merge: Used to merge multiple, possibly inconsistent, values
         # If parent is None, merge semantics are to overwrite blanks but 
         # otherwise error out
@@ -237,20 +252,20 @@ class xmltreevalue(value):
 
     __xmldoc=None  # PRIVATE -- must use get_xmldoc() to get a copy!!!
     
-    def __init__(self,xmldoc_element_or_string,defunits=None,nsmap=None,contextdir=None,force_abs_href=False):
-        # contextdir is desired context of new document (also assumed context of source, if source has no context)
+    def __init__(self,xmldoc_element_or_string,defunits=None,nsmap=None,contexthref=None,force_abs_href=False):
+        # contexthref is desired context of new document (also assumed context of source, if source has no context)
         if isinstance(xmldoc_element_or_string,self.__class__):
-            self.__xmldoc=xmldoc_element_or_string.get_xmldoc(nsmap=nsmap,contextdir=contextdir,force_abs_href=force_abs_href)
+            self.__xmldoc=xmldoc_element_or_string.get_xmldoc(nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
             pass            
         elif isinstance(xmldoc_element_or_string,xmldoc.xmldoc):
-            self.__xmldoc=xmldoc.xmldoc.inmemorycopy(xmldoc_element_or_string,nsmap=nsmap,contextdir=contextdir,force_abs_href=force_abs_href)
+            self.__xmldoc=xmldoc.xmldoc.inmemorycopy(xmldoc_element_or_string,nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
             pass
         elif isinstance(xmldoc_element_or_string,etree._ElementTree):
-            self.__xmldoc=xmldoc.xmldoc.frometree(copy.deepcopy(xmldoc_element_or_string),nsmap=nsmap,contextdir=contextdir,force_abs_href=force_abs_href)
+            self.__xmldoc=xmldoc.xmldoc.frometree(copy.deepcopy(xmldoc_element_or_string),nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
             pass
         elif isinstance(xmldoc_element_or_string,etree._Element):
             element=copy.deepcopy(xmldoc_element_or_string)
-            self.__xmldoc=xmldoc.xmldoc.frometree(etree.ElementTree(element),nsmap=nsmap,contextdir=contextdir,force_abs_href=force_abs_href)
+            self.__xmldoc=xmldoc.xmldoc.frometree(etree.ElementTree(element),nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
             
             pass
         elif xmldoc_element_or_string is None or xmldoc_element_or_string=="":
@@ -259,7 +274,7 @@ class xmltreevalue(value):
         else :
             # treat as string... note we skip whitespace 
             # so pretty-printing is ignored
-            self.__xmldoc=xmldoc.xmldoc.fromstring(xmldoc_element_or_string,nsmap=nsmap,contextdir=contextdir,force_abs_href=force_abs_href)
+            self.__xmldoc=xmldoc.xmldoc.fromstring(xmldoc_element_or_string,nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
             pass
 
         #if contextdir is None or contextdir=="":
@@ -282,13 +297,13 @@ class xmltreevalue(value):
     
 
 
-    def get_xmldoc(self,nsmap=None,contextdir=None,force_abs_href=False):
+    def get_xmldoc(self,nsmap=None,contexthref=None,force_abs_href=False):
         if self.__xmldoc is None: 
             return None
             
         # Returns a copy, so it's OK to write to it (but it won't have
         # any effect on the dc_value)
-        return xmldoc.xmldoc.inmemorycopy(self.__xmldoc,nsmap=nsmap,contextdir=contextdir,force_abs_href=force_abs_href)
+        return xmldoc.xmldoc.inmemorycopy(self.__xmldoc,nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
 
     def __unicode__(self):
         if self.__xmldoc is None:
@@ -314,7 +329,7 @@ class xmltreevalue(value):
         elif self.__xmldoc is None or othervalue.__xmldoc is None:
             return False
         #import pdb as pythondb
-        if self.__xmldoc.getcontextdir() != other.__xmldoc.getcontextdir():
+        if self.__xmldoc.getcontexthref() != other.__xmldoc.getcontexthref():
             # See if there are xlink:href attributes to screw things up
             attrsself=self.__xmldoc.xpath("//*[xlink:href]",namespaces={"xlink":"http://www.w3.org/1999/xlink"})
             attrsother=other.__xmldoc.xpath("//*[xlink:href]",namespaces={"xlink":"http://www.w3.org/1999/xlink"})
@@ -325,7 +340,7 @@ class xmltreevalue(value):
             if len(attrsself) > 0:
             
                 #pythondb.set_trace()
-                raise ValueError("xmltreevalue: Cannot currently compare trees with different context directories %s and %s" % (self.__xmldoc.getcontextdir(),other.__xmldoc.getcontextdir()))
+                raise ValueError("xmltreevalue: Cannot currently compare trees with different context URLs %s and %s" % (str(self.__xmldoc.getcontexthref()),str(other.__xmldoc.getcontexthref())))
             pass
             
         return treesync.treesmatch(self.__xmldoc.getroot(),othervalue.__xmldoc.getroot(),True)
@@ -357,16 +372,17 @@ class xmltreevalue(value):
         if self.__xmldoc is not None:
 
             # do context conversion if necessary
-            sourcecontext=self.__xmldoc.getcontextdir()
-            targetcontext=xmldocu.getcontextdir()
+            sourcecontext=self.__xmldoc.getcontexthref()
+            targetcontext=xmldocu.getcontexthref()
 
             if sourcecontext is None or targetcontext is None:
                 import pdb as pythondb
                 pythondb.set_trace()
             
-            if canonicalize_path.canonicalize_path(sourcecontext) != canonicalize_path.canonicalize_path(targetcontext):
+            # if canonicalize_path.canonicalize_path(sourcecontext) != canonicalize_path.canonicalize_path(targetcontext):
+            if sourcecontext != targetcontext: 
                 # create copy, in desired context
-                treecopy=xmldoc.xmldoc.inmemorycopy(self.__xmldoc,contextdir=targetcontext,force_abs_href=force_abs_href)
+                treecopy=xmldoc.xmldoc.inmemorycopy(self.__xmldoc,contexthref=targetcontext,force_abs_href=force_abs_href)
                 ourroot=treecopy.getroot()
                 pass
             else: 
@@ -399,7 +415,7 @@ class xmltreevalue(value):
     def fromxml(cls,xmldocu,element,tagnameoverride=None,nsmap=None,defunits=None,contextdir=None,force_abs_href=False):
         # Create from a parsed xml representation. 
         # if tagnameoverride is specified, it will override the tag name of element
-        # contextdir is the contextdir you want internally stored
+        # contexthref is the context href you want internally stored
         # in the object for relative links
 
 
@@ -420,21 +436,22 @@ class xmltreevalue(value):
             
             element=newelement
             pass
-        
-        if contextdir is not None or force_abs_href:
-            # need to adjust context. 
-            # first create object in original context, then
-            # convert its context
-            obj=cls(element,nsmap=nsmap,contextdir=xmldocu.getcontextdir())
 
-            # convert context
-            obj.__xmldoc.setcontextdir(contextdir,force_abs_href=force_abs_href)
-            return obj
+        # contexthref probably not needed anymore.... uncomment this if it is 
+        #if contexthref is not None or force_abs_href:
+        #    # need to adjust context. 
+        #    # first create object in original context, then
+        #    # convert its context
+        ##   obj=cls(element,nsmap=nsmap,contextdir=xmldocu.getcontexthref())
+        #
+        #    # convert context
+        #    obj.__xmldoc.setcontexthref(contexthref,force_abs_href=force_abs_href)
+        #    return obj
 
-        return cls(element,nsmap=nsmap,contextdir=xmldocu.getcontextdir())
+        return cls(element,nsmap=nsmap,contexthref=xmldocu.getcontexthref())
     
     @classmethod
-    def merge(cls,parent,descendentlist,contextdir=None,maxmergedepth=np.Inf,tag_index_paths_override=None):
+    def merge(cls,parent,descendentlist,contexthref=None,maxmergedepth=np.Inf,tag_index_paths_override=None):
         # merge: Used to merge multiple, possibly inconsistent, values
         # If parent is None, merge semantics are to overwrite blanks but 
         # otherwise error out
@@ -445,11 +462,11 @@ class xmltreevalue(value):
             value=None
             for descendent in descendentlist: 
                 if not descendent.isblank():
-                    if contextdir is not None:
-                        if canonicalize_path.canonicalize_path(descendent.__xmldoc.getcontextdir()) != canonicalize_path.canonicalize_path(contextdir):
+                    if contexthref is not None:
+                        if descendent.__xmldoc.getcontexthref() != contexthref:
                             # context mismatch. Redefine descendent with
                             # desired context
-                            descendent=xmltreevalue(descendent,contextdir=contextdir)
+                            descendent=xmltreevalue(descendent,contexthref=contexthref)
                             pass
                         pass
                     if value is None: 
@@ -485,15 +502,17 @@ class xmltreevalue(value):
             #    pythondb.set_trace()
             #try : 
 
-            desiredcontext=canonicalize_path.canonicalize_path(contextdir)
-            parentcontext=canonicalize_path.canonicalize_path(parent.__xmldoc.getcontextdir())
+            desiredcontext=contexthref  # canonicalize_path.canonicalize_path(contextdir)
+            #parentcontext=canonicalize_path.canonicalize_path(parent.__xmldoc.getcontextdir())
+            parentcontext=parent.__xmldoc.getcontexthref()
             if parentcontext != desiredcontext:
                 # Create copy of parent in the proper context
-                parent=xmltreevalue(parent,contextdir=contextdir)
+                parent=xmltreevalue(parent,contexthref=contexthref)
                 pass
-
+            
             # Create copy of descendentlist, but in the proper context
-            descendent_in_context_list=[ descendent if canonicalize_path.canonicalize_path(descendent.__xmldoc.getcontextdir())==desiredcontext else xmltreevalue(descendent,contextdir=contextdir) for descendent in descendentlist if descendent.__xmldoc is not None ]
+            #descendent_in_context_list=[ descendent if canonicalize_path.canonicalize_path(descendent.__xmldoc.getcontextdir())==desiredcontext else xmltreevalue(descendent,contextdir=contextdir) for descendent in descendentlist if descendent.__xmldoc is not None ]
+            descendent_in_context_list=[ descendent if descendent.__xmldoc.getcontexthref()==desiredcontext else xmltreevalue(descendent,contexthref=contexthref) for descendent in descendentlist if descendent.__xmldoc is not None ]
                 
             newelem=treesync.treesync_multi(parent.__xmldoc.getroot(),[descendent.__xmldoc.getroot() for descendent in descendent_in_context_list if descendent.__xmldoc is not None ],maxmergedepth,ignore_blank_text=True,tag_index_paths_override=tag_index_paths_override)
             #    pass
@@ -501,7 +520,7 @@ class xmltreevalue(value):
             #    pythondb.post_mortem()
             #    pass
             pass
-        return cls(newelem,contextdir=contextdir)
+        return cls(newelem,contexthref=contexthref)
     pass
 
 
@@ -616,116 +635,285 @@ class stringvalue(value):
 
 
 
-class hrefvalue(stringvalue):
-    # an href is a hyperte reference with
-    # a possible context. 
+class hrefvalue(value):
+    # an href is a URL reference with
+    # a context. 
 
-    # It is represented either as a URL
-    # or as a relative or absolute path. If a relative path,
-    # it is relative to the internally-stored contextdir. 
-    
-    # its string representation is an escaped URL
+    # Everything has to have a context, unless the
+    # supplied URL is guaranteed to be absolute and
+    # defines a URL scheme. If you just
+    # have a file path, then that context is the
+    # current directory '.'
     #
-    # if it is a relative local file reference, without leading
-    # file://, it is stored along with a contextdir as a path
+    # The HREF is represented as a list of URL contexts
+    # that when joined represent the desired URL.
+    # If there is no leading context that defines a URL scheme,
+    # then the scheme is assumed to be file://. If there is no
+    # leading context that defines an absolute URL path, then that
+    # path is presumed to be relative to the current directory.
 
+    # Note that contexts may include a file part, WHICH IS STRIPPED.
+    # A context intended to be a directory should include the
+    # trailing slash.
 
-    # That way you don't need to specify dest or is_file_in_dest -- because it might not be in dest!
+    # Note that URL's and contexts can be generated from
+    # filesystem paths with urllib.[request.]pathname2url()
+    
 
+    contextlist=None  # list (actually tuple, once finalized) of URL's
 
-    # str=None    # str (defined in superclass) is used to store URL
-                  # unless str is None, in which case path and context are used
-    path = None   # File path (must be converted with pathname2url to use as a url)
-    contextdir=None  # Contextdir for path if path is relative
+    def __init__(self,URL,contexthref=None,defunits=None) :
+        contextlist=[]
+        gotURL=False
+        
+        if URL is None and contexthref is None:
+            self.contextlist=()
+            # blank
+            return
 
-    def __init__(self,URL,contextdir=None,path=None,defunits=None) :
-        if URL is None and path is None:
-            # URL blank
-            URL=""
+        if contexthref is not None and not hasattr(contexthref,"contextlist"):
+
+            # if a tuple, interpret as a contextlist  otherwise contexthref presumed to be a string...
+            assert(isinstance(contexthref,basestring) or isinstance(contexthref,tuple))
+            contexthref=hrefvalue(contexthref)
             pass
-
-        if hasattr(URL,"path") and hasattr(URL,"contextdir"):
+        
+        # include context, if present
+        if contexthref is not None:            
+            contextlist.extend(contexthref.contextlist)
+            pass
+        
+        if hasattr(URL,"contextlist"):
             # URL is actually an hrefvalue
-            self.str=URL.str
-            self.path=URL.path
-            self.contextdir=URL.contextdir
-            if self.str is None and not os.path.isabs(self.path):
-                assert(self.contextdir is not None)
+            contextlist.extend(URL.contextlist)
+            if len(URL.contextlist) > 0:
+                gotURL=True
                 pass
             pass
-        elif URL is not None:
-            # URL provided... if it is a local file, attempt
-            # to interpret it. 
-            self.contextdir=contextdir
-            
-            if URL=="":
-                # blank
-                self.str=""
+        elif isinstance(URL,tuple):
+            # Treat tuple as contextlist
+            contextlist.extend(URL)
+            if len(URL) > 0:
+                gotURL=True
                 pass
-            else: 
-                parsedurl=urlparse.urlparse(str(URL))
-                if parsedurl.scheme=="":
-                    self.path=urllib.url2pathname(str(URL))
-                    
-                    if not os.path.isabs(self.path):
-                        assert(self.contextdir is not None)
-                        pass
-
-                    pass
-                elif parsedurl.scheme=="file" and parsedurl.netloc=="":
-                    self.path=urllib.url2pathname(parsedurl.path)
-                    if not os.path.isabs(self.path):
-                        assert(self.contextdir is not None)
-                        pass
-                
-                    pass
-                else:
-                    self.str=str(URL)
-                    pass
-                pass
-            pass
         else:
-            # Assume path provided 
-            self.path=path
-            self.contextdir=contextdir
-
-            if not os.path.isabs(self.path):
-                assert(self.contextdir is not None)
+            # URL presumed to be a string
+            assert(isinstance(URL,basestring))
+            if URL != "":
+                contextlist.append(URL)
+                gotURL=True
                 pass
-
             pass
 
+        if not gotURL:
+            # if no URL provided at all (just blank) then context means nothing.
+            # Just return completely blank
+            self.contextlist=()
+            return
+        
+        # go through context list from end to start
+        # and cull out unnecessary leading context
+        culledcontext=[]
+        foundabspath=False
+        for pos in range(len(contextlist)-1,-1,-1):
+            parsed=urlparse.urlparse(contextlist[pos])
+            if foundabspath and parsed.scheme=='':
+                # already have an absolute path, and no scheme specified...
+                # another absolute or relative path with no scheme is useless
+                continue
+            if parsed.path.startswith('/'):
+                foundabspath=True
+                pass
+            # add on to culled context
+            culledcontext.insert(0,contextlist[pos])
+            
+            if len(parsed.scheme) > 0:
+                # got a scheme... nothing else matters
+                break
+            pass
+        self.contextlist=tuple(culledcontext)
         self.final=True
 
         pass
 
     def isblank(self):
-        if self.str is not None and len(self.str)==0:
-            return True
-        return False
+        return len(self.contextlist)==0
         
     def ismem(self):
-        return self.str is not None and self.str.startswith("mem://")
+        if len(self.contextlist)==0:
+            return False
+        # since unnecessary context is culled on creation, the
+        # scheme comes from the scheme of the first element
+        return urlparse.urlparse(self.contextlist[0]).scheme=='mem'
 
     def ishttp(self):
-        return self.str is not None and self.str.startswith("http://")
+        if len(self.contextlist)==0:
+            return False
+        # since unnecessary context is culled on creation, the
+        # scheme comes from the scheme of the first element
+        return urlparse.urlparse(self.contextlist[0]).scheme=='http'
 
-    
-    
-    def __str__(self) :
-        # returns escaped URL, relative if that is the way it is stored
-        if self.str is not None:
-            return self.str
+    def isfile(self):
+        if len(self.contextlist)==0:
+            return False
+        # since unnecessary context is culled on creation, the
+        # scheme comes from the scheme of the first element
+        scheme=urlparse.urlparse(self.contextlist[0]).scheme
 
+        return scheme=="" or scheme=="file"
+    
+
+    def __str__(self):
+        return self.absurl()
+    
+    def absurl(self) :
+        # returns full escaped URL with complete context
+        if len(self.contextlist)==0:
+            return ""
+
+        URL=""
+        for pos in range(len(self.contextlist)-1,-1,-1):
+            URL=urlparse.urljoin(self.contextlist[pos],URL)
+            pass
+        return URL
+        
         # Stored as path, not as URL
-        # Convert to an escaped URL
-        assert(self.path is not None)
-        return urllib.pathname2url(self.path)
         
 
     def islocalfile(self):
-        return self.path is not None
+        return self.isfile()
+
+    def attempt_relative_url(self,new_context):
+        # return a relative url string (if possible) which,
+        # if it is indeed relative, will be relative to the
+        # new context
+
+        # convert new_context to an href, if it is not
+        if not hasattr(new_context,"contextlist"):
+            new_context=hrefvalue(new_context)
+            pass
+
+        # search for common ancestors of our context.
+        # if we have common ancestors, we can define a
+        # relative URL
+        common_context=0
+        for cnt in range(min(len(new_context.contextlist),len(self.contextlist))):
+            if new_context.contextlist[cnt]==self.contextlist[cnt]:
+                common_context+=1
+                pass
+            else:
+                break
+            pass
+        # Join up remaining new_context
+        new_context_URL=""
+        for pos in range(len(new_context.contextlist)-1,common_context-1,-1):
+            new_context_URL=urlparse.urljoin(new_context.contextlist[pos],new_context_URL)
+            pass
+
+        # join up remaining pieces of our url
+        our_URL=""
+        for pos in range(len(self.contextlist)-1,common_context-1,-1):
+            our_URL=urlparse.urljoin(self.contextlist[pos],our_URL)
+            pass
+
+        new_context_parsed=urlparse.urlparse(new_context_URL)
+        our_parsed=urlparse.urlparse(our_URL)
+        if new_context_parsed.scheme != "" or our_parsed.scheme != "":
+            # Removing common context ancestors did not remove
+            # all scheme specification....
+            # relative URL of any type not possible...
+            # generate absolute URL with scheme
+            return self.absurl()
+
+        if new_context_parsed.path.startswith("/") or our_parsed.path.startswith("/"):
+            # Removing common context ancestors did not eliminate absolute paths
+
+            if our_parsed.path.startswith("/"):
+                # absolute path within the context... Return it directly
+                return our_parsed.path
+
+            # Remaining case is that unique context of our URL is not absolute
+            # but unique context of desired context IS absolute
+
+            # For example
+            # ours:
+            #  http://localhost/foo/  bar.html
+            # desired:
+            #  http://localhost/foo/ /fubar/bar/
+            #
+            # No straightforward way to do this... just drop down to absolute
+            return self.absurl()
+
+        # now we have two paths:  new_context_URL and our_URL, both of which
+        # are relative...
+        # i.e new_context_URL='foo/bar/fubar.html'
+        #  and  our_url='fubar/foo/bar.html'
+        # The result of this would be ../../fubar/foo/bar.html
+
+        # or new_context_URL='../foo/bar/../fubar.html' 
+        #  and  our_url='fubar/foo/bar.html'
+        # The result of this one would be: Can't do it
+        #  ... leading '..' on new context is a directory we don't
+        #      know the name of
+
+        # or new_context_URL='foo/bar/../fubar.html' 
+        #  and  our_url='../fubar/../foo/bar.html'
+        # result is ../../foo/bar.html
+        #  
+        # note that the file part of context URLs is to be ignored
+        # We use the posixpath module to manipulate these paths
+        # (see http://stackoverflow.com/questions/7894384/python-get-url-path-sections)
+        new_context_path=posixpath.split(new_context_URL)[0]
+
+        
+        # new context path now refers to a directory without trailing '/'
+        # now do path normalization
+        normalized_context_path=posixpath.normpath(new_context_path)  # directory without trailing slash
+        if normalized_context_path.startswith("../"):
+            # leading '..' on context is directory we don't and can't know the name
+            # of...
+
+            if common_context >= 1:
+                # Join with last bit of common context and retry
+
+                joined_self=hrefvalue(urlparse.urljoin(self.contextlist[common_context-1],our_URL),contexthref=self.contextlist[:(common_context-1)])
+
+                joined_new_context=hrefvalue(urlparse.urljoin(new_context.contextlist[common_context-1],new_context_URL),contexthref=new_context.contextlist[:(common_context-1)])
+
+                return joined_self.attempt_relative_url(joined_new_context)
+            else:
+                # Bail and drop down to absolute path
+                return self.absurl()
+            pass
+        
+
+
+        # turn normalize_context_path entries into leading '..' entries in resultpath 
+        resultpath=""
+        (dirpart,filepart)=posixpath.split(normalized_context_path)
+        while len(dirpart) > 0:
+            resultpath=posixpath.join(resultpath,'..')
+            (dirpart,filepart)=posixpath.split(dirpart)
+            pass
+
+        # append our_URL to resultpath
+        resultpath=posixpath.join(resultpath,our_URL)
+
+        # Eliminate unnecessary '..'s' in resultpath
+        normalized_result_path=posixpath.normpath(resultpath)
+        # posixpath.normpath removes trailing slash, but we want to keep that...
+        if our_URL.endswith("/") and not(normalized_result_path.endswith("/")):
+            normalized_result_path += "/"
+            pass
+
+        return normalized_result_path
+
+    def attempt_relative_href(self,new_context):
+        relative_url=self.attempt_relative_url(new_context)
+
+        return hrefvalue(relative_url,contexthref=new_context)
     
+
     def xmlrepr(self,xmldocu,element,defunits=None,force_abs_href=False):
 
         #import pdb as pythondb
@@ -748,107 +936,111 @@ class hrefvalue(stringvalue):
                 pass
             pass
 
-        text=self.str
-        if text is None: 
-            # stored as a path instead
-            assert(self.path is not None)
-            path=self.path
-            if not(os.path.isabs(path)):
-                # join with contextdir
-                path=canonicalize_path.canonicalize_relpath(self.contextdir,path)
-                pass
-
-            # if relative, place relative to the contextdir of the xml file
-            if not os.path.isabs(self.path) and not force_abs_href:
-                docucontextdir=xmldocu.getcontextdir()
-                path=canonicalize_path.relative_path_to(docucontextdir,path)
-                pass
-            
-            # Perform url escaping
-            text=urllib.pathname2url(path)
+        if not force_abs_href:
+            url=self.attempt_relative_url(xmldocu.getcontexthref())
             pass
-            
-        xmldocu.setattr(element,xml_attribute,text)
+        else:
+            url=self.absurl()  # Create our best-of-ability absolute url
+            pass
+        xmldocu.setattr(element,xml_attribute,url)
         xmldocu.modified=True
         provenance.elementgenerated(xmldocu.doc,element)
 
         pass
 
-    def getpath(self,contextdir=None):
-        # returns path (relative to contextdir if appropriate, or current directory
-        # by default) or None
-        # if the URL is not an appropriate type
-        # returns filesystem path, not URL
-        if self.path is None:
-            return None
-
-        path=self.path
-        if not os.path.isabs(path):
-            path=os.path.join(self.contextdir,self.path)
-            pass
+    def get_bare_quoted_filename(self):
+        if len(self.contextlist) < 1:
+            return ""
         
-            
-        if not os.path.isabs(path):
-            if contextdir is None:
-                contextdir="."
-                pass
-            return canonicalize_path.relative_path_to(contextdir,os.path.join(self.contextdir,self.path))
+        parsed=urlparse.urlparse(self.contextlist[-1])
+        return posixpath.split(parsed.path)[1]
+
+    def get_bare_unquoted_filename(self):
+        quoted_filename=self.get_bare_quoted_filename()
+        return unquote(quoted_filename)
+
+    
+    def getpath(self):
+        assert(self.isfile())
+
+        path=url2pathname(self.absurl())
         return path
 
-    @classmethod
-    def from_rel_path(cls,contextdir,path): # was frompath()
-        # Path is desired file
-        # Always stores relative path unless contextdir is None
-        # contextdir is context relative to which path should be stored
-        # will store absolute path otherwise
+    def leafless(self):
+        # hrefvalues can include path and file. When defining a context, you
+        # often want to remove the file part. This routine copies a href and
+        # removes the file part, (but leaves the trailing slash)
 
-        if contextdir is not None:
-            path=canonicalize_path.relative_path_to(contextdir,path)
+        if len(self.contextlist) < 1:
+            return self
+        
+        parsed=urlparse.urlparse(self.contextlist[-1])
+        leaflesspath=posixpath.split(parsed.path)[0]
+        if not leaflesspath.endswith("/"):
+            leaflesspath+="/"
             pass
-        else: 
-            path=canonicalize_path.canonicalize_path(path)
-            pass
-            
-        # create and return the context
-        return hrefvalue(None,contextdir=contextdir,path=path)
+        leaflessurl=urlparse.urlunparse((parsed[0],parsed[1],leaflesspath,parsed[3],parsed[4],parsed[5]))
+        
+        # Start with all but last element of href context
+        newcontextlist=[]
+        newcontextlist.extend(self.contextlist[:-1])
+        newcontextlist.append(leaflessurl)
+        
+        return hrefvalue(tuple(newcontextlist))
+    
+        
+    #@classmethod
+    #def from_rel_path(cls,contextdir,path): # was frompath()
+    #    # Path is desired file
+    #    # Always stores relative path unless contextdir is None
+    #    # contextdir is context relative to which path should be stored
+    #    # will store absolute path otherwise
 
-    @classmethod
-    def from_rel_or_abs_path(cls,contextdir,path):
-        # Path is desired file
-        # Stores relative path or absolute path
+    #    if contextdir is not None:
+    #        path=canonicalize_path.relative_path_to(contextdir,path)
+    #        pass
+    #    else: 
+    ##        path=canonicalize_path.canonicalize_path(path)
+    #        pass
+    #        
+    #    # create and return the context
+    #    return hrefvalue(None,contextdir=contextdir,path=path)
+
+    #@classmethod
+    #def from_rel_or_abs_path(cls,contextdir,path):
+    #    # Path is desired file
+    #    # Stores relative path or absolute path
         # according to whether path is relative or
         # absolute (unless contextdir is None, in which case
         # path is always absolute)
         # contextdir is context relative to which path should be stored
         # will store absolute path otherwise
-
-        if contextdir is not None and not(os.path.isabs(path)):
-            path=canonicalize_path.relative_path_to(contextdir,path)
-            pass
-        else: 
-            path=canonicalize_path.canonicalize_path(path)
-            pass
-            
-        # create and return the context
-        return hrefvalue(None,contextdir=contextdir,path=path)
+#
+        #if contextdir is not None and not(os.path.isabs(path)):
+        #    path=canonicalize_path.relative_path_to(contextdir,path)
+        #    pass
+        #else: 
+        #    path=canonicalize_path.canonicalize_path(path)
+        #    pass
+        #    
+        ## create and return the context
+        #return hrefvalue(None,contextdir=contextdir,path=path)
 
 
         
 
     @classmethod
-    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None,force_abs_href=False):
+    def fromxml(cls,xmldocu,element,defunits=None,contextdir=None):
         # NOTE: to use xml_attribute you must provide xmldocu)
-        # contextdir is the contextdir you want internally stored
-        # in the object for relative links... defaults to context of xmldocu
-        # if you don't specify it, aboslute links will be used!
+        # contextdir is ignored and obsolete
         
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
 
-            xmlcontextdir=xmldocu.getcontextdir()
+            xmlcontexthref=xmldocu.getcontexthref()
             pass
         else:
-            xmlcontextdir=None
+            xmlcontexthref=None
             pass
 
         #if xml_attribute is None:
@@ -860,64 +1052,18 @@ class hrefvalue(stringvalue):
 
         text=xmldocu.getattr(element,xml_attribute,"")
 
-        val=hrefvalue(text,contextdir=xmlcontextdir)
+        val=hrefvalue(text,contexthref=xmlcontexthref)
 
-        if val.contextdir is not None and contextdir is not None and val.path is not None:
-            #sys.stderr.write("contextdir=%s; path=%s\n" % (val.contextdir,val.path))
-            canonpath=canonicalize_path.canonicalize_path(os.path.join(val.contextdir,val.path))
-
-            if force_abs_href:
-                # use absolute path and create object
-                return hrefvalue(None,contextdir=contextdir,path=canonpath)
-
-            if contextdir != val.contextdir and val.path is not None and not os.path.isabs(val.path):
-                # Now we know we have a relative path.
-                # It is relative to the file it was stored in (val.contextdir)
-                # but we need to make it relative to the requested location (contextdir)
-
-
-                # create relative path and create object
-                return hrefvalue(None,contextdir=contextdir,path=canonicalize_path.relative_path_to(contextdir,canonpath))
-        
-
-                pass
-
-            #val.contextdir=contextdir  # We can't set the attribute because 'final' is already set
-            object.__setattr__(val, "contextdir", contextdir);
-            pass
-        if val.path is not None and not os.path.isabs(val.path):
-            assert(val.contextdir is not None)
         return val
     
     def __hash__(self):
-        if self.str is not None:
-            return self.str.__hash__()
-
-        return canonicalize_path.canonicalize_path(self.path).__hash__()
+        return self.absurl().__hash__()
     
     def __eq__(self,other) :
-        if not hasattr(other,"path"):
-            return str(self)==str(other)
-        
-        if self.path is None and other.path is None:
-            return self.str==other.str
-
-        if self.path is not None and other.path is None:
+        if other is None:
             return False
         
-        if self.path is None and other.path is not None:
-            return False
-
-        # now both self and other have valid "path" attributes
-
-        # consider blank case
-        if (self.path=="" or other.path=="") and self.path != other.path:
-            return False
-        
-
-        # return whether or not paths match
-        return canonicalize_path.canonicalize_relpath(self.contextdir,self.path)==canonicalize_path.canonicalize_relpath(other.contextdir,other.path)
-
+        return self.absurl()==other.absurl()
     
     pass
 
@@ -2221,7 +2367,7 @@ class photosvalue(value):
         return
 
     @classmethod
-    def merge(cls,parent,descendentlist,contextdir=None,maxmergedepth=np.Inf,tag_index_paths_override=None):
+    def merge(cls,parent,descendentlist,contexthref=None,maxmergedepth=np.Inf,tag_index_paths_override=None):
         added=set([])
         removed=set([])
         if parent is not None:
@@ -2370,7 +2516,7 @@ class accumulatingdatesetvalue(datesetvalue):
         pass
     
     @classmethod
-    def merge(cls,parent,descendentlist,contextdir=None):
+    def merge(cls,parent,descendentlist,contexthref=None):
         # merge them together
         accum=set([])
         if parent is not None:
@@ -2543,7 +2689,7 @@ class accumulatingintegersetvalue(integersetvalue):
         pass
     
     @classmethod
-    def merge(cls,parent,descendentlist,contextdir=None):
+    def merge(cls,parent,descendentlist,contexthref=None):
         # merge them together
         accum=set([])
         if parent is not None and parent.setval is not None:

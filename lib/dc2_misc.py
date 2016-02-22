@@ -15,19 +15,16 @@ class dummy(object):
 thisdir=os.path.split(sys.modules[dummy.__module__].__file__)[0]
 
 
-def load_config(fname,paramdb,iohandlers,createparamserver):
+def load_config(href,paramdb,iohandlers,createparamserver):
 
-    fnamepath=os.path.split(fname)[0]
-    if fnamepath=="":
-        fnamepath="."
-        pass
+    dir_href=href.leafless()
     
-    fnamedir="-I%s" % (fnamepath)
+    fnamedir="-I%s" % (dir_href.getpath())
     confdir="-I%s" % (os.path.join(thisdir,"../conf/"))
     # sys.stderr.write("confdir=%s\n" % confdir)
     
     # read config file, adding line to change quote characters to [[ ]] 
-    configfh=open(fname,"rb")
+    configfh=open(href.getpath(),"rb")
     configstr="m4_changequote(`[[',`]]')\n".encode('utf-8')+configfh.read()
     configfh.close()
     
@@ -45,7 +42,7 @@ def load_config(fname,paramdb,iohandlers,createparamserver):
         tmpfh.write(output)
         tmpfh.close()
         traceback.print_exc()
-        sys.stderr.write("Exception executing processed config file %s; saving preprocessed output in %s\n" % (fname,tmpfname))
+        sys.stderr.write("Exception executing processed config file %s; saving preprocessed output in %s\n" % (href.getpath(),tmpfname))
 
         raise
     return output.decode('utf-8')
@@ -91,32 +88,25 @@ def set_hostname(paramdb):
     pass
         
 
-def searchforchecklist(fname):
-    # search for in-memory checklist specified by fname
-    # return (chklistobj,canonfname)
+def searchforchecklist(href):
+    # search for in-memory checklist specified by href
+    # return (chklistobj,href)
  
     checklists=checklistdb.getchecklists(None,None,None,None,allchecklists=True,allplans=True)
 
     #sys.stderr.write("dc2_misc/searchforchecklist: Available checklists: %s\n" % (str([checklist.canonicalpath for checklist in checklists])))
 
-    if fname.startswith("mem://"):
-        canonfname=fname
-        pass
-    else:
-        canonfname=canonicalize_path.canonicalize_path(fname)
-        pass
-    matching=[checklist  for checklist in checklists if checklist.canonicalpath==canonfname]
+    matching=[checklist  for checklist in checklists if checklist.filehref==href]
     # sys.stderr.write("SearchForChecklist: matching=%s\n" % (str(matching)))
     if len(matching) > 1:
-        raise ValueError("Multiple in-memory checklists match %s: %s" % (fname,str(matching)))
+        raise ValueError("Multiple in-memory checklists match %s: %s" % (str(href),str(matching)))
+    
     if len(matching)==0 or not matching[0].is_open or matching[0].checklist is None:
-        if fname.startswith("mem://"):
-            raise ValueError("Attempting to open nonexistent in-memory checklist %s (probably residue of incomplete checklist from previous run)." % (fname))
-                
-            
-        return (None,canonfname)
+    #    if fname.startswith("mem://"):
+    #        raise ValueError("Attempting to open nonexistent in-memory checklist %s (probably residue of incomplete checklist from previous run)." % (fname))                       
+        return (None,href)
     else:
-        return (matching[0].checklist,canonfname)
+        return (matching[0].checklist,href)
     pass
 
 def chx2chf(parentcontextdir,parent,infilecontextdir,infile,outfilecontextdir,outfile):

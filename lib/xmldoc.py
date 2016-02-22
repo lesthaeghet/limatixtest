@@ -7,15 +7,23 @@ import fcntl
 import traceback
 import numbers
 import signal
+import socket
+import time
 import shutil
 import collections
 import xml.sax.saxutils
 try: 
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
     import urlparse
     pass
 except ImportError:
     import urllib.parse as urlparse # python3 
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
     pass
+
 
 import urllib
 
@@ -143,8 +151,21 @@ def loadgobject():
         pass
     pass
 
+startuptime=None
 
-def _xlinkcontextfixuptree(ETree,oldcontextdir,newcontextdir,force_abs_href=False):
+def generate_inmemory_id(checklist):
+    global startuptime
+
+    hostname=socket.gethostname()
+    if startuptime is None:
+        startuptime=time.time() # log a hopefully unique value
+        pass
+    pid=os.getpid()
+    
+    return "mem://%s/%d/%d/%d" % (hostname,startuptime,pid,id(checklist))
+
+
+def _xlinkcontextfixuptree(ETree,oldcontexthref,newcontexthref,force_abs_href=False):
     # Go through ETree, search for elements with xlink:href 
     # attributes, fix them up.
     # operates in-place on provided etree.ElementTree or etree.Element
@@ -153,41 +174,24 @@ def _xlinkcontextfixuptree(ETree,oldcontextdir,newcontextdir,force_abs_href=Fals
     # returns number of modifications made
 
 
-    ETXobj=etree.ETXPath("//*[{http://www.w3.org/1999/xlink}href]")
+    ETXobj=etree.ETXPath("//*[@{http://www.w3.org/1999/xlink}href]")
     xmlellist=ETXobj(ETree)
 
     modcnt=0
 
     for element in xmlellist: 
         URL=element.attrib["{http://www.w3.org/1999/xlink}href"]
-        ParsedURL=urlparse.urlparse(URL)
-        
-        if ParsedURL.scheme == "":
-            # local reference
-            URLPath=urllib.url2pathname(URL)
-            if not os.path.isabs(URLPath):
-                # relative link
-                if oldcontextdir is None:
-                    sys.stderr.write("xmldoc._xlinkcontextfixuptree warning: Cannot fixup path %s to new context %s because old context is blank\n" % (URL,newcontextdir))
-                    continue
-                
-                if force_abs_href or newcontextdir is None:
-                    if not force_abs_href: 
-                        sys.stderr.write("xmldoc._xlinkcontextfixuptree warning: Cannot fixup path %s from old context %s to new context because new context is blank. Converting to absolute reference.\n" % (URL,oldcontextdir))
-                        pass
-                    newpath=canonicalize_path(os.path.join(oldcontextdir,URLPath))
-                    pass
-                else: 
-                    # determine relative path
-                    # oldcontextdir and newcontextdir are both valid
-                    newpath=relative_path_to(newcontextdir,os.path.join(oldcontextdir,URLPath))
-                    pass
-                
-                newlink=urllib.pathname2url(newpath)
-                element.attrib["{http://www.w3.org/1999/xlink}href"]=newlink
-                modcnt+=1
+        href=dc_value.hrefvalue(URL,contexthref=oldcontexthref)
+        if force_abs_href:
+            newurl=href.absurl()
+            pass
+        else:
+            newurl=href.attempt_relative_url(newcontexthref)
+            pass
 
-                pass
+        if newurl != URL:
+            element.attrib["{http://www.w3.org/1999/xlink}href"]=newurl
+            modcnt+=1
             pass
         pass
     return modcnt
@@ -280,8 +284,9 @@ class xmldoc(object):
 
     doc=None  # lxml etree document representation !!! private!!!
     olddoc=None # when unlocked, doc is none, olddoc is reference to old, unused document
-    filename=None  # Currently set filename, or None
-    contextdir=None # If filename is None, this directory is the contextual
+    filehref=None  # Currently set href (formerly filename), or None
+    _filename=None # private filename, for convenience... should always be equal to href.getpath()
+    contexthref=None # If href is None, this dc_value.hrefvalue is the contextual
                     # location. 
                     
     nsmap=None  # prefix-to-namespace mapping
@@ -310,98 +315,143 @@ class xmldoc(object):
 
 
     @classmethod
+    def loadhref(cls,href,nsmap=None,readonly=True,use_databrowse=False,num_backups=1,use_locking=False,debug=False):
+        """ xmldoc.loadhref(href,...): Load in an existing file. See 
+        main constructor docs for other parameters.
+        NOTE: Will merge in xmldoc default nsmap into root element 
+        unless you explicitly supply nsmap={}"""
+
+        return cls(href,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,debug=debug)
+
+    @classmethod
     def loadfile(cls,filename,nsmap=None,readonly=True,use_databrowse=False,num_backups=1,use_locking=False,debug=False):
         """ xmldoc.loadfile(filename,...): Load in an existing file. See 
         main constructor docs for other parameters.
         NOTE: Will merge in xmldoc default nsmap into root element 
         unless you explicitly supply nsmap={}"""
-        return cls(filename,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,debug=debug)
+        href=dc_value.hrefvalue(pathname2url(filename))
+        
+        return cls(href,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,debug=debug)
 
     @classmethod
-    def newdoc(cls,maintagname,filename=None,nsmap=None,num_backups=1,use_locking=False,contextdir=None,debug=False):
-        """ xmldoc.newfile(maintagname,filename=None,...): 
+    def newdoc(cls,maintagname,nsmap=None,num_backups=1,use_locking=False,contextdir=None,contexthref=None,debug=False):
+        """ xmldoc.newfile(maintagname,...): 
         Create a new in-memory document. See 
         main constructor docs for other parameters"""
-        return cls(filename,maintagname=maintagname,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,use_locking=use_locking,contextdir=contextdir,debug=debug)
+
+
+        if contexthref is None and contextdir is not None:
+            if not contextdir.endswith("/"):
+                contextdir+="/"
+                pass
+
+            contexthref=dc_value.hrefvalue(pathname2url(contextdir))
+            pass
+        
+        return cls(None,maintagname=maintagname,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,use_locking=use_locking,contexthref=contexthref,debug=debug)
 
     @classmethod
-    def fromstring(cls,xml_string,filename=None,nsmap=None,num_backups=1,use_locking=False,contextdir=None,debug=False,force_abs_href=False):
-        """ xmldoc.fromstring(filename=None,...): 
+    def fromstring(cls,xml_string,nsmap=None,num_backups=1,use_locking=False,contextdir=None,contexthref=None,debug=False,force_abs_href=False):
+        """ xmldoc.fromstring(...): 
         Create a new in-memory document from a string. See 
         main constructor docs for other parameters.
         NOTE: Will merge in xmldoc default nsmap into root element 
         unless you explicitly supply nsmap={}
         ... does not do fixups of xlink:hrefs... but does allow you to 
-        contextdir is the assumed context of the current file
-        set contextdir so that setfilename() or setcontext() will do fixups
-        for you from the contextdir provided here to whatever you want
+        contexthref (or if necessary contextdir) is the assumed context of the current file
+        set contexthref so that set_href() or setcontext() will do fixups
+        for you from the contexthref provided here to whatever you want
         if force_abs_href is set, it will absolutize all references for you
 """
 
-        SIO=StringIO.StringIO(xml_string)
-        newdoc=cls(filename,maintagname=None,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,FileObj=SIO,use_locking=use_locking,contextdir=contextdir,debug=debug)
-        SIO.close()
+        if contexthref is None and contextdir is not None:
+            if not contextdir.endswith("/"):
+                contextdir+="/"
+                pass
 
+            contexthref=dc_value.hrefvalue(pathname2url(contextdir))
+            pass
+        
+        SIO=StringIO.StringIO(xml_string)
+        newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,FileObj=SIO,use_locking=use_locking,contexthref=contexthref,debug=debug)
+        SIO.close()
+        
         if force_abs_href: 
             # absolutize all xlinks
             _xlinkcontextfixuptree(newdoc.doc,contextdir,contextdir,force_abs_href=force_abs_href)
             pass
         return newdoc
-
+    
     @classmethod
-    def inmemorycopy(cls,xmldoc,nsmap=None,readonly=False,contextdir=None,debug=False,force_abs_href=False):
+    def inmemorycopy(cls,xmldoc,nsmap=None,readonly=False,contextdir=None,contexthref=None,debug=False,force_abs_href=False):
         # Create a new in-memory XMLDOC with a copy of the content of an existing xmldoc
-        # Does fixups of xlink:href attributes to contextdir
-        # if contextdir is None, it is presumed that context does
+        # Does fixups of xlink:href attributes to contexthref or contextdir
+        # if contextdir and contexthref are None, it is presumed that context does
         # not change. Otherwise contextdir is the presumed context
         # of the new document
-        # if forceabs is set then contextdir need not be --- 
+        # if forceabs is set then contexthref need not be set --- 
         # xlink:hrefs will be converted to absolute
         newnsmap=copy.deepcopy(xmldoc.nsmap)
         if nsmap is not None:
             newnsmap.update(nsmap)
             pass
 
-        if xmldoc.filename is None:
-            doccontextdir=xmldoc.contextdir
+        if contexthref is None and contextdir is not None:
+            if not contextdir.endswith("/"):
+                contextdir+="/"
+                pass
+            contexthref=dc_value.hrefvalue(pathname2url(contextdir))
+            pass
+
+        if xmldoc.filehref is None:
+            doccontexthref=xmldoc.contexthref
             pass
         else : 
-            doccontextdir=os.path.split(xmldoc.filename)[0]
+            doccontexthref=xmldoc.filehref
             pass
         
-        if contextdir is None:
-            contextdir=doccontextdir
+        if contexthref is None:
+            contexthref=doccontexthref
             pass
 
         ETreeObj=copy.deepcopy(xmldoc.doc)
-        _xlinkcontextfixuptree(ETreeObj,doccontextdir,contextdir,force_abs_href=force_abs_href)
+        _xlinkcontextfixuptree(ETreeObj,doccontexthref,contexthref,force_abs_href=force_abs_href)
 
-        newdoc=cls(None,maintagname=None,nsmap=newnsmap,readonly=readonly,ETreeObj=ETreeObj,use_locking=False,contextdir=contextdir,debug=debug)
+        newdoc=cls(None,maintagname=None,nsmap=newnsmap,readonly=readonly,ETreeObj=ETreeObj,use_locking=False,contexthref=contexthref,debug=debug)
         return newdoc
 
     @classmethod
-    def frometree(cls,lxmletree,nsmap=None,readonly=False,contextdir=None,debug=False,force_abs_href=False):
+    def frometree(cls,lxmletree,nsmap=None,readonly=False,contextdir=None,contexthref=None,debug=False,force_abs_href=False):
         # Create an xmldoc object from an existing lxml ElementTree object
         # NOTE: Steals existing object and keeps using it internally!!!
         
         # ... does not do fixups of xlink:hrefs... but does allow you to 
-        # set contextdir so that setfilename() or setcontext() will do fixups
+        # set contextdir so that set_href() or setcontext() will do fixups
         # for you from the contextdir provided here to whatever you want
         # if you set contextdir and force_abs_href it will absolutize all
         # xlink:href references
-        newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=readonly,ETreeObj=lxmletree,use_locking=False,contextdir=contextdir,debug=debug)
+
+        if contexthref is None and contextdir is not None:
+            if not contextdir.endswith("/"):
+                contextdir+="/"
+                pass
+
+            contexthref=dc_value.hrefvalue(pathname2url(contextdir))
+            pass
+
+        newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=readonly,ETreeObj=lxmletree,use_locking=False,contexthref=contexthref,debug=debug)
 
         if force_abs_href: 
             # absolutize all xlinks
-            _xlinkcontextfixuptree(lxmletree,contextdir,contextdir,force_abs_href=force_abs_href)
+            _xlinkcontextfixuptree(lxmletree,contexthref,contexthref,force_abs_href=force_abs_href)
             pass
 
         return newdoc
 
 
-    def __init__(self,filename,maintagname=None,nsmap=None,readonly=False,use_databrowse=False,num_backups=1,FileObj=None,ETreeObj=None,use_locking=False,contextdir=None,debug=False):  
+    def __init__(self,href,maintagname=None,nsmap=None,readonly=False,use_databrowse=False,num_backups=1,FileObj=None,ETreeObj=None,use_locking=False,contexthref=None,debug=False):  
         """ Main constructor fo xmldoc. WE STRONGLY RECOMMEND USING THE CLASS METHOD CONSTRUCTORS INSTEAD
-        filename:    File to map. May be None if we are creating a new 
+        href:    File to map. May be None if we are creating a new 
                      document in write mode (maintagname != None). 
         maintagname: This is really a mode selector. If None, we will
                      read an existing file. If specified, we will 
@@ -417,16 +467,6 @@ class xmldoc(object):
                      NOTE: Unless you supply nsmap={}, when loading an 
                      existing document, the default nsmap will automatically
                      be merged in to the root element.
-        # NOTE: autoflush and autoresync obsoleted by use_locking
-        # autoflush:   If set, enables automatic flushing to disk when nodes
-        #              are modified using xmldoc methods. 
-
-        # autoresync:  If set, resync() will be be called automatically when
-        #              before elements that are synced with paramdb2 are 
-        #              updated. 
-        #              (In general, you should manually resync immediately 
-        #              before changing the document, but be warned that 
-        #              elements need to be re-found once you do this!)
         readonly:    If True, force read-only mode (modifications can 
                      be made in memory, but not flushed to disk)
 
@@ -452,7 +492,7 @@ class xmldoc(object):
                      catch...finally block (or "with" statement") where 
                      the finally segment releases the lock. This way, if 
                      an exception occurs, the lock will be released.
-        contextdir:  If filename is None, this is the context for relative
+        contexthref: If filename is None, this is the context for relative
                      xlink:href links. 
         debug:       Attempt to diagnose locking/use errors, etc.
 
@@ -460,7 +500,7 @@ class xmldoc(object):
         """
 
         # maintagname is the document tag, or None to put xmldoc in read mode. 
-        # readonly prevents modifying the file. Note that it is reset with setfilename()
+        # readonly prevents modifying the file. Note that it is reset with set_href()
 
         # attrlist is a list of (name,value) tuples for attributes
         if nsmap is None: 
@@ -487,19 +527,25 @@ class xmldoc(object):
         # self.autoflush=autoflush
         # self.autoresync=autoresync
         self.use_databrowse=use_databrowse
-        if filename is not None:
-            assert(contextdir is None)
+        if href is not None:
+            assert(contexthref is None)
             #if canonicalize_path is not None:
             #    self.filename=canonicalize_path(filename)
             #    pass
             #else : 
             #    self.filename=os.path.realpath(self.filename)
             #    pass
-            self.filename=filename
+            assert(not href.ismem()) # Can't arbitrarily access mem:// URL's 
+            self.filehref=href
+            
+            self._filename=self.filehref.getpath()
             pass
-        else: 
-            self.contextdir=contextdir
-            self.filename=None
+        else:
+            if contexthref is not None:
+                self.contexthref=contexthref.leafless()
+                pass
+            self.filehref=None
+            self._filename=None
             pass
         self.resyncnotify=[]
         self.extensions=[]
@@ -703,15 +749,20 @@ class xmldoc(object):
             pass
         pass
 
-    def getcontextdir(self):
-        if self.filename is not None:
-            return os.path.split(self.filename)[0]
-            pass
+    def get_filehref(self):
+        # get the href... returns a mem:// URI for in-memory checklists
+        if self.filehref is None:
+            return dc_value.hrefvalue(generate_inmemory_id(self))
+        return self.filehref
+    
+    def getcontexthref(self):
+        if self.filehref is not None:
+            return self.filehref.leafless()
         else:
-            return self.contextdir
+            return self.contexthref
         pass
 
-    def setcontextdir(self,contextdir,force_abs_href=False):
+    def setcontexthref(self,contexthref,force_abs_href=False):
         # For an xmldoc with no filename set, adjust the contextdir
         # for xlink:hrefs to contextdir. 
         # If contextdir is already set will do fixups on 
@@ -719,16 +770,20 @@ class xmldoc(object):
         # force_abs_href=True will force convert all relative xlink:hrefs
         # into absolute (and also allows contextdir=None)
 
-        assert(self.filename is None) # filename overrides context!
+        assert(self.filehref is None) # filename overrides context!
 
+        if contexthref is not None:
+            contexthref=contexthref.leafless()
+            pass
+        
         # we should be locked!
         self.lock_rw()
 
         try: 
         
-            oldcontextdir=self.contextdir
-            if oldcontextdir is not None:
-                modcnt=_xlinkcontextfixuptree(self.doc,oldcontextdir,contextdir,force_abs_href=force_abs_href)
+            oldcontexthref=self.contexthref
+            if oldcontexthref is not None:
+                modcnt=_xlinkcontextfixuptree(self.doc,oldcontexthref,contexthref,force_abs_href=force_abs_href)
                 if modcnt > 0: 
                     self.modified=True
                     pass
@@ -737,8 +792,9 @@ class xmldoc(object):
         finally: 
             self.unlock_rw()
             pass
-            
-        self.contextdir=contextdir
+
+        
+        self.contexthref=contexthref
         pass
 
     def get_href(self,contextnode=None,xpath=None,namespaces=None,extensions=None,variables=None):
@@ -748,7 +804,7 @@ class xmldoc(object):
         # xpath should be path to a node which contains the xlink:href attribute
         # Remaining parameters are passed to xpathsingle()
         # for help in evaluating the xpath
-        # returns filename.
+        # returns dc_value.hrefvalue object.
         # Raises NameError if the xpath gives zero or multiple results
         # raises AttributeError if no suitable xlink:href is found in the tag
         # can be found
@@ -759,7 +815,7 @@ class xmldoc(object):
 
         if xpath is None:
             worknode=contextnode
-            provenance.elementaccessed(self.filename,self.doc,worknode)
+            provenance.elementaccessed(self._filename,self.doc,worknode)
             pass
         else:
             # provenance handled by xpathsingle
@@ -771,12 +827,35 @@ class xmldoc(object):
 
         href=worknode.attrib["{http://www.w3.org/1999/xlink}href"]
         
-        hrefvalue=dc_value.hrefvalue(URL=href,contextdir=self.getcontextdir())
+        hrefvalue=dc_value.hrefvalue(href,contexthref=self.getcontexthref())
         return hrefvalue
             
         
 
-    def get_href_fullpath(self,contextnode=None,xpath=None,namespaces=None,extensions=None,variables=None):
+    def get_href_absurl(self,contextnode=None,xpath=None,namespaces=None,extensions=None,variables=None):
+        # convert an xlink:href=... to an absolutized url 
+        # if contextnode is None, context is assumed to be the root
+        # if xpath is None, path is assumed to be the context node.
+        # xpath should be path to a node which contains the xlink:href attribute
+        # Remaining parameters are passed to xpathsingle()
+        # for help in evaluating the xpath
+        # returns URL.
+        # Raises NameError if the xpath gives zero or multiple results
+        # raises AttributeError if no suitable xlink:href is found in the tag
+        # can be found
+        # Raises IOError if the xlink:href does not refer to a local file
+
+
+        hrefobj=self.get_href(contextnode=contextnode,xpath=xpath,namespaces=namespaces,extensions=extensions,variables=variables)
+        
+
+        if not hrefobj.islocalfile():
+            raise IOError("get_href_absurl: URL \"%s\" does not refer to a local file" % (str(hrefobj)))
+
+        return hrefobj.absurl()
+    
+
+    def get_href_filepath(self,contextnode=None,xpath=None,namespaces=None,extensions=None,variables=None):
         # convert an xlink:href=... to a complete filesystem path
         # if contextnode is None, context is assumed to be the root
         # if xpath is None, path is assumed to be the context node.
@@ -794,26 +873,24 @@ class xmldoc(object):
         
 
         if not hrefobj.islocalfile():
-            raise IOError("get_href_filename: URL \"%s\" does not refer to a local file" % (str(hrefobj)))
-
+            raise IOError("get_href_filepath: URL \"%s\" does not refer to a local file" % (str(hrefobj)))
+        
         path=hrefobj.getpath()
         
-        if os.path.isabs(path):
-            return path
-        else:
-            return os.path.join(self.getcontextdir(),path)
-        pass
+        return path
     
 
 
-    def setfilename(self,filename,readonly=False,contextdir=None,force_abs_href=False):
-        """This is used to set a filename if the document did
-           not have one, or to set a new filename. It also 
+    def set_href(self,href,readonly=False,contexthref=None,force_abs_href=False):
+        """This is used to set a file location if the document did
+           not have one, or to set a new file location (i.e. href, i.e. filename). 
+           It also 
            updates the readonly attribute (default False). 
 
-           if file is currently locked, it triggers a write under the old filename
+           if file is currently locked, it triggers a write under the old href
+        (i.e. filename)
 
-           It triggers a write under the new filename
+        It triggers a write under the new href (i.e. filename)
            unless readonly is set. 
 
            Note: if the file is not locked, and changes have been made 
@@ -829,10 +906,10 @@ class xmldoc(object):
            the old name
            If the name changes to something other than None, readonly must not be set
         
-           If the name changes to None, you can specify a new contextdir
-           and it will convert xlink:href's to the new contextdir. 
-           If you don't specify the new contextdir, it will store the 
-           old context in the xmldoc contextdir field. 
+           If the name changes to None, you can specify a new contexthref
+           and it will convert xlink:href's to the new contexthref. 
+           If you don't specify the new contexthref, it will store the 
+           old context in the xmldoc contexthref field. 
            
            In general, xlink:hrefs will be updated with the change. 
            if force_abs_href is True, then all such updates will be to 
@@ -842,42 +919,44 @@ class xmldoc(object):
 
         #sys.stderr.write("setfilename %s\n" % (filename))
  
-        oldfilename=self.filename
+        oldhref=self.filehref
 
-        if self.filename is None:
-            oldcanonname=None
-            oldcontextdir=self.contextdir
+        if self.filehref is None:
+            #oldcanonname=None
+            oldcontexthref=self.contexthref
             #oldcanoncontextdir=canonicalize_path(self.contextdir)
             pass
         else:
-            oldcanonname=canonicalize_path(oldfilename)
-            oldcontextdir=os.path.split(self.filename)[0]
-            #oldcanoncontextdir=canonicalize_path(oldcontextdir)
+            #oldcanonname=canonicalize_path(oldfilename)
+            oldcontexthref=self.filehref.leafless()
             pass
             
-        if filename is None:
-            newcontextdir=contextdir
+        if href is None:
+            if contexthref is not None:
+                contexthref=contexthref.leafless()
+                pass
+            newcontexthref=contexthref
             pass
         else:
-            newcontextdir=os.path.split(filename)[0]
-            assert(contextdir is None) # should not supply a contextdir if supplying a filename
+            newcontexthref=href.leafless()
+            assert(contexthref is None) # should not supply a contexthref if supplying a filename
             pass
 
         # our memory of initial state lockcounts
         ro_lockcount=0
         rw_lockcount=0
 
-        if filename is None:
-            canonfilename=None
-            pass
-        else : 
-            canonfilename=canonicalize_path(filename)
-            pass
+        #if filename is None:
+        #    canonfilename=None
+        #    pass
+        #else : 
+        #    canonfilename=canonicalize_path(filename)
+        #    pass
         
-        if oldcanonname != canonfilename:
+        if ((oldhref is None) ^ (href is None)) or oldhref != href: # ^ operator is XOR
             
             # start by flushing (if necessary) and unlocking the old file
-            if oldfilename is not None:
+            if oldhref is not None:
                 if self.rw_lockcount > 0:
                     assert(self.lockfd >= 0)
                     assert(not self.readonly)
@@ -903,26 +982,32 @@ class xmldoc(object):
             assert(self.lockfd < 0)
 
             # update the filename
-            self.filename=filename
-
+            self.filehref=href
+            if self.filehref is not None:
+                self._filename=self.filehref.getpath()
+                pass
+            else:
+                self._filename=None
+                pass
+            
             # do xlink:href fixups for moving from old location to new location
             if self.doc is not None:
-                _xlinkcontextfixuptree(self.doc,oldcontextdir,newcontextdir,force_abs_href=force_abs_href)
+                _xlinkcontextfixuptree(self.doc,oldcontexthref,newcontexthref,force_abs_href=force_abs_href)
                 pass
             else: 
-                _xlinkcontextfixuptree(self.olddoc,oldcontextdir,newcontextdir,force_abs_href=force_abs_href)
+                _xlinkcontextfixuptree(self.olddoc,oldcontexthref,newcontexthref,force_abs_href=force_abs_href)
                 pass
 
-
-            if self.filename is None:
-                self.contextdir=newcontextdir
+            
+            if self.filehref is None:
+                self.contexthref=newcontexthref
                 pass
             else: 
-                self.contextdir=None
+                self.contexthref=None
                 pass
 
             # flush out under the new name
-            if canonfilename is not None:
+            if self.filehref is not None:
                 assert(not readonly)
 
                 try : 
@@ -962,7 +1047,8 @@ class xmldoc(object):
             
                     pass
                 except: 
-                    self.filename=None # if flush failed, set filename to None
+                    self.filehref=None # if flush failed, set filename to None
+                    self._filename=None
                     raise
                     
                 pass
@@ -980,14 +1066,14 @@ class xmldoc(object):
         if self.rw_lockcount > 0:
             assert(not self.readonly)
             # flush out any changes...
-            if self.filename is not None:
+            if self.filehref is not None:
                 assert(self.lockfd >= 0)
                 self._flush()
                 pass
             pass
         
         if self.use_databrowse and not readonly:
-            raise ValueError("read/write mode on xmldoc %s incompatible with use_databrowse" % (str(self.filename)))
+            raise ValueError("read/write mode on xmldoc %s incompatible with use_databrowse" % (str(self._filename)))
         
             
         
@@ -1166,7 +1252,7 @@ class xmldoc(object):
         if not "gtk" in sys.modules and not ("gi" in sys.modules and hasattr(sys.modules["gi"],"repository") and hasattr(sys.modules["gi"].repository,"Gtk")):
             # if nothing else has loaded gtk2 or gtk3
             # Just print exception
-            sys.stderr.write("Exception resyncing file %s\n%s: %s" % (self.filename,str(exctype.__name__),str(value)))
+            sys.stderr.write("Exception resyncing file %s\n%s: %s" % (self._filename,str(exctype.__name__),str(value)))
             return "cancel"  # text mode is non-interactive
         else : 
             loadgtk() # do our gtk imports
@@ -1181,7 +1267,7 @@ class xmldoc(object):
             pass
 
         # print ("Exception resyncing file %s\n%s: %s" % (self.filename,str(exctype),str(value)))
-        filename=self.filename
+        filename=self._filename
         if filename is None:
             filename="(Not available)"
             pass
@@ -1255,7 +1341,7 @@ class xmldoc(object):
         
             
 
-        if self.filename is not None or FileObj is not None:
+        if self.filehref is not None or FileObj is not None:
             retry=True
             while retry:
                 retry=False
@@ -1267,7 +1353,7 @@ class xmldoc(object):
 
                         if rolock or rwlock:
                             raise ValueError("rolock and rwlock not supported with databrowse!")
-                        self.doc=dbl.GetXML(self.filename, output=dbl.OUTPUT_ETREE)
+                        self.doc=dbl.GetXML(self._filename, output=dbl.OUTPUT_ETREE)
                         self.lastfileinfo=None
                         pass
                     else :
@@ -1291,7 +1377,7 @@ class xmldoc(object):
                             
                             reuseold=False;
 
-                            fh=open(self.filename,"r")
+                            fh=open(self._filename,"r")
 
                             #if rolock:
                             #    assert(os.name=="posix") 
@@ -1547,7 +1633,7 @@ class xmldoc(object):
             parent.append(newnode);
             # Record provenance of this element
             if sourcedoc is not None:
-                provenance.elementaccessed(sourcedoc.filename,sourcedoc.doc,node)
+                provenance.elementaccessed(sourcedoc._filename,sourcedoc.doc,node)
                 pass
             provenance.elementgenerated(self.doc,newnode)
             newnodes.append(newnode)
@@ -1652,7 +1738,7 @@ class xmldoc(object):
         self.element_in_doc(element)
 
         # Record provenance update for this element
-        provenance.elementaccessed(self.filename,self.doc,element)
+        provenance.elementaccessed(self._filename,self.doc,element)
 
         return element.text
 
@@ -1724,10 +1810,10 @@ class xmldoc(object):
             if isinstance(resultlist,basestring) or isinstance(resultlist,numbers.Number) or isinstance(resultlist,bool):
                 # single result
                 if  hasattr(resultlist,"getparent") and resultlist.getparent() is not None:
-                    provenance.elementaccessed(self.filename,self.doc,resultlist.getparent())
+                    provenance.elementaccessed(self._filename,self.doc,resultlist.getparent())
                     pass
                 else :
-                    provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (str(resultlist),path,self.filename))
+                    provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (str(resultlist),path,self._filename))
                     pass
                 pass
             else :
@@ -1737,15 +1823,15 @@ class xmldoc(object):
                 for resultel in resultlist:
                     if isinstance(resultel,basestring) or isinstance(resultel,numbers.Number): #  or isinstance(resultel,bool): (always satisfied by number criterion)
                         if hasattr(resultel,"getparent") and resultel.getparent() is not None:
-                            provenance.elementaccessed(self.filename,self.doc,resultel.getparent())
+                            provenance.elementaccessed(self._filename,self.doc,resultel.getparent())
                             pass
                         else :
-                            provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (unicode(resultel),path,self.filename))
+                            provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (unicode(resultel),path,self._filename))
                             pass
                         pass
                     else : 
                         # Should be an element of somesort
-                        provenance.elementaccessed(self.filename,self.doc,resultel)
+                        provenance.elementaccessed(self._filename,self.doc,resultel)
                         pass
                     pass
                 pass
@@ -1874,10 +1960,10 @@ class xmldoc(object):
                     nodeset.append(newnodes)
                     # provenance now handled by base xpath method
                     # if  hasattr(newnodes,"getparent"):
-                    #     provenance.elementaccessed(self.filename,self.doc,newnodes.getparent())
+                    #     provenance.elementaccessed(self._filename,self.doc,newnodes.getparent())
                     #     pass
                     # else : 
-                    #     provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self.filename))
+                    #     provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self._filename))
                     # 
                     #     pass
                         
@@ -1890,15 +1976,15 @@ class xmldoc(object):
                         # register provenance
                         if isinstance(node,basestring) or isinstance(node,float):
                             if hasattr(node,"getparent"):
-                                provenance.elementaccessed(self.filename,self.doc,node.getparent())
+                                provenance.elementaccessed(self._filename,self.doc,node.getparent())
                                 pass
                             else : 
-                                provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self.filename))
+                                provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self._filename))
                             
                                 pass
                             pass
                         else :
-                            provenance.elementaccessed(self.filename,self.doc,node)
+                            provenance.elementaccessed(self._filename,self.doc,node)
                             pass
                         pass
                     nodeset.extend(newnodes)
@@ -1995,7 +2081,7 @@ class xmldoc(object):
 
     def getroot(self):
         root=self.doc.getroot()
-        provenance.elementaccessed(self.filename,self.doc,root)
+        provenance.elementaccessed(self._filename,self.doc,root)
 
         return self.doc.getroot()
 
@@ -2008,7 +2094,7 @@ class xmldoc(object):
 
         self.element_in_doc(element)
 
-        return create_canonical_etxpath(self.filename,self.doc,element)
+        return create_canonical_etxpath(self._filename,self.doc,element)
         
         
     
@@ -2055,7 +2141,7 @@ class xmldoc(object):
                 raise ValueError("Non-unique result restoring saved path %s" % (savedpath))
 
             # Mark provenance reference
-            provenance.elementaccessed(self.filename,self.doc,foundelement[0])
+            provenance.elementaccessed(self._filename,self.doc,foundelement[0])
             return foundelement[0]
             
         pass
@@ -2089,14 +2175,14 @@ class xmldoc(object):
 
         if isinstance(foundnode,basestring) or isinstance(foundnode,float):
             if  hasattr(foundnode,"getparent"):
-                provenance.elementaccessed(self.filename,self.doc,foundnode.getparent())
+                provenance.elementaccessed(self._filename,self.doc,foundnode.getparent())
                 pass
             else :
-                provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self.filename))
+                provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self._filename))
                 pass
             pass
         else : 
-            provenance.elementaccessed(self.filename,self.doc,foundnode)
+            provenance.elementaccessed(self._filename,self.doc,foundnode)
 
             pass
 
@@ -2209,7 +2295,7 @@ class xmldoc(object):
         for child in context.iterchildren():
             if child.tag==clarktag:
                 if not noprovenanceupdate:
-                    provenance.elementaccessed(self.filename,self.doc,child)
+                    provenance.elementaccessed(self._filename,self.doc,child)
                     pass
                 return child
             pass
@@ -2245,7 +2331,7 @@ class xmldoc(object):
             for child in context.iterchildren():
                 if child.tag==clarktag:
                     if not noprovenanceupdate:
-                        provenance.elementaccessed(self.filename,self.doc,child)
+                        provenance.elementaccessed(self._filename,self.doc,child)
                         pass
                     children.append(child)
                     pass
@@ -2256,7 +2342,7 @@ class xmldoc(object):
             children=[]
             for child in context.iterchildren():
                 if not noprovenanceupdate:
-                    provenance.elementaccessed(self.filename,self.doc,child)
+                    provenance.elementaccessed(self._filename,self.doc,child)
                     pass
                 children.append(child)
                 pass
@@ -2453,7 +2539,7 @@ class xmldoc(object):
         this lock set, and assigns self.lockfd. Does not adjust or pay attention 
         to lock counts
         """
-        # print "Flush: self.filename=%s" % (self.filename)
+        # print "Flush: self._filename=%s" % (self._filename)
         
         if self.debug:
             if self.debug_last_serialized is not None and not self.modified:
@@ -2468,12 +2554,12 @@ class xmldoc(object):
             pass
 
 
-        if self.filename is not None:
+        if self.filehref is not None:
 
             if self.readonly:
                 raise IOError('xmldoc: attempt to flush in readonly mode')
 
-            if self.use_locking and self.lockfd < 0 and self.filename is not None and not(rolock) and not(rwlock) and not(ok_to_be_unlocked):
+            if self.use_locking and self.lockfd < 0 and self.filehref is not None and not(rolock) and not(rwlock) and not(ok_to_be_unlocked):
                 sys.stderr.write("flush() when not locked!\n")
                 traceback.print_stack()
                 pass
@@ -2483,7 +2569,7 @@ class xmldoc(object):
                 lockfd=-1
                 assert(os.name=="posix")
                 try : 
-                    lockfd=os.open(self.filename,os.O_RDONLY)
+                    lockfd=os.open(self._filename,os.O_RDONLY)
                     if rwlock: 
                         self._lock_rw(lockfd) # pass ownership of lockfd
                         pass
@@ -2500,7 +2586,7 @@ class xmldoc(object):
                               
             # flush changes to disk
             
-            (filenamepath,filenamefile)=os.path.split(self.filename)
+            (filenamepath,filenamefile)=os.path.split(self._filename)
             # save backup first
             for baknum in range(self.num_backups,0,-1):
                 
@@ -2530,13 +2616,13 @@ class xmldoc(object):
             
 
             bakname=os.path.join(filenamepath,"."+filenamefile+(".bak1"))
-            if self.num_backups > 0 and os.path.exists(self.filename):
+            if self.num_backups > 0 and os.path.exists(self._filename):
                 try :
-                    shutil.copyfile(self.filename,bakname);
+                    shutil.copyfile(self._filename,bakname);
                     pass
                 except :
                     (exctype,value)=sys.exc_info()[:2]
-                    sys.stderr.write("%s: %s renaming %s to %s to save as backup\n" % (unicode(exctype.__name__),unicode(value),self.filename,bakname))
+                    sys.stderr.write("%s: %s renaming %s to %s to save as backup\n" % (unicode(exctype.__name__),unicode(value),self._filename,bakname))
                     pass
                 pass
                 
@@ -2557,7 +2643,7 @@ class xmldoc(object):
                 sys.stderr.write("xmldoc _flush() cannot hold off SIGINT for critical output section (not running in main thread?)\n")
                 pass
 
-            OutFH=open(self.filename,"wb");
+            OutFH=open(self._filename,"wb");
             if (rolock or rwlock) and lockfd < 0:
                 # try again to lock
                 lockfd=os.dup(OutFH.fileno())
@@ -2679,7 +2765,7 @@ class xmldoc(object):
         
         self.ro_lockcount-=1
         if self.ro_lockcount==0 and self.rw_lockcount==0:
-            if self.filename is not None:
+            if self.filehref is not None:
                 self._unlock_ro()
                 self._free_doc()
                 pass
@@ -2738,7 +2824,7 @@ class xmldoc(object):
                     self.modified=False # clear modified, even if there was an error writing it out (presumably diagnosed by our caller) so we don't get a second exception on the next lock attempt
                     pass
                 pass
-            if self.filename is not None:
+            if self.filehref is not None:
                 self._unlock_rw()
                 self._free_doc()
                 pass
@@ -2844,11 +2930,11 @@ class xmldoc(object):
         
         # now ro_lockcount == 0, rw_lockcount == 1.
         # check value of lockfd
-        if self.filename is not None:
+        if self.filehref is not None:
             if self.lockfd < 0:
                 sys.stderr.write("xmldoc.should_be_rwlocked_once: Got invalid lockfd with valid filename\n")
                 traceback.print_stack()
-                lockfd=os.open(self.filename,os.O_RDONLY)
+                lockfd=os.open(self._filename,os.O_RDONLY)
                 self._lock_rw(lockfd) # pass ownership of lockfd
                 pass
             pass
@@ -2951,7 +3037,7 @@ class xmldoc(object):
             return etree.tostring(self.doc,encoding='utf-8',pretty_print=pretty_print).decode("utf-8")
         else : 
             # !!! Should we mark the provenance of the entire tree under this? 
-            provenance.elementaccessed(self.filename,self.doc,element)
+            provenance.elementaccessed(self._filename,self.doc,element)
             return etree.tostring(element,encoding='utf-8',pretty_print=pretty_print).decode("utf-8")
 
         pass
@@ -2969,14 +3055,14 @@ class xmldoc(object):
             return etree.tostring(self.doc,encoding=encoding,pretty_print=pretty_print)
         else : 
             # !!! Should we mark the provenance of the entire tree under this? 
-            provenance.elementaccessed(self.filename,self.doc,element)
+            provenance.elementaccessed(self._filename,self.doc,element)
             return etree.tostring(element,encoding=encoding,pretty_print=pretty_print)
 
         pass
 
     def getparent(self,element):
         parent=element.getparent()
-        provenance.elementaccessed(self.filename,self.doc,element)
+        provenance.elementaccessed(self._filename,self.doc,element)
         return parent
     
     
@@ -2987,7 +3073,8 @@ class xmldoc(object):
             pass
 
         self.doc=None
-        self.filename=None
+        self.filehref=None
+        self._filename=None
         self.nsmap=None
         self.namespaces=None
         self.modified=False
@@ -3037,23 +3124,23 @@ class synced(object):
 
         pass
 
-    def find_a_context_dir(self):
-        # find a suitable context dir for xml synchronization
+    def find_a_context_href(self):
+        # find a suitable context href for xml synchronization
 
         # First look for anything with a filename set
         for (xmldocu,xmlpath,ETxmlpath,logfunc) in self.doclist:
-            if xmldocu is not None and xmldoc.filename is not None:
-                return xmldocu.getcontextdir()
+            if xmldocu is not None and xmldocu.filehref is not None:
+                return xmldocu.getcontexthref()
             pass
 
         # Now look for anything 
         for (xmldocu,xmlpath,ETxmlpath,logfunc) in self.doclist:
-            if xmldocu is not None:
-                return xmldocu.getcontextdir()
+            if xmldocu is not None and xmldocu.contexthref is not None:
+                return xmldocu.getcontexthref()
             pass
         
         # worst-case fallthrough
-        return "."
+        return dc_value.hrefvalue(".")
         
     
     # adddoc: Add a document that will have a synchronized element. 
@@ -3092,7 +3179,7 @@ class synced(object):
                             pass
                         pass
                         
-                    # sys.stderr.write("%s %s: %s\n" % (xmldocobj.filename,self.controlparam.xmlname,str(self.controlparam.dcvalue)))
+                    # sys.stderr.write("%s %s: %s\n" % (xmldocobj._filename,self.controlparam.xmlname,str(self.controlparam.dcvalue)))
                     self.xmlresync(xmldocobj,xmlpath,ETxmlpath,logfunc=logfunc,initialload=True)
                     pass
                 except:
@@ -3154,7 +3241,7 @@ class synced(object):
     #    # class for implementing expanding date class
     #    return newval == self.controlparam.dcvalue
 
-    def manualmergedialog(self,humanpath,paramtype,parent,parentsource,descendentlist,descendentsourcelist,contextdir,kwargs):
+    def manualmergedialog(self,humanpath,paramtype,parent,parentsource,descendentlist,descendentsourcelist,contexthref,kwargs):
         # Something else must have made sure gtk is loaded!
         
         dialog=gtk.Dialog(title="Manual merge: %s" % (humanpath),buttons=("Cancel and raise error",0,
@@ -3247,7 +3334,7 @@ class synced(object):
         return None
 
 
-    def domerge(self,humanpath,parent,parentsource,descendentlist,descendentsourcelist,contextdir=None,manualmerge=False,**kwargs):
+    def domerge(self,humanpath,parent,parentsource,descendentlist,descendentsourcelist,contexthref=None,manualmerge=False,**kwargs):
         # this is a separate method so it can be overridden by derived 
         # class for implementing expanding date class
         #print self.controlparam.paramtype
@@ -3262,7 +3349,7 @@ class synced(object):
         #try:
 
         try : 
-            result=self.controlparam.paramtype.merge(parent,descendentlist,contextdir=contextdir,**kwargs)
+            result=self.controlparam.paramtype.merge(parent,descendentlist,contexthref=contexthref,**kwargs)
             pass
         except:
             (exctype,value)=sys.exc_info()[:2]
@@ -3273,7 +3360,7 @@ class synced(object):
                     raise
                 else:
                     loadgtk()
-                    result=self.manualmergedialog(humanpath,self.controlparam.paramtype,parent,parentsource,descendentlist,descendentsourcelist,contextdir,kwargs)
+                    result=self.manualmergedialog(humanpath,self.controlparam.paramtype,parent,parentsource,descendentlist,descendentsourcelist,contexthref,kwargs)
 
                     if result is None:
                         raise
@@ -3375,7 +3462,7 @@ class synced(object):
         # newval=None  # new value as calculated from dc_value class
 
         #newval=self.controlparam.paramtype.fromxml(xmldocobj,xmlel,self.controlparam.defunits,xml_attribute=self.controlparam.xml_attribute,contextdir=".")
-        newval=self.controlparam.paramtype.fromxml(xmldocobj,xmlel,self.controlparam.defunits,contextdir=".")
+        newval=self.controlparam.paramtype.fromxml(xmldocobj,xmlel,self.controlparam.defunits)
         #newval=self.valueobjfromxml(xmldocobj,xmlel)
         
         return newval
@@ -3452,7 +3539,7 @@ class synced(object):
 
         # for synced accumulating date support: 
         #initialloadvalue=self.createvalueobj(initialloadvalue)
-        contextdir=self.find_a_context_dir()
+        contexthref=self.find_a_context_href()
 
         humanpath=xmlpath
         if xmlpath is None:
@@ -3463,11 +3550,11 @@ class synced(object):
             # sys.stderr.write("initialloadvalue=%s %s; self.controlparam.dcvalue=%s %s\n" % (initialloadvalue.__class__.__name__,str(initialloadvalue),self.controlparam.dcvalue.__class__.__name__,str(self.controlparam.dcvalue)))
 
             # domerge enforces the correct value class by using that class to do the merge 
-            mergedval=self.domerge(humanpath,None,"None",[ initialloadvalue, self.controlparam.dcvalue ],[xmldocobj.filename,"in memory"],contextdir=contextdir,manualmerge=True,**self.mergekwargs)
+            mergedval=self.domerge(humanpath,None,"None",[ initialloadvalue, self.controlparam.dcvalue ],[xmldocobj._filename,"in memory"],contexthref=contexthref,manualmerge=True,**self.mergekwargs)
             #sys.stderr.write("mergedval=%s\n\n" % (str(mergedval)))
             pass
         except ValueError as e: 
-            raise ValueError("Error performing initial merge of information for parameter %s from file %s: %s" % (self.controlparam.xmlname, str(xmldocobj.filename),str(e)))
+            raise ValueError("Error performing initial merge of information for parameter %s from URL %s: %s" % (self.controlparam.xmlname, str(xmldocobj.filehref),str(e)))
             pass
 
         if mergedval != initialloadvalue: 
@@ -3525,7 +3612,7 @@ class synced(object):
                     pass
                 
                 mergevalues.append(self._get_dcvalue_from_file(xmldocobj,xmlpath,ETxmlpath))
-                mergesources.append(xmldocobj.filename)
+                mergesources.append(xmldocobj.get_filehref().absurl())
                 pass
             #sys.stderr.write("mergevalues=%s\n" % (str(mergevalues)))
             # sys.stderr.write("parent merge for %s: %s and %s\n" % (self.controlparam.xmlname,str(newval),str(self.controlparam.dcvalue)))
@@ -3535,10 +3622,10 @@ class synced(object):
             #for mv in mergevalues:
             #    sys.stderr.write("mv=%s %s\n" % (mv.__class__.__name__,str(mv)))
 
-            contextdir=self.find_a_context_dir()
+            contexthref=self.find_a_context_href()
             
             # domerge enforces the correct value class by using that class to do the merge 
-            mergedval=self.domerge(humanpath,oldvalue,"in memory",mergevalues,mergesources,contextdir=contextdir,**self.mergekwargs)
+            mergedval=self.domerge(humanpath,oldvalue,"in memory",mergevalues,mergesources,contexthref=contexthref,**self.mergekwargs)
             # sys.stderr.write("mergedval=%s\n\n" % (str(mergedval)))
 
             # createvalueobj can be overridden by derived class (used for current implemenetation of expanding date -- probably should be redone with some kind of merge override instead)
@@ -3570,11 +3657,11 @@ class synced(object):
             #    pass
             pass
         except ValueError as e: 
-            filename="None"
+            URL="None"
             if xmldocobj is not None:
-                filename=xmldocobj.filename
+                URL=xmldocobj.filehref.absurl()
                 pass
-            raise ValueError("Error merging information for parameter %s from file %s: %s" % (self.controlparam.xmlname, str(filename),str(e)))
+            raise ValueError("Error merging information for parameter %s from file %s: %s" % (self.controlparam.xmlname, str(URL),str(e)))
         finally: 
             # unlock all files
             for xmldocobj in locklist:
@@ -3636,10 +3723,12 @@ class synced(object):
             xmltag=xmldocobj.xpathsingle(xmlpath)
             pass
             
-        contextdir=self.find_a_context_dir()
+        # contexthref=self.find_a_context_href()
         
         #filevalue=self.controlparam.paramtype.fromxml(xmldocobj,xmltag,defunits=self.controlparam.defunits,xml_attribute=self.controlparam.xml_attribute,contextdir=contextdir)
-        filevalue=self.controlparam.paramtype.fromxml(xmldocobj,xmltag,defunits=self.controlparam.defunits,contextdir=contextdir)
+        filevalue=self.controlparam.paramtype.fromxml(xmldocobj,xmltag,defunits=self.controlparam.defunits)
+
+        
         if filevalue != valueobj: # update needed
             # sys.stderr.write("Upddate needed: %s != %s\n" % (str(filevalue),str(valueobj)))
 
