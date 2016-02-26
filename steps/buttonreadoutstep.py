@@ -72,11 +72,13 @@ class buttonreadoutstep(gtk.HBox):
     __proplist = ["readoutparam","buttonlabel","description"]
     
     myprops=None
-
-                      
+    checklist=None
+    step=None
+    
     dc_gui_io=None
     paramdb=None
     gladeobjdict=None
+    guistate=None
     
     def __init__(self,checklist,step,xmlpath):
         # paramhandler.__init__(self,super(adjustparamstep,self),self.__proplist)# .__gproperties__)
@@ -84,7 +86,8 @@ class buttonreadoutstep(gtk.HBox):
         gobject.GObject.__init__(self)
 
         self.myprops={}
-
+        self.checklist=checklist
+        self.step=step
         (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"buttonreadoutstep.glade"))   
         
         self.set_property("description","")
@@ -124,14 +127,14 @@ class buttonreadoutstep(gtk.HBox):
             raise IndexError("Bad property name %s" % (property.name))
         pass
 
-    def do_get_property(self,property,value):
+    def do_get_property(self,property):
         return self.myprops[property.name]
     
     def dc_gui_init(self,guistate):
         # need next line if subclassing a dc_gui class
         # super(dg_readout).__dc_gui_init(self,io)
         
-        
+        self.guistate=guistate
         self.paramdb=guistate.paramdb
         self.dc_gui_io=guistate.io
 

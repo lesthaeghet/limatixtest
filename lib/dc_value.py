@@ -11,6 +11,7 @@ import numbers
 import urlparse
 import urllib
 import posixpath
+import base64
 
 try:
     # py2.x
@@ -2304,6 +2305,11 @@ class imagevalue(value):
             # leave self.PILimage as None
             pass
 
+        if hasattr(PILimage,"PILimage"):
+            # This is really an imagevalue()
+            self.PILimage=copy.copy(PILimage.PILimage)
+            self.final=True
+            return
         if PILimage is not None:
             self.PILimage=copy.copy(PILimage)
             pass
@@ -2358,11 +2364,11 @@ class imagevalue(value):
     def merge(cls,parent,descendentlist,contexthref=None,maxmergedepth=np.Inf,tag_index_paths_override=None):
         
         for cnt in range(1,len(descendentlist)):
-            if descendent[0] != descendent[cnt]:
+            if descendentlist[0] != descendentlist[cnt]:
                 raise MergeError("Unable to merge inconsistent images")
             pass
         
-        return descendent[0]
+        return descendentlist[0]
 
     def __eq__(self,other):
         from PIL import ImageChops

@@ -4,6 +4,7 @@ import os
 import copy
 import string
 import traceback
+import types
 import re
 import numpy as np
 
@@ -444,6 +445,7 @@ def optionscontroller_xmlfile(param, filestring, fileparams, xpath, xpathparams,
 class threadserializedcontroller(object):
     # Class for controlling a parameter for on object wrapped
     # using threadserializedwrapper
+    id=None
     controlparam=None   # link to the class param
     serializedobject=None
     setter=None
@@ -455,6 +457,7 @@ class threadserializedcontroller(object):
     old_pending_requests=None # list of old pending request tuples that haven't come back yet
     
     def __init__(self,controlparam,serializedobject,getter=None,setter=None,saver=None,pollms=2000.0):
+        self.id=id(self)
         self.controlparam=controlparam
         self.serializedobject=serializedobject
         self.getter=getter
@@ -522,7 +525,7 @@ class threadserializedcontroller(object):
                 (exctype, excvalue) = sys.exc_info()[:2] 
                             
                 
-                sys.stderr.write("%s assigning value %s from %s to %s: %s\n" % (str(exctype.__name__),self.do_unquote_unescape(result),self.dgparam,self.controlparam.xmlname,excvalue))
+                sys.stderr.write("%s assigning value %s to %s: %s\n" % (str(exctype.__name__),str(result),self.controlparam.xmlname,excvalue))
                 traceback.print_exc()
                 
                 thisvalue=self.controlparam.paramtype("",defunits=self.controlparam.defunits)
@@ -564,7 +567,7 @@ class threadserializedcontroller(object):
 
     def _cancelpending(self):
         pending_request=self.pending_request
-        if self.serialized_object._wrap_classdict["threadmanager"].attempt_cancel_call(self.pending_request) is not None:
+        if self.serializedobject._wrap_classdict["threadmanager"].attempt_cancel_call(self.pending_request) is not None:
             # success in canceling
             self.pending_request=None
 
@@ -645,7 +648,7 @@ class threadserializedcontroller(object):
 
         if id(self.pending_request)==requestid:
             # request to be cancelled is current... Cancel it!
-            if self.serialized_object._wrap_classdict["threadmanager"].attempt_cancel_call(self.pending_request) is not None:
+            if self.serializedobject._wrap_classdict["threadmanager"].attempt_cancel_call(self.pending_request) is not None:
                 # success in canceling
                 self.pending_request=None
                 self.state=param.CONTROLLER_STATE_QUIESCENT
@@ -820,7 +823,7 @@ class dgcontroller(object):
         assert(isinstance(result,dc_value.hrefvalue))
 
         try: 
-            self.controlparam.assignval(newvalue,self.id)
+            self.controlparam.assignval(result,self.id)
 
             pass
         except :

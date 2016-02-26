@@ -1,3 +1,22 @@
+import sys
+import os
+import threading
+
+import collections
+import traceback
+
+
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
+    from gi.repository import GObject as gobject
+    pass
+else : 
+    # gtk2
+    import gobject
+    pass
+
+
 import genericmethodwrapper
 
 # This module generates Python wrapper classes that
@@ -51,12 +70,12 @@ class threadmanager(object):
     def threadcode(self):
         while True:
             try:
-                if len(callqueue)==0:
+                if len(self.callqueue)==0:
                     self.WakeupEvent.wait()
                     pass
 
-                if len(callqueue) > 0:
-                    params=callqueue.popleft()
+                if len(self.callqueue) > 0:
+                    params=self.callqueue.popleft()
                     self.WakeupEvent.clear()
                     (cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)=params
                     result=None
@@ -92,9 +111,9 @@ class threadmanager(object):
         # NOTE: Generally will be called from different thread
         removed=None
         
-        if paramtuple in callqueue:    
+        if paramtuple in self.callqueue:    
             try:
-                callqueue.remove(paramtuple)
+                self.callqueue.remove(paramtuple)
                 removed=paramtuple
                 pass
             except:

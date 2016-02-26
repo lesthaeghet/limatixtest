@@ -65,6 +65,7 @@ class dc_selectableparamstep(gtk.HBox):
     checklist=None
     xmlpath=None
     guistate=None
+    step=None
 
     paramnotify=None
                       
@@ -83,7 +84,8 @@ class dc_selectableparamstep(gtk.HBox):
 
         self.xmlpath=xmlpath
         self.checklist=checklist
-
+        self.step=step
+        
         self.set_property("paramname","")
         self.set_property("labelmarkup","")
         self.set_property("description","")

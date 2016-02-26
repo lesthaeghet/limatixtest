@@ -66,6 +66,7 @@ else :
 
 import dataguzzler as dg
 import dg_comm as dgc
+import dg_file as dgf
 
 
 __pychecker__="no-import no-callinit no-local" # no-callinit because of spurious warning about (dg_comm.client) __init__() not being called
@@ -192,9 +193,9 @@ class cmdiochan(iochan):
             # settings file
             out=open(self.pendingcom.savehref.getpath(),"wb")
             retcode=dgc.command(self,"WFM:WFMS?")
-            out.write(cli.buf)
+            out.write(self.buf)
             retcode=dgc.command(self,"SET?")
-            out.write(cli.buf)
+            out.write(self.buf)
             out.close()
             
             pass
@@ -202,7 +203,7 @@ class cmdiochan(iochan):
             # assume .dgs
             dgfh=dgf.creat(self.pendingcom.savehref.getpath())
             if dgfh is None:
-                raise IOError("Could not open dgs file \"%s\" for write." % (outfilename))
+                raise IOError("Could not open dgs file \"%s\" for write." % (self.pendingcom.savehref.getpath()))
             (globalrevision,ChanList)=dgc.downloadwfmlist(self,False,True,True);
             dgf.startchunk(dgfh,"SNAPSHOT");
             # provide empty metadata chunk

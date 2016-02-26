@@ -88,7 +88,7 @@ class dc_imagereadoutstep(gtk.HBox):
         # gtk.HBox.__init__(self) # Not supposed to call superclass __init__ method, just gobject __init__ according to    http://www.pygtk.org/articles/subclassing-gobject/sub-classing-gobject-in-python.htm  
         gobject.GObject.__init__(self)
 
-        self.myprops={"paramname": None, "width": -1, "height": -1, "save_to_xml", False, "description": None}
+        self.myprops={"paramname": None, "width": -1, "height": -1, "save_to_xml": False, "description": None}
 
         (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"dc_imagereadoutstep.glade"))   
         

@@ -7,7 +7,8 @@ import shutil
 import pty
 import threading
 import subprocess
-import urllib
+import posixpath
+
 from lxml import etree
 
 try:
@@ -261,7 +262,7 @@ class rundatacollectstep(gtk.HBox):
             planhref=dc_value.hrefvalue(self.planfile,self.checklist.getcontexthref())
             planhrefcontext=planhref.leafless()
             planhrefbarefilename=planhref.get_bare_unquoted_filename()
-            basename=posixpath.splitext(blanhrefbarefilename)[0]
+            basename=posixpath.splitext(planhrefbarefilename)[0]
             
             if self.suffix=="":
                 suffix=""
@@ -270,8 +271,8 @@ class rundatacollectstep(gtk.HBox):
                 suffix="_%s" % (self.suffix)
                 pass
             
-            xlghref=dc_value.hrefvalue(quote(basename+suffix+".xlg"),planhrefcontext))
-            xlgdir=dc_value.hrefvalue(quote(basename+suffix+"_files/",planhrefcontext))
+            xlghref=dc_value.hrefvalue(quote(basename+suffix+".xlg"),planhrefcontext)
+            xlgdir=dc_value.hrefvalue(quote(basename+suffix+"_files/"),planhrefcontext)
             
             
             filledplanhref=dc_value.hrefvalue(quote(basename+suffix+".plf"),xlgdir)
@@ -325,7 +326,7 @@ class rundatacollectstep(gtk.HBox):
                         
                     pass
 
-                if os.path.exists(filledplan) and not self.checklist.readonly:
+                if os.path.exists(filledplanhref.getpath()) and not self.checklist.readonly:
                     # store in checklist
                     self.checklist.xmldoc.lock_rw()
                     try:
