@@ -441,6 +441,269 @@ def optionscontroller_xmlfile(param, filestring, fileparams, xpath, xpathparams,
     pass
 
 
+class threadserializedcontroller(object):
+    # Class for controlling a parameter for on object wrapped
+    # using threadserializedwrapper
+    controlparam=None   # link to the class param
+    serializedobject=None
+    setter=None
+    getter=None
+    saver=None
+    pollms=None
+    state=None  # see CONTROLLER_STATE defines in definition of param class
+    pendingrequest=None  # currently pending request tuple
+    old_pending_requests=None # list of old pending request tuples that haven't come back yet
+    
+    def __init__(self,controlparam,serializedobject,getter=None,setter=None,saver=None,pollms=2000.0):
+        self.controlparam=controlparam
+        self.serializedobject=serializedobject
+        self.getter=getter
+        self.setter=setter
+        self.saver=saver
+        self.pollms=pollms
+        self.state=param.CONTROLLER_STATE_QUIESCENT
+        
+        
+
+        # Request repeated calls to doquery() every pollms milliseconds
+        if self.pollms >= 0.0:
+            gobject.timeout_add(self.pollms,self.doquery)
+            pass
+        
+        pass
+
+
+    def doquery(self):
+        if self.state!=param.CONTROLLER_STATE_QUIESCENT:
+            # Don't do query unless nothing else is happening
+            return
+
+    
+
+        if isinstance(self.getter,types.MethodType):
+            # Bound method... do not provide serializedojbect
+            # as first parameter
+
+            # gobject_callback kwparam never really goes to the
+            # getter but is stripped and handled by
+            # threadserializedwrapper.wrap_dispatch()
+            self.pending_request=self.getter(gobject_callback=(self.callback,None)) # No additional callback params for a query
+            pass
+        else:
+            self.pending_request=self.getter(self.serializedobject,gobject_callback=(self.callback,None))  # No additional callback params for a query
+            pass
+        
+        return True  # Get called-back again in another pollms seconds
+
+    
+    def callback(self,request_tuple,result,additional_callback_params):
+        old=False
+        if self.pendingrequest is request_tuple:
+            self.pendingrequest=None
+            self.state=param.CONTROLLER_STATE_QUIESCENT
+            pass
+        else:
+            assert(request_tuple in self.old_pending_requests)
+            self.old_pending_requests.remove(request_tuple)
+            old=True
+            pass
+        
+            
+        if not old and not isinstance(result,BaseException):
+
+            # Request succeeded
+            lastvalue=self.controlparam.dcvalue
+
+            try:
+
+                thisvalue=self.controlparam.paramtype(result,defunits=self.controlparam.defunits)
+                pass
+            except:
+                (exctype, excvalue) = sys.exc_info()[:2] 
+                            
+                
+                sys.stderr.write("%s assigning value %s from %s to %s: %s\n" % (str(exctype.__name__),self.do_unquote_unescape(result),self.dgparam,self.controlparam.xmlname,excvalue))
+                traceback.print_exc()
+                
+                thisvalue=self.controlparam.paramtype("",defunits=self.controlparam.defunits)
+                pass
+            
+            if not lastvalue.equiv(thisvalue):
+                self.controlparam.assignval(thisvalue,self.id)
+                pass
+
+            if additional_callback_params is not None:
+                # our client asked for a callback
+                clientcallback=additional_callback_params[0]
+                cbrunargs=additional_callback_params[1:]
+                
+                clientcallback(self.controlparam,id(request_tuple),None,self.controlparam.dcvalue,cbrunargs)
+
+                pass
+
+
+            
+            
+            pass
+        else:
+            # request failed
+            reqid=None
+
+            if request_tuple is not None:
+                reqid=id(request_tuple)
+                pass
+            
+            if additional_callback_params is not None:
+                # our client asked for a callback
+                clientcallback=additional_callback_params[0]
+                cbrunargs=additional_callback_params[1:]
+                clientcallback(self.controlparam,reqid,result,None,*cbrunargs)
+                pass
+            pass
+        return False
+
+    def _cancelpending(self):
+        pending_request=self.pending_request
+        if self.serialized_object._wrap_classdict["threadmanager"].attempt_cancel_call(self.pending_request) is not None:
+            # success in canceling
+            self.pending_request=None
+
+            # move to old_pending_requests
+            self.old_pending_requests.append(pending_request)
+ 
+            # extract callback info from pending_request (this is the tuple from threadserializedwrapper.py
+            (cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)=pending_request            
+            # trigger callback with error return
+            gobject.timeout_add(0,self.callback,pending_request,ValueError("Command overridden by new request"),callback_and_params[1])
+            
+            
+
+            
+            pass
+        else:
+            # Could not cancel... move to old_pending_requests
+            self.old_pending_requests.append(pending_request)
+            self.pending_request=None
+            pass
+        pass
+    
+    def requestval(self,param,newvalue,*cbargs):
+        # print "requestval %s = %s" % (param.xmlname,str(newvalue))
+
+        if self.state != param.CONTROLLER_STATE_QUIESCENT:
+            # Cancel current pending request
+            self._cancelpending()
+            pass
+
+        assert(self.pending_request is None)
+        self.state=param.CONTROLLER_STATE_REQUEST_PENDING
+        
+        try:
+            if isinstance(self.setter,types.MethodType):
+                # Bound method... do not provide serializedojbect
+                # as first parameter
+                
+                # gobject_callback kwparam never really goes to the
+                # getter but is stripped and handled by
+                # threadserializedwrapper.wrap_dispatch()
+                self.pending_request=self.setter(newvalue,gobject_callback=(self.callback,cbargs))
+                pass
+            elif self.setter is not None:
+                self.pending_request=self.setter(self.serializedobject,newvalue,gobject_callback=(self.callback,cbargs))
+                pass
+            else:
+                # no setter. This is a read-only parameter
+                # OK to set to blank
+                if newvalue.isblank():
+                    # perform assignment if necessary
+
+                    if not self.controlparam.dcvalue.equiv(newvalue):
+                        self.controlparam.assignval(newvalue,self.id)
+                        pass
+
+                    # create dummy request tuple
+                    #(cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)
+                    request_tuple=(None,None,None,None,(self.callback,cbargs),None,None)
+                    # Request callback in gobject mainloop
+                    self.pending_request=request_tuple
+                    gobject.timeout_add(0,self.callback,request_tuple,newvalue,cbargs)
+                    pass
+                    
+                pass
+            pass
+        except:
+            (exctype,excvalue)=sys.exc_info()[:2]
+            sys.stderr.write("Exception issuing command... Should get callback with exception \n")
+            gobject.timeout_add(0,self.callback,self.pending_request,excvalue,cbargs)
+            return None  # BUG: Should probably return valid request id in this case. Otherwise we use dgio idents, which are the id() of the pendingcommand structure
+        reqid=id(self.pending_request)
+        return reqid
+    
+
+    def cancelrequest(self,param,requestid): 
+        # returns True if successfully canceled
+
+        if id(self.pending_request)==requestid:
+            # request to be cancelled is current... Cancel it!
+            if self.serialized_object._wrap_classdict["threadmanager"].attempt_cancel_call(self.pending_request) is not None:
+                # success in canceling
+                self.pending_request=None
+                self.state=param.CONTROLLER_STATE_QUIESCENT
+    
+                return True
+            pass
+        return False
+
+    # Special method: perform_save()
+    # works with dc_paramsavestep to issue a command
+    # that performs a save and stores the URL in this 
+    # parameter.
+    #
+    # Usually in this value you would set reset_with_meas_record=True
+    # so it gets reset between measurement steps, and you would set
+    # dangerous=True so it doesn't get restored, and you
+    # would use it with a param that is an hrefvalue
+    # and you would set pollms to -1.0 so it doesn't get polled
+    #
+    # perform_save() uses the saver routine
+    def perform_save(self,param,savefilehref,*cbargs):
+
+        if self.state != param.CONTROLLER_STATE_QUIESCENT:
+            # Cancel current pending request
+            self._cancelpending()
+            pass
+
+        assert(self.pending_request is None)
+        self.state=param.CONTROLLER_STATE_REQUEST_PENDING
+        
+        try:
+            if isinstance(self.saver,types.MethodType):
+                # Bound method... do not provide serializedojbect
+                # as first parameter
+                
+                # gobject_callback kwparam never really goes to the
+                # getter but is stripped and handled by
+                # threadserializedwrapper.wrap_dispatch()
+                self.pending_request=self.saver(savefilehref,gobject_callback=(self.callback,cbargs))
+                pass
+            elif self.saver is not None:
+                self.pending_request=self.saver(self.serializedobject,savefilehref,gobject_callback=(self.callback,cbargs))
+                pass
+            else:
+                raise ValueError("Attempt to perform save with no saver function set!")
+            pass
+        except:
+            (exctype,excvalue)=sys.exc_info()[:2]
+            sys.stderr.write("Exception issuing command... Should get callback with exception \n")
+            gobject.timeout_add(0,self.callback,self.pending_request,excvalue,cbargs)
+            return None  # BUG: Should probably return valid request id in this case. Otherwise we use dgio idents, which are the id() of the pendingcommand structure
+        reqid=id(self.pending_request)
+        return reqid
+            
+    
+    pass
+
+
 
 class dgcontroller(object):
     # Class for controlling a parameter that uses dataguzzler to manage
@@ -451,10 +714,11 @@ class dgcontroller(object):
     escape=None  # Should unusual characters in the value be escaped before transmission (if not, they are invalid!)
     id=None
     state=None  # see CONTROLLER_STATE defines in definition of param class
+                # (dg_io performs background repetitive query that qualifies as quiescent)
     numpending=None  # number of pending commands.
     querytype=None # dg_io querytype to use
 
-
+    # set dgparam to None for perform_save() parameters
     def __init__(self,controlparam,dgparam,quote=False,escape=False,querytype=dg_io.io.QT_GENERIC):
         self.controlparam=controlparam
         self.dgparam=dgparam
@@ -524,6 +788,55 @@ class dgcontroller(object):
             return dg.unescapestr(paramstr)
         pass
 
+
+    def performsavecallback(self,reqid,fullquery,retcode,fullresponse,result,cbargs):
+        # sys.stderr.write("requestvalcallback. fullresponse=%s\n" % (fullresponse))
+        self.numpending -= 1
+        if (self.numpending==0):
+            self.state=param.CONTROLLER_STATE_QUIESCENT
+            self.startquery()
+            pass
+
+        clientcallback=None
+
+        if len(cbargs) > 0:
+            clientcallback=cbargs[0]
+            cbrunargs=cbargs[1:]
+            pass
+
+        if retcode != 200:
+            # error return
+
+            assert(isinstance(result,BaseException))
+            
+            
+        
+            if clientcallback is not None:
+                clientcallback(self.controlparam,reqid,fullresponse,None,*cbrunargs)
+                pass
+        
+            return False
+        
+        assert(isinstance(result,dc_value.hrefvalue))
+
+        try: 
+            self.controlparam.assignval(newvalue,self.id)
+
+            pass
+        except :
+            (exctype, value) = sys.exc_info()[:2] 
+            if clientcallback is not None:
+                clientcallback(self.controlparam,reqid,"Exception assigning value: %s(%s)" % (str(exctype),str(value)),None,*cbrunargs)
+                pass
+            return False
+        
+        if clientcallback is not None:
+            clientcallback(self.controlparam,reqid,None,self.controlparam.dcvalue,*cbargs[1:])
+            pass
+        
+        return False
+
+    
     def requestvalcallback(self,reqid,fullquery,retcode,fullresponse,result,cbargs):
         # sys.stderr.write("requestvalcallback. fullresponse=%s\n" % (fullresponse))
         self.numpending -= 1
@@ -573,7 +886,10 @@ class dgcontroller(object):
         
         return False
 
+
+    
     def requestvalerrorcallback(self,e,*cbargs):
+        # also used for save errors
         # sys.stderr.write("requestvalcallback. e=%s\n" % (str(e)))
         clientcallback=None
         
@@ -622,6 +938,45 @@ class dgcontroller(object):
         
             
         return reqid
+
+
+
+    # perform_save is a request that this parameter be saved to disk
+    # taking on the href of the save file as its value
+    # (This is an asynchronous request. Will get callback when complete)
+    # returns request identifier that can be used to cancel request 
+    # callback(param,requestid,errorstr,newvalue,*cbargs)
+    def perform_save(self,param,savehref,*cbargs):
+        # print "requestval %s = %s" % (param.xmlname,str(newvalue))
+
+        if not issubclass(self.controlparam.paramtype,dc_value.hrefvalue):
+            raise ValueError("paramdb2.perform_save(%s):  Method only applies to parameters of hrefvalue type" (self.controlparam.xmlname))
+        
+        self.state=param.CONTROLLER_STATE_REQUEST_PENDING
+        self.numpending+=1
+        self.stopquery()
+
+        if not self.controlparam.iohandlers["dgio"].commstarted:
+            sys.stderr.write("dgcontroller: attempting to save dataguzzler parameter %s (%s) even though communication link not started!\n" % (self.controlparam.xmlname,self.dgparam))
+            pass
+        elif len(self.controlparam.iohandlers["dgio"].connfailindicator) > 0:
+            sys.stderr.write("dgcontroller: attempting to save dataguzzler parameter %s (%s) even though dataguzzler communication link has failed!\n" % (self.controlparam.xmlname,self.dgparam))
+            pass
+        
+        
+
+        try:
+            reqid=self.controlparam.iohandlers["dgio"].performsave(None,savehref,self.controlparam.save_extension,self.performsavecallback,cbargs)
+            pass
+        except ValueError as e:
+            sys.stderr.write("Exception performing save... Should get requestvalerrorcallback\n")
+            gobject.timeout_add(0,self.requestvalerrorcallback,e,*cbargs)
+            return None  # BUG: Should probably return valid request id in this case. Otherwise we use dgio idents, which are the id() of the pendingcommand structure
+            pass
+        
+            
+        return reqid
+
     
 
     def cancelrequest(self,param,requestid): 
@@ -641,6 +996,9 @@ class dgcontroller(object):
         assert(self.state==param.CONTROLLER_STATE_QUIESCENT)
         assert(self.numpending==0)
 
+        if self.dgparam is None:  # this is a perform_save() parameter
+            return
+
         paramsplit=self.dgparam.split()
         paramsplit[0]+="?"
         paramstring=" ".join(paramsplit)
@@ -649,6 +1007,9 @@ class dgcontroller(object):
         pass
 
     def stopquery(self):
+        if self.dgparam is None:  # this is a perform_save() parameter
+            return
+
         self.controlparam.iohandlers["dgio"].remquery(id(self))
 
         pass
@@ -1208,7 +1569,8 @@ class param(object):
     dangerous=None  # Set this flag on parameter creation to indicate that this parameter has potentially dangerous (usually mechanical) side effects and should be ignored on restore. 
     non_settable=None # specified on creation or by controller to indicate that this parameter is not generally settable by the user. Used to select which parameters in the database are saved. 
     # xml_attribute=None # if not None, dc_value.value.xmlrepr()  and dc_value.value.fromxml() should store their data this attribute, specified by name (namespace prefixes OK) rather than in the content of the tag
-
+    save_extension=None # filename extension to use when saving
+    
     # NOTE: since this class shadows a dc_value object, it should NOT have members
     # with the same name as those in a dc_value or it's derived classes 
     # i.e. final, str, val, unit, defunit, pixbuf, type, f0, f1, t0, t1, t2, t3
@@ -1227,7 +1589,7 @@ class param(object):
     NOTIFY_NEWVALUE=1  # every successful controller request should result in a newvalue, whether or not the value actually changed
     NOTIFY_NEWOPTIONS=2 # Called when options are updated by the controller so that they can be reloaded in the GUI
 
-    def __init__(self,parent,xmlname,paramtype,options=None,defunits=None,build=None,displayfmt=None,hide_from_meas=False,reset_with_meas_record=False,dangerous=False,non_settable=False): # xml_attribute=None):
+    def __init__(self,parent,xmlname,paramtype,options=None,defunits=None,build=None,displayfmt=None,hide_from_meas=False,reset_with_meas_record=False,dangerous=False,non_settable=False,save_extension=".dat"): # xml_attribute=None):
         # DO NOT CALL THIS DIRECTLY.... Should be called indirectly from pdb.addparam() 
         # create a parameter with the specified xmlname (string/unicode)
         # paramtype should be dc_value.stringvalue, dc_value.numericunitsvalue, dc_value.excitationparamsvalue, or similar
@@ -1252,7 +1614,8 @@ class param(object):
         self.hide_from_meas=hide_from_meas
         self.reset_with_meas_record=reset_with_meas_record
         self.dangerous=dangerous
-        self.non_settable=non_settable  # specified on creation or by controller to indicate that this parameter is not generally settable by the user. Used to select which parameters in the database are saved. 
+        self.non_settable=non_settable  # specified on creation or by controller to indicate that this parameter is not generally settable by the user. Used to select which parameters in the database are saved.
+        self.save_extension=save_extension
         #self.xml_attribute=xml_attribute
 
         #import pdb as pythondb
@@ -1273,6 +1636,11 @@ class param(object):
         
         pass
 
+    def perform_save(self,savefilehref,*cbargs):
+        
+        # pass request onto controller
+        return self.controller.perform_save(self,savefilehref,*cbargs)
+    
     # requestval is a request that this parameter take on the requested value
     # (This is an asynchronous request. Will get callback when complete)
     def requestval(self,valueobj,*cbargs):
@@ -1291,7 +1659,7 @@ class param(object):
         # pass cancel on to controller
 
         return self.controller.cancelrequest(self,requestid)
-    
+
 
     # requestval is a request that this parameter take on the requested value,
     # provided in string or unicode form
@@ -1368,6 +1736,8 @@ class param(object):
         pass
 
 
+    
+    
     # assignval is performed by controller, often in response to requestval
     def assignval(self,valueobj,idnum):
         if idnum != id(self.controller):
@@ -1384,44 +1754,6 @@ class param(object):
         return object.__setattr__(self,item,value)
     
 
-    
-    # pass through requests to dc_value class, so that we "look like" a dc_value
-    def set_string(self,str):
-        return self.dcvalue.set_string(str)
-    
-    def __str__(self):
-        return self.dcvalue.__str__()
-    
-    
-    def __eq__(self,other):
-        return self.dcvalue.__eq__(other)
-
-    def __add__(self,other):
-        return self.dcvalue.__add__(other)
-
-    def __sub__(self,other):
-        return self.dcvalue.__sub__(other)
-
-    def __mul__(self,other):
-        return self.dcvalue.__mul__(other)
-
-    def __div__(self,other):
-        return self.dcvalue.__div__(other)
-    
-    def __ne__(self,other):
-        return self.dcvalue.__ne__(other)
-
-    def value(self,*args,**kwargs):
-        return self.dcvalue.value(*args,**kwargs)
-
-    def units(self,*args,**kwargs):
-        return self.dcvalue.units(*args,**kwargs)
-
-    def valuedefunits(self,*args,**kwargs):
-        return self.dcvalue.valuedefunits(*args,**kwargs)
-
-    def simplifyunits(self,*args,**kwargs):
-        return self.dcvalue.simplifyunits(*args,**kwargs)
     
         
     

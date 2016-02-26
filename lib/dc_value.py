@@ -36,6 +36,14 @@ except ImportError:
     sys.stderr.write("dc_value: Warning: unable to import dc_lxml_treesync -- XML comparisons not supported\n")
     pass
 
+try:
+    from cStringIO import StringIO
+    pass
+except ImportError:
+    from io import StringIO
+    pass
+
+
 
 #import canonicalize_path
 
@@ -139,9 +147,6 @@ class MergeError(Exception):
 class value(object): 
     final=False
     
-    # No-op method templates
-    def set_string(self,str):
-        pass
 
     def isblank(self):
         return False
@@ -2287,6 +2292,97 @@ class excitationparamsvalue(value) :
 
 
 
+    pass
+
+class imagevalue(value):
+    PILimage=None
+
+    def __init__(self,PILimage):
+
+        if isinstance(PILimage,basestring):
+            assert(PILimage=="") # blank string
+            # leave self.PILimage as None
+            pass
+
+        if PILimage is not None:
+            self.PILimage=copy.copy(PILimage)
+            pass
+
+        self.final=True
+        pass
+
+    def __str__(self):
+        return str(self.PILimage)
+
+    @classmethod
+    def fromxml(cls,xmldocu,element,defunits=None):
+        # read src=... attribute like an html <img src="data:image/png;base64,..."/>
+        from PIL import Image  # Need Python Imaging Library
+        
+        if not xmldocu.hasattr(element,"src"):
+            return imagevalue(None) # blank
+        
+        srcvalue=xmldocu.getattr(element,"src")
+
+        if srcvalue.startswith("data:image/png;base64,"):
+            imagedata=base64.b64decode(srcvalue[22:])
+            PILimage=Image.open(StringIO(imagedata))
+            pass
+        elif srcvalue.startswith("data:image/jpeg;base64,"):
+            imagedata=base64.b64decode(srcvalue[23:])
+            PILimage=Image.open(StringIO(imagedata))            
+            pass
+        else:
+            raise ValueError("Element src not base-64-encoded image data (starts instead as %s" % (srcvalue[:20]))
+
+        return imagevalue(PILimage)
+
+    def isblank(self):
+        return self.PILimage is None
+
+    def xmlrepr(self,xmldocu,tag,defunits=None):
+        # Always save as PNG (lossless)
+
+        if self.PILimage is None: # blank
+            if xmldocu.hasattr(tag,"src"):
+                xmldocu.remattr(tag,"src")
+                pass
+            return
+        
+        PNGbuf=StringIO()
+        self.PILimage.save(PNGbuf,format="PNG")
+        xmldocu.setattr(tag,"data:image/png;base64,"+base64.b64encode(PNGbuf.getvalue()))
+        pass
+
+    @classmethod
+    def merge(cls,parent,descendentlist,contexthref=None,maxmergedepth=np.Inf,tag_index_paths_override=None):
+        
+        for cnt in range(1,len(descendentlist)):
+            if descendent[0] != descendent[cnt]:
+                raise MergeError("Unable to merge inconsistent images")
+            pass
+        
+        return descendent[0]
+
+    def __eq__(self,other):
+        from PIL import ImageChops
+
+        if self.PILimage is None and other.PILimage is None:
+            return True
+
+        if self.PILimage is None or other.PILimage is None:
+            return False
+        
+        # from http://effbot.org/zone/pil-comparing-images.htm:
+        # The quickest way to determine if two images have exactly
+        # the same contents is to get the difference between the two
+        # images, and then calculate the bounding box of the non-zero
+        # regions in this image. If the images are identical, all
+        # pixels in the difference image are zero, and the bounding
+        # box function returns None.
+        
+        return ImageChops.difference(self.PILimage, other.PILimage).getbbox() is None
+    
     pass
 
 class photosvalue(value):

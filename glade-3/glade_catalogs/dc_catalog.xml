@@ -20,6 +20,31 @@
       </properties>
     </glade-widget-class>
 
+    <glade-widget-class name="imagereadout" generic-name="imagereadout" title="datacollect2 image parameter viewer (using paramdb2)">
+      <properties>
+
+        <property id="paramname" query="True" default="" name="paramdb2 entry to view">
+	  <spec>glade_standard_string_spec</spec>
+ 	  <tooltip>paramdb2 entry to view</tooltip>
+        </property>
+
+	<property id="width" query="True" default="" name="width to scale image to or -1 for unset">
+	  <spec>glade_standard_int_spec</spec>
+ 	  <tooltip>width to scale image to or -1 for unset</tooltip>
+        </property>
+
+	<property id="height" query="True" default="" name="height to scale image to or -1 for unset">
+	  <spec>glade_standard_int_spec</spec>
+ 	  <tooltip>height to scale image to or -1 for unset</tooltip>
+        </property>
+
+	<!-- adjust superclass (GtkImage) properties here -->
+	<!-- <property id="editable" default="True"/>
+	<property id="can_focus" default="True"/> -->
+      </properties>
+    </glade-widget-class>
+
+    
     <glade-widget-class name="labelled_adjustparamreadout" generic-name="labelled_adjustparamreadout" title="Labelled adjustable parameter readout (using paramdb2)">
      <properties>
        

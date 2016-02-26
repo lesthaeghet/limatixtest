@@ -104,7 +104,7 @@ class textgraphicstep(gtk.HBox):
 
         path=value # absolute path or relative to our current directory
         
-        if not "gtk" in sys.modules:  # gtk3
+        if "gi" in sys.modules:  # gtk3
             rawpixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
                 
             pass

@@ -28,39 +28,44 @@ from dc_gtksupp import dc_initialize_widgets
 __pychecker__="no-import no-argsused"
 
 # gtk superclass should be first of multiple inheritances
-class dc_paramstep(gtk.HBox):
-    __gtype_name__="dc_paramstep"
+class dc_imagereadoutstep(gtk.HBox):
+    __gtype_name__="dc_imagereadoutstep"
     __gproperties__ = {
         "paramname": (gobject.TYPE_STRING,
-                     "paramdb2 parameter to set",
-                     "paramdb2 parameter to set",
+                     "paramdb2 parameter to view",
+                     "paramdb2 parameter to view",
                      "", # default value 
                      gobject.PARAM_READWRITE), # flags
 
-         "labelmarkup": (gobject.TYPE_STRING,
-                     "Markup string for the label",
-                     "Markup string for the label",
-                     "", # default value 
+        "width": (gobject.TYPE_INT,
+                     "width",
+                     "maximum width to scale image to, or -1 for unset",
+                     -1, # minimum value
+                     50000, # maximum value... essentially infinite
+                     -1, # default value 
                      gobject.PARAM_READWRITE), # flags
+        
+        "height": (gobject.TYPE_INT,
+                  "height",
+                  "maximum height to scale image to, or -1 for unset",
+                  -1, # minimum value
+                  50000, # maximum value... essentially infinite
+                  -1, # default value 
+                  gobject.PARAM_READWRITE), # flags
 
-        
-        
-        # "width": (gobject.TYPE_INT,
-        #           "Text box width",
-        #           "Requested text box with, in characters",
-        #           0, # minimum value, equivalent to unspecified
-        #           100, # maximum value
-        #           0, # default value 
-        #           gobject.PARAM_READWRITE), # flags
-        
-        
+        "save_to_xml": (gobject.TYPE_BOOLEAN,
+                  "save_to_xml",
+                  "Whether or not the image data should be saved into the checklist XML file",
+                   False, # default value 
+                  gobject.PARAM_READWRITE), # flags
+
         "description": (gobject.TYPE_STRING,
                         "description of step",
                         "description of step",
                         "", # default value 
                         gobject.PARAM_READWRITE), # flags
         }
-    __proplist = ["paramname","labelmarkup","description"]
+    __proplist = ["paramname","width","height","save_to_xml","description"]
 
     __dcvalue_xml_properties={} # dictionary by property of dc_value class to be transmitted as a serialized  xmldoc
     __dcvalue_href_properties=frozenset([]) # set of properties to be transmitted as an hrefvalue with the checklist context as contexthref
@@ -83,9 +88,9 @@ class dc_paramstep(gtk.HBox):
         # gtk.HBox.__init__(self) # Not supposed to call superclass __init__ method, just gobject __init__ according to    http://www.pygtk.org/articles/subclassing-gobject/sub-classing-gobject-in-python.htm  
         gobject.GObject.__init__(self)
 
-        self.myprops={"paramname": None, "labelmarkup": None, "description": None}
+        self.myprops={"paramname": None, "width": -1, "height": -1, "save_to_xml", False, "description": None}
 
-        (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"dc_paramstep.glade"))   
+        (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"dc_imagereadoutstep.glade"))   
         
         # self.gladeobjdict["step_textentry"].connect("size-request",self.te_reqsize)
 
@@ -94,10 +99,12 @@ class dc_paramstep(gtk.HBox):
         self.step=step
 
         self.set_property("paramname","")
-        self.set_property("labelmarkup","")
+        self.set_property("width",-1)
+        self.set_property("height",-1)
+        self.set_property("save_to_xml",False)
         self.set_property("description","")
 
-        self.pack_start(self.gladeobjdict["dc_paramstep"],True,True,0)
+        self.pack_start(self.gladeobjdict["dc_imagereadoutstep"],True,True,0)
 
         # self.gladeobjdict["step_adjustparam"].connect("changed",self.changedcallback)
 
@@ -111,11 +118,18 @@ class dc_paramstep(gtk.HBox):
         if property.name=="paramname":
             # print "paramname=%s" % value
             self.myprops[property.name]=value
-            self.gladeobjdict["step_adjustparam"].set_property("paramname",value)
+            self.gladeobjdict["imagereadout"].set_property("paramname",value)
             pass
-        elif property.name=="labelmarkup":
+        elif property.name=="width":
             self.myprops[property.name]=value
-            self.gladeobjdict["step_adjustparam"].set_property("labelmarkup",value+" ")
+            self.gladeobjdict["width"].set_property("width",value)
+            pass
+        elif property.name=="height":
+            self.myprops[property.name]=value
+            self.gladeobjdict["height"].set_property("height",value)
+            pass
+        elif property.name=="save_to_xml":
+            self.myprops[property.name]=value
             pass
         elif property.name=="description":
             self.myprops[property.name]=value
@@ -124,7 +138,7 @@ class dc_paramstep(gtk.HBox):
         else :
             raise IndexError("Bad property name %s" % (property.name))
         pass
-
+    
     def do_get_property(self,property):
         return self.myprops[property.name]
     
@@ -137,8 +151,6 @@ class dc_paramstep(gtk.HBox):
         self.set_fixed()  # set to fixed value from xml file if appropriate, prior to initizliation of wrapped widget
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
-
-        self.changedcallback(None,None) #  update xml
 
         self.paramnotify=self.guistate.paramdb.addnotify(self.myprops["paramname"],self.changedcallback,pdb.param.NOTIFY_NEWVALUE)
 
@@ -159,7 +171,7 @@ class dc_paramstep(gtk.HBox):
     def set_fixed(self):
         fixed=self.is_fixed()
         (value,displayfmt)=self.value_from_xml()
-        self.gladeobjdict["step_adjustparam"].set_fixed(fixed,value,displayfmt)
+        self.gladeobjdict["imagereadout"].set_fixed(fixed,value,displayfmt)
         if not fixed:
             self.update_xml()
             pass
@@ -186,7 +198,7 @@ class dc_paramstep(gtk.HBox):
             pass
         pass
 
-    def value_from_xml(self):
+    def value_from_xml(self):  # same as dc_paramstep
         gotvalue=None
         gotdisplayfmt=None
         # xml_attribute=self.guistate.paramdb[self.myprops["paramname"]].xml_attribute
@@ -220,10 +232,14 @@ class dc_paramstep(gtk.HBox):
         return (gotvalue,gotdisplayfmt)
     
 
-    def update_xml(self):
+    def update_xml(self): # same as dc_paramstep
         if self.is_fixed():
             return
 
+        if not self.myprops["save_to_xml"]:
+            return
+
+        
         if self.guistate is None or self.guistate.paramdb is None:
             return
         
@@ -324,4 +340,4 @@ class dc_paramstep(gtk.HBox):
     pass
 
 
-gobject.type_register(dc_paramstep)  # required since we are defining new properties/signals
+gobject.type_register(dc_imagereadoutstep)  # required since we are defining new properties/signals

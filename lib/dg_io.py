@@ -185,7 +185,42 @@ class cmdiochan(iochan):
         self.cond=self.ioobj.commcommandcondition
         self.readerthread.start()  # start is issued by the derived class after it finishes initializing
         pass
-    
+
+    def performsave(self):
+
+        if self.pendingcom.save_extension=="set":
+            # settings file
+            out=open(self.pendingcom.savehref.getpath(),"wb")
+            retcode=dgc.command(self,"WFM:WFMS?")
+            out.write(cli.buf)
+            retcode=dgc.command(self,"SET?")
+            out.write(cli.buf)
+            out.close()
+            
+            pass
+        else:
+            # assume .dgs
+            dgfh=dgf.creat(self.pendingcom.savehref.getpath())
+            if dgfh is None:
+                raise IOError("Could not open dgs file \"%s\" for write." % (outfilename))
+            (globalrevision,ChanList)=dgc.downloadwfmlist(self,False,True,True);
+            dgf.startchunk(dgfh,"SNAPSHOT");
+            # provide empty metadata chunk
+            EmptyMetadata={};
+            dgf.writemetadata(dgfh,EmptyMetadata);
+            
+            for Chan in ChanList :
+                wfm=dgc.downloadwfmshm(self,Chan[0],Chan[1]);
+                wfm.wfmname=Chan[0];
+                dgf.writenamedwfm(dgfh,wfm);
+                
+                dgc.command(self,"WFM:UNLOCK %s %d" % (Chan[0],Chan[1]));
+                pass
+            dgf.endchunk(dgfh); # SNAPSHOT
+            dgf.close(dgfh);
+            
+            pass
+        pass
 
     def readerthreadcode(self):
         # This code should be constantly waiting on read from this connection,
@@ -222,22 +257,48 @@ class cmdiochan(iochan):
                     return
                 
                 # sys.stderr.write("Reader thread %d issuing command %s\n" % (id(self),str(self.pendingcom.fullcommand)))
-                # work on self.pendingcom
-                dgc.command(self,self.pendingcom.fullcommand)
+                # work on self.pendingcom                
+                if self.pendingcom.savehref is not None:
+                    try: 
+                        self.performsave()
 
-                try : 
-                    # sys.stderr.write("Reader thread %d attempting to process result %s\n" % (id(self),str(self.buf)))
-                    res=procresult(self.pendingcom.querytype,self.buf)
+                        # Serialize savehref as XML, store in res. 
+                        # .... callback will convert back
+                        # to hrefvalue
+                        # hrefdoc=xmldoc.xmldoc.newdoc("performsave")
+                        # self.pendingcom.savehref.xmlrepr(hrefdoc,hrefdoc.getroot())
+                        # res=hrefdoc.tostring()
+
+                        res=self.pendingcom.savehref
+                        self.buf=b"" # full result is blank
+                        pass
+                    except:
+                        (exctype, excvalue) = sys.exc_info()[:2] 
+                        
+                        
+                        sys.stderr.write("dg_io: %s: %s performing save of URL \"%s\".\n" % (exctype.__name__,str(excvalue),self.pendingcom.savehref.geturl()))
+                        traceback.print_exc()
+
+                        self.retcode=600
+                        res="%s: %s" % (exctype.__name__,str(excvalue))
+                        pass
                     pass
-                except : 
-                    (exctype, excvalue) = sys.exc_info()[:2] 
-            
-
-                    # sys.stderr.write("%s processing result \"%s\".\n" % (str(exctype),self.buf))
-                    traceback.print_exc()
-                    
+                else:
+                    dgc.command(self,self.pendingcom.fullcommand)
+                
+                    try : 
+                        # sys.stderr.write("Reader thread %d attempting to process result %s\n" % (id(self),str(self.buf)))
+                        res=procresult(self.pendingcom.querytype,self.buf)
+                        pass
+                    except : 
+                        (exctype, excvalue) = sys.exc_info()[:2] 
+                        
+                        
+                        sys.stderr.write("dg_io: %s: %s processing result \"%s\".\n" % (exctype.__name__,str(excvalue),self.buf))
+                        traceback.print_exc()
+                        
+                        pass
                     pass
-
                     # sys.stderr.write("Reader thread %d processing complete\n" % (id(self)))
                 
                 if (self.timetodie):
@@ -381,11 +442,14 @@ class pendingcommand(object):
     fullcommand=None # full string transmitted
     func=None # function to call when command complete. Params are(id,fullcommand,retcode,full_response,result,param). Should return false
     param=None 
-    querytype=None 
+    querytype=None
+    savehref=None    # savehref and save_extension are used ony for performsave()
+    save_extension=None
+    
     cancelled=None           
                       
 
-    def __init__(self,ident,fullcommand,func,param,querytype):
+    def __init__(self,ident,fullcommand,func,param,querytype,savehref=None,save_extension=None):
         if ident is None:
             ident=id(self)
             pass
@@ -395,6 +459,8 @@ class pendingcommand(object):
         self.param=param
         self.cancelled=False     
         self.querytype=querytype
+        self.savehref=savehref
+        self.save_extension=save_extension
         pass
 
     def dispatch_callback(self,retcode,buf,res):
@@ -864,8 +930,27 @@ class io(object):
             pass
         pass
 
+    # performsave like issuecommand but does a save dgs or save settings operation
+    def performsave(self,ident,savehref,save_extension,func,param):
+        if not self.commstarted:
+            raise IOError("Attempting to save dataguzzler data as URL %s over link that has not been started" % (savehref))
 
-    def issuecommand(self,ident,fullcommand,func,param,querytype): # issue a one-time command. func should be a function that returns False
+        self.commcommandcondition.acquire() # acquire lock
+        newcommand=pendingcommand(ident,None,func,param,None,savehref=savehref,save_extension=save_extension)
+
+        if ident is None:
+            ident=id(newcommand)
+            pass
+
+        self.pending[ident]=newcommand
+
+        self.commcommandcondition.notify() # wake up a dispatcher, if necessary
+
+        self.commcommandcondition.release()
+
+        return ident
+
+    def issuecommand(self,ident,fullcommand,func,param,querytype): # issue a one-time command. func should be a callback function that returns False
         if not self.commstarted:
             raise IOError("Attempting to issue dataguzzler command %s over link that has not been started" % (fullcommand))
         

@@ -18,7 +18,6 @@ else :
 import paramdb2 as pdb
 
 try : 
-    sys.path.append('/home/sdh4/research/datacollect')
     import dc_value
     pass
 except:
