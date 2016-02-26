@@ -279,7 +279,7 @@ class runcheckliststep(gtk.HBox):
 
         checklistsdoc=self.private_paramdb["subchecklists"].dcvalue.get_xmldoc(nsmap={"dc": "http://thermal.cnde.iastate.edu/datacollect","xlink":"http://www.w3.org/1999/xlink"},contextdir=contextdir)  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
         
-        if checklistdb.checklist_in_param(checklistdb.checklist_href(possiblesubchecklist),checklistsdoc):
+        if checklistdb.checklist_in_param(possiblesubchecklist.get_filehref(),checklistsdoc):
             
 
             possiblesubchecklist.addresetnotifyifneeded(self.subreset)  # This must be after checklistnotify (above) so that our reset routine gets called after checklistdb's, so that we see the result of the reset on the checklistdb
@@ -617,7 +617,7 @@ class runcheckliststep(gtk.HBox):
         
         checklistfile = self.childntry.get_text()
         #print checklistfile
-        dest = ""
+        # dest = ""
         if checklistfile == self.status:
             # Not Actually Changed
             pass
@@ -740,7 +740,7 @@ class runcheckliststep(gtk.HBox):
             
 
             # register checklist with our private paramdb in checklistdb
-            contextdir=os.path.split(self.checklist.xmldoc.filename)[0]
+            #contextdir=os.path.split(self.checklist.xmldoc.filename)[0]
             #import pdb as pythondb
             #pythondb.set_trace()
             #checklistdb.checklistnotify(subchecklist,contextdir,self.private_paramdb,"subchecklists")
@@ -795,6 +795,7 @@ class runcheckliststep(gtk.HBox):
 
 
     def printcallback(self,*args):
+        assert(0)
         ###**** Needs updating
         #self.update_status()
         checklisthref=None
@@ -821,10 +822,11 @@ class runcheckliststep(gtk.HBox):
             nofiledialog.destroy()
             return
         
-        # Change Direcotry to Temp Directory
-        cwd = os.getcwd()
-        tmpdir = tempfile.mkdtemp()
-        os.chdir(tmpdir)
+        ## Change Direcotry to Temp Directory
+        ###***!!! Shouldn't ever call os.getcwd except in a subprocess context!!!
+        #cwd = os.getcwd()
+        #tmpdir = tempfile.mkdtemp()
+        #os.chdir(tmpdir)
 
         # Get Specimen, Perfby, Date, Dest from Current Checklist
         specimen = str(self.checklist.paramdb["specimen"].dcvalue)

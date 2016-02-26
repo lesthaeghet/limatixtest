@@ -7,6 +7,7 @@
 
 import os
 import sys
+import posixpath
 
 try:
     # py2.x
@@ -41,6 +42,7 @@ import dg_comm as dgc
 import dc_value
 
 from buttonreadoutstep import buttonreadoutstep
+import canonicalize_path
 
 __pychecker__="no-import no-argsused"
 
@@ -59,7 +61,6 @@ class savebuttonstep(buttonreadoutstep):
         # inherited from buttonreadoutstep
         
         }
-    checklist=None
     xmlpath=None
 
     # self.paramdb and self.dc_gui_io defined by buttonreadoutstep, set by buttonreadoutstep's dc_gui_init()
@@ -70,7 +71,6 @@ class savebuttonstep(buttonreadoutstep):
         # paramhandler.__init__(self,super(adjustparamstep,self),self.__proplist)# .__gproperties__)
         # gobject.GObject.__init__(self)
 
-        self.checklist=checklist
         self.xmlpath=xmlpath
         
         self.set_property("readoutparam",self.paramname)
@@ -94,7 +94,7 @@ class savebuttonstep(buttonreadoutstep):
     def do_get_property(self,property):
         if property.name == "paramname":
             return self.paramname
-        return buttonreadoutstep.get_property(self,propery.name)
+        return buttonreadoutstep.get_property(self,property.name)
     
 
 
@@ -120,7 +120,6 @@ class savebuttonstep(buttonreadoutstep):
         if self.checklist.datacollectmode:
             if self.checklist.filehref is None:
                 raise ValueError("Save DGS step is too early -- checklist not yet saved to a file, so impossible to determine filename")
-            (chklistbasename,chklistext)=os.path.splitext(self.checklist.chklistfile)
 
             # suggest a filename
             chklistfilename=self.checklist.filehref.get_bare_unquoted_filename()
