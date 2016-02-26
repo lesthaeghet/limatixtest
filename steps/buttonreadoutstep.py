@@ -91,8 +91,8 @@ class buttonreadoutstep(gtk.HBox):
         self.set_property("buttonlabel","")
         self.set_property("readoutparam","")
 
-        self.gladeobjdict["readout"].set_editable(False) # readout only
-
+        #self.gladeobjdict["readout"].set_editable(False) # readout only
+        self.set_fixed()
         self.pack_start(self.gladeobjdict["buttonreadoutstep"],True,True,0)
 
         self.gladeobjdict["pushbutton"].connect("clicked",self.buttoncallback)
@@ -137,6 +137,35 @@ class buttonreadoutstep(gtk.HBox):
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
+        pass
+
+    def is_fixed(self):
+        # param readout is fixed when checklist is marked as
+        # readonly or when checkbox is checked. 
+        return self.checklist.readonly or self.step.gladeobjdict["checkbutton"].get_property("active")
+
+    def set_fixed(self):
+        fixed=self.is_fixed()
+        self.gladeobjdict["readout"].set_editable(False) # readout only
+        
+        if fixed: 
+            (value,displayfmt)=self.value_from_xml() # must be implemented by subclass
+            self.gladeobjdict["readout"].set_fixed(True,value,displayfmt)
+            pass
+        else:
+            self.update_xml()  # must be implemented by subclass
+            pass
+        
+        pass
+
+    
+    def set_readonly(self,readonly):
+        self.set_fixed()
+        pass
+    
+    def handle_check(self,checked):
+        # automagically called by steptemplate when checkbox is checked or unchecked
+        self.set_fixed()
         pass
 
     def resetchecklist(self):

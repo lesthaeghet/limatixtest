@@ -58,12 +58,14 @@ of a multiline string</parameter>
       <parameter name="labelmarkup">specimen</parameter>
     </checkitem>
     <!-- 
-    <checkitem class="savesettings" title="Sixth step">
-        <parameter name="description">Be sure to save the settings!</parameter>
+    <checkitem class="savebutton" title="Sixth step">
+      <paramname>setfile</paramname>
+      <description>Be sure to save the settings!</description>
     </checkitem>
 
-    <checkitem class="savedgs" title="Seventh step">
-        <parameter name="description">Be sure to save the dgs file!</parameter>
+    <checkitem class="savebutton" title="Seventh step">
+        <paramname>dgsfile</paramname>
+        <description>Be sure to save the dgs file!</description>
     </checkitem>
    -->
 
