@@ -190,7 +190,7 @@ def wrap_dispatch(wrapped_object,methodname,methodtocall,args,kwargs):
     
     pass
 
-def wrap(cls,share_thread=None):
+def wrapserialized(cls,share_thread=None):
     """This function creates a thread manager (or reuses
     the thread manager from the wrapper specified with share_thread)
     and defines a wrapper class around cls that uses this thread 

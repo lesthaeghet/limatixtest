@@ -34,7 +34,7 @@ def load_config(href,paramdb,iohandlers,createparamserver):
     output=subproc.communicate(configstr)[0]
 
     try: 
-        exec(output,globals(),{"paramdb":paramdb,"iohandlers":iohandlers,"createparamserver":createparamserver})
+        exec(output,globals(),{"paramdb":paramdb,"iohandlers":iohandlers,"createparamserver":createparamserver,"DCCHREF":href,})
         pass
     except: 
         tmpfname=os.tempnam(None,"dc2_preproc")
