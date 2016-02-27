@@ -172,14 +172,14 @@ class explogwindow(gtk.Window):
         self.checklists=[]
         
 
-        # disable opening gui
+        # disable opening gui until config loaded
         # self.gladeobjdict["explogguiopen"].set_sensitive(False)
         self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(False)
         self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(False)
 
-        # disable file picking until config loaded
-        self.gladeobjdict["explogfilenew"].set_sensitive(False)
-        #self.gladeobjdict["explogfileopen"].set_sensitive(False)
+        # disable config loading until file picked
+        self.gladeobjdict["explogfileloadcentralconfig"].set_sensitive(False)
+        self.gladeobjdict["explogfileloadcustomconfig"].set_sensitive(False)
 
         
         
@@ -489,11 +489,11 @@ class explogwindow(gtk.Window):
         
         # self.explog.flush()
         
-        # turn on experiment and checklist menu items 
-        self.gladeobjdict["explogguiopen"].set_sensitive(True)
-        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
-        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
-        
+
+        # enable config loading
+        self.gladeobjdict["explogfileloadcentralconfig"].set_sensitive(True)
+        self.gladeobjdict["explogfileloadcustomconfig"].set_sensitive(True)
+
         # turn off file new/open menu items
         self.gladeobjdict["explogfilenew"].set_sensitive(False)
         self.gladeobjdict["explogfileopen"].set_sensitive(False)
@@ -523,7 +523,6 @@ class explogwindow(gtk.Window):
                 pass
             pass
         
-        self.log_config()
         
 
         pass
@@ -780,44 +779,29 @@ class explogwindow(gtk.Window):
             sys.exit(1)
             pass
         
-        # turn on experiment and checklist menu items 
-        self.gladeobjdict["explogguiopen"].set_sensitive(True)
-        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
-        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
-        
+
+        # enable config loading
+        self.gladeobjdict["explogfileloadcentralconfig"].set_sensitive(True)
+        self.gladeobjdict["explogfileloadcustomconfig"].set_sensitive(True)
+
         # turn off file new/open menu items
         self.gladeobjdict["explogfilenew"].set_sensitive(False)
         self.gladeobjdict["explogfileopen"].set_sensitive(False)
 
         # # turn off ability to load more config files
         # self.gladeobjdict["explogfileloadconfig"].set_sensitive(False)
+
+        
+
+        # # turn off ability to load more config files
+        # self.gladeobjdict["explogfileloadconfig"].set_sensitive(False)
             
         self.assign_title()
         
-        self.log_config()
         pass
     
     
     def log_config(self):
-        self.explog.lock_rw()
-        try: 
-            configel=self.explog.addelement(None,"dc:config")
-            # save hrefvalues for configfiles in dc:configfile tag
-            for cnt in range(len(self.configfhrefs)):
-                configfhref=self.configfhrefs[cnt]
-                configfstr=self.configfstrs[cnt]
-                configftag=self.explog.addelement(configel,"dc:configfile")
-                configfhref.xmlrepr(self.explog,configftag)
-                self.explog.settext(configftag,configfstr)
-                pass
-            ## Save entire config str
-            #configstrel=self.explog.addelement(configel,"dc:configstr")
-            pass
-        except:
-            raise
-        finally:
-            self.explog.unlock_rw()
-            pass
 
         pass
 
@@ -975,12 +959,34 @@ class explogwindow(gtk.Window):
         # turn off load config menu items
         # self.gladeobjdict["explogfileloadconfig"].set_sensitive(False)
 
-        # turn on file new/open menu items
-        self.gladeobjdict["explogfilenew"].set_sensitive(True)
-        self.gladeobjdict["explogfileopen"].set_sensitive(True)
 
-        self.configfstrs.append(output)
-        self.configfhrefs.append(href)
+        # turn on experiment and checklist menu items 
+        self.gladeobjdict["explogguiopen"].set_sensitive(True)
+        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
+        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
+
+        self.explog.lock_rw()
+        try:
+            if len(self.configfstrs)==0:
+                # new element
+                configel=self.explog.addelement(None,"dc:config")
+                pass
+            else :
+                configel=self.explog.xpathsingle("dc:config[last()]")
+                pass
+            
+            self.configfstrs.append(output)
+            self.configfhrefs.append(href)
+
+            # save hrefvalues for configfiles in dc:configfile tag
+            configftag=self.explog.addelement(configel,"dc:configfile")
+            href.xmlrepr(self.explog,configftag)
+            self.explog.settext(configftag,output)
+            pass
+        finally:
+            self.explog.unlock_rw()
+            pass
+        
 
         pass
     
