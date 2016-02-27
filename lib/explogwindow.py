@@ -637,7 +637,7 @@ class explogwindow(gtk.Window):
             autoloadconfig=len(self.configfhrefs)==0
             
             
-            self.open_explog(fname,autoloadconfig=autoloadconfig)
+            self.open_explog(dcv.hrefvalue(pathname2url(fname)),autoloadconfig=autoloadconfig)
             pass
         pass
 
