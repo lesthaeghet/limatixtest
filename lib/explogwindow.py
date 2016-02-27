@@ -870,7 +870,7 @@ class explogwindow(gtk.Window):
             else:
                 # custom config files are always referred to
                 # via relative path
-                fname=canonicalize_path.relative_path_to(self.explog.getcontexthref(),fname)
+                fname=canonicalize_path.relative_path_to(self.explog.getcontexthref().getpath(),fname)
                 href=dcv.hrefvalue(pathname2url(fname),contexthref=self.explog.getcontexthref())
                 pass
             

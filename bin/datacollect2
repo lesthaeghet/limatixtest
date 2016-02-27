@@ -372,16 +372,6 @@ for (paramname,status,val1,val2) in dpdlog:
     pass
 
 
-# open new or load existing experiment log
-if len(explogwin.configfhrefs) > 0 or (autoloadconfig and explogfile is not None and not newlog):
-
-else :
-    if explogfile is not None:
-        print ("Cannot open experiment log until config file successfully loaded")
-        sys.exit(1)
-        pass
-    pass
-
 
 
 
