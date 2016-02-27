@@ -234,6 +234,8 @@ def href_exists(href):
     return os.path.exists(hrefpath)
 
 
+syncedparam = lambda param: xmldoc.synced(param)
+
 
 
 class checklist(object):
@@ -297,7 +299,9 @@ class checklist(object):
         self.paramdb=paramdb
         self.filledhref=filledhref
         self.private_paramdb=pdb.paramdb(None) # could pass dgio as parameter to allow private parameters to interact with dataguzzler
-        self.private_paramdb.addparam("notes",stringv,build=lambda param: xmldoc.synced(param))
+        #self.private_paramdb.addparam("notes",stringv,build=lambda param: xmldoc.synced(param))
+        # use syncedparambuilder (above) because of incompatibility of lambda with exec statement below in python 2.6
+        self.private_paramdb.addparam("notes",stringv,build=syncedparam)
 
         self.private_paramdb.addparam("defaultfilename",stringv)  # defaultfilename maps to the filename entry field at the bottom of the checklist window
 
