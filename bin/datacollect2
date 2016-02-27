@@ -332,6 +332,17 @@ guistate=create_guistate(iohandlers,paramdb) # can add search directories as add
 
 explogwin.dc_gui_init(guistate)
 
+
+if explogfile is not None and newlog:
+    #sys.stderr.write("new_explog(%s)\n" % (explogfile))
+    explogwin.new_explog(hrefv(pathname2url(explogfile)),parentchecklistpath=parentchecklistpath)
+    pass
+elif explogfile is not None and not newlog:
+    #sys.stderr.write("open_explog(%s)\n" % (explogfile))
+    explogwin.open_explog(hrefv(pathname2url(explogfile)),autoloadconfig=autoloadconfig)
+    pass
+
+
 # load config files
 for configfile in configfiles: 
     #sys.stderr.write("datacollect2: Loading config file %s\n" % (configfile))
@@ -364,15 +375,6 @@ for (paramname,status,val1,val2) in dpdlog:
 # open new or load existing experiment log
 if len(explogwin.configfhrefs) > 0 or (autoloadconfig and explogfile is not None and not newlog):
 
-    if explogfile is not None and newlog:
-        #sys.stderr.write("new_explog(%s)\n" % (explogfile))
-        explogwin.new_explog(hrefv(pathname2url(explogfile)),parentchecklistpath=parentchecklistpath)
-        pass
-    elif explogfile is not None and not newlog:
-        #sys.stderr.write("open_explog(%s)\n" % (explogfile))
-        explogwin.open_explog(hrefv(pathname2url(explogfile)),autoloadconfig=autoloadconfig)
-        pass
-    pass
 else :
     if explogfile is not None:
         print ("Cannot open experiment log until config file successfully loaded")

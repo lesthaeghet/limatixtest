@@ -523,7 +523,6 @@ class explogwindow(gtk.Window):
                 pass
             pass
         
-        self.log_config()
         
 
         pass
@@ -799,30 +798,10 @@ class explogwindow(gtk.Window):
             
         self.assign_title()
         
-        self.log_config()
         pass
     
     
     def log_config(self):
-        self.explog.lock_rw()
-        try: 
-            configel=self.explog.addelement(None,"dc:config")
-            # save hrefvalues for configfiles in dc:configfile tag
-            for cnt in range(len(self.configfhrefs)):
-                configfhref=self.configfhrefs[cnt]
-                configfstr=self.configfstrs[cnt]
-                configftag=self.explog.addelement(configel,"dc:configfile")
-                configfhref.xmlrepr(self.explog,configftag)
-                self.explog.settext(configftag,configfstr)
-                pass
-            ## Save entire config str
-            #configstrel=self.explog.addelement(configel,"dc:configstr")
-            pass
-        except:
-            raise
-        finally:
-            self.explog.unlock_rw()
-            pass
 
         pass
 
@@ -986,9 +965,28 @@ class explogwindow(gtk.Window):
         self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
         self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
 
+        self.explog.lock_rw()
+        try:
+            if len(self.configfstrs)==0:
+                # new element
+                configel=self.explog.addelement(None,"dc:config")
+                pass
+            else :
+                configel=self.explog.xpathsingle("dc:config[last()]")
+                pass
+            
+            self.configfstrs.append(output)
+            self.configfhrefs.append(href)
+
+            # save hrefvalues for configfiles in dc:configfile tag
+            configftag=self.explog.addelement(configel,"dc:configfile")
+            href.xmlrepr(self.explog,configftag)
+            self.explog.settext(configftag,output)
+            pass
+        finally:
+            self.explog.unlock_rw()
+            pass
         
-        self.configfstrs.append(output)
-        self.configfhrefs.append(href)
 
         pass
     
