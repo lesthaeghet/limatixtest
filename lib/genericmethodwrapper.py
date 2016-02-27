@@ -69,6 +69,8 @@ def generate_wrapper_class(class_to_wrap,dispatch_function=None):
                 return object.__getattribute__(self,"_wrappedobj")
             if name == "_wrap":
                 return object.__getattribute__(self,"_wrap")
+            if name == "_wrap_classdict":
+                return object.__getattribute__(self,"_wrap_classdict")
             if name == "_wrap_userdict":
                 return object.__getattribute__(self,"_wrap_userdict")
             

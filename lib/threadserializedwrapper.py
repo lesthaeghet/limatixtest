@@ -59,33 +59,46 @@ class threadmanager(object):
     thread=None
     callqueue=None  # deque of (cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)
     WakeupEvent=None
+    debug=None  # if set to True, we will run pdb on exceptions. Set directly by wrapserializeddebug
     
     def __init__(self):
         gobject.threads_init()
+        self.debug=False
         self.callqueue=collections.deque()
         self.thread=threading.Thread(None,self.threadcode)
         self.WakeupEvent=threading.Event()
+        self.thread.start()
         pass
 
     def threadcode(self):
         while True:
             try:
                 if len(self.callqueue)==0:
+                    #sys.stderr.write("threadcode(): waiting\n")
                     self.WakeupEvent.wait()
                     pass
 
+                #sys.stderr.write("threadcode(): processing...\n")
                 if len(self.callqueue) > 0:
+                    #sys.stderr.write("threadcode(): callqueue has entry\n")
                     params=self.callqueue.popleft()
                     self.WakeupEvent.clear()
                     (cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)=params
                     result=None
                     try: 
+                        #sys.stderr.write("threadcode(): Calling method\n")
                         result=method(*args,**kwargs)
                         pass
                     except:
                         (exctype,excvalue)=sys.exc_info()[:2]
                         sys.stderr.write("Exception in serialized thread: %s: %s\nTraceback:\n" % (str(exctype.__name__),str(excvalue)))
                         traceback.print_exc()
+                        if self.debug:
+                            #sys.stderr.write("\n\n\nCalling Python Debugger!!!\n\n\n")
+                            import pdb as pythondb
+                            pythondb.post_mortem()
+                            pass
+
                         result=excvalue
                         pass
                     
@@ -134,6 +147,7 @@ def wrap_dispatch(wrapped_object,methodname,methodtocall,args,kwargs):
     the wrapped call returns the manager callqueue tuple... (or None
     if no manager involvement was required) """
     
+    #sys.stderr.write("wrap_dispatch(%s)\n" % (methodname))
                             
     gobject_callback=None
     if "gobject_callback" in kwargs:
@@ -175,12 +189,16 @@ def wrap_dispatch(wrapped_object,methodname,methodtocall,args,kwargs):
         return callqueue_params
     else:
         # Dispatch and wait
+        #sys.stderr.write("wrap_dispatch(%s): dispatch and wait\n" % (methodname))
+
         returnlist=[]
         donenotifyevent=threading.Event()
         manager.callqueue.append((wrapped_object,methodtocall,args,kwargs,None,returnlist,donenotifyevent))
         manager.WakeupEvent.set()
 
+        #sys.stderr.write("wrap_dispatch(%s): waiting...\n" % (methodname))
         donenotifyevent.wait()
+        #sys.stderr.write("wrap_dispatch(%s): wait complete\n" % (methodname))
         (returnobj,queueparams)=returnlist[0]
 
         if isinstance(returnobj,BaseException):
@@ -190,6 +208,23 @@ def wrap_dispatch(wrapped_object,methodname,methodtocall,args,kwargs):
     
     pass
 
+def wrapserializeddebug(cls,share_thread=None):
+    """Create a wrapped class like wrapserial(), but 
+    set the debug parameter of the manager as well
+
+    The debug parameter, if set, tells the subthread dispatcher to
+    drop into the Python debugger pdb if an exception is raised. Note
+    that the debug parameter, if set,  applies to all classes 
+    wrapped by the thread manager. 
+
+    There is not currently any way to unset the debug parameter. """
+    wrappedclass=wrapserialized(cls,share_thread=share_thread)
+
+    manager=wrappedclass._wrap_classdict["threadmanager"]
+    manager.debug=True
+
+    return wrappedclass
+
 def wrapserialized(cls,share_thread=None):
     """This function creates a thread manager (or reuses
     the thread manager from the wrapper specified with share_thread)
@@ -197,16 +232,24 @@ def wrapserialized(cls,share_thread=None):
     manager to serialize access to cls. Please note that simple
     attribute assignment is not serialized, nor are any of the 
     Python "magic" methods (those beginning and ending with __), 
-    except for the constructor __init__"""
+    except for the constructor __init__
+
+    debugging of the subthread can be enabled by calling the 
+    wrappersetdebug() function on the wrapped class
+"""
     
+    #sys.stderr.write("wrapserialized!!!\n")
     if share_thread is None:
         manager=threadmanager()
         pass
     else:
         manager=share_thread._wrap_classdict["threadmanager"]
         pass
-    
+
+
     wrapped=genericmethodwrapper.generate_wrapper_class(cls,dispatch_function=wrap_dispatch)
+    #sys.stderr.write("wrapper class: %s\n" % (str(wrapped)))
+
     wrapped._wrap_classdict["threadmanager"]=manager
     
     return wrapped

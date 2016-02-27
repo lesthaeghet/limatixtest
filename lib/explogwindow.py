@@ -720,7 +720,7 @@ class explogwindow(gtk.Window):
                         pass
                     pass
                 pass
-            filepart=entry.filehref.get_bare_unquoted_filename()
+            filepart=href.get_bare_unquoted_filename()
 
             self.paramdb["explogname"].requestvalstr_sync(filepart)
             
