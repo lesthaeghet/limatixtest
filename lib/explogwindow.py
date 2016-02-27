@@ -172,14 +172,14 @@ class explogwindow(gtk.Window):
         self.checklists=[]
         
 
-        # disable opening gui
+        # disable opening gui until config loaded
         # self.gladeobjdict["explogguiopen"].set_sensitive(False)
         self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(False)
         self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(False)
 
-        # disable file picking until config loaded
-        self.gladeobjdict["explogfilenew"].set_sensitive(False)
-        #self.gladeobjdict["explogfileopen"].set_sensitive(False)
+        # disable config loading until file picked
+        self.gladeobjdict["explogfileloadcentralconfig"].set_sensitive(False)
+        self.gladeobjdict["explogfileloadcustomconfig"].set_sensitive(False)
 
         
         
@@ -489,11 +489,11 @@ class explogwindow(gtk.Window):
         
         # self.explog.flush()
         
-        # turn on experiment and checklist menu items 
-        self.gladeobjdict["explogguiopen"].set_sensitive(True)
-        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
-        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
-        
+
+        # enable config loading
+        self.gladeobjdict["explogfileloadcentralconfig"].set_sensitive(True)
+        self.gladeobjdict["explogfileloadcustomconfig"].set_sensitive(True)
+
         # turn off file new/open menu items
         self.gladeobjdict["explogfilenew"].set_sensitive(False)
         self.gladeobjdict["explogfileopen"].set_sensitive(False)
@@ -780,14 +780,19 @@ class explogwindow(gtk.Window):
             sys.exit(1)
             pass
         
-        # turn on experiment and checklist menu items 
-        self.gladeobjdict["explogguiopen"].set_sensitive(True)
-        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
-        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
-        
+
+        # enable config loading
+        self.gladeobjdict["explogfileloadcentralconfig"].set_sensitive(True)
+        self.gladeobjdict["explogfileloadcustomconfig"].set_sensitive(True)
+
         # turn off file new/open menu items
         self.gladeobjdict["explogfilenew"].set_sensitive(False)
         self.gladeobjdict["explogfileopen"].set_sensitive(False)
+
+        # # turn off ability to load more config files
+        # self.gladeobjdict["explogfileloadconfig"].set_sensitive(False)
+
+        
 
         # # turn off ability to load more config files
         # self.gladeobjdict["explogfileloadconfig"].set_sensitive(False)
@@ -975,10 +980,13 @@ class explogwindow(gtk.Window):
         # turn off load config menu items
         # self.gladeobjdict["explogfileloadconfig"].set_sensitive(False)
 
-        # turn on file new/open menu items
-        self.gladeobjdict["explogfilenew"].set_sensitive(True)
-        self.gladeobjdict["explogfileopen"].set_sensitive(True)
 
+        # turn on experiment and checklist menu items 
+        self.gladeobjdict["explogguiopen"].set_sensitive(True)
+        self.gladeobjdict["explogcustomchecklistopen"].set_sensitive(True)
+        self.gladeobjdict["explogcentralchecklistopen"].set_sensitive(True)
+
+        
         self.configfstrs.append(output)
         self.configfhrefs.append(href)
 
