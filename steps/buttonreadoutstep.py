@@ -79,6 +79,7 @@ class buttonreadoutstep(gtk.HBox):
     paramdb=None
     gladeobjdict=None
     guistate=None
+    xmlpath=None
     
     def __init__(self,checklist,step,xmlpath):
         # paramhandler.__init__(self,super(adjustparamstep,self),self.__proplist)# .__gproperties__)
@@ -88,6 +89,9 @@ class buttonreadoutstep(gtk.HBox):
         self.myprops={}
         self.checklist=checklist
         self.step=step
+        self.xmlpath=xmlpath
+        #import pdb as pythondb
+        #pythondb.set_trace()
         (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"buttonreadoutstep.glade"))   
         
         self.set_property("description","")
@@ -108,6 +112,7 @@ class buttonreadoutstep(gtk.HBox):
     
 
     def do_set_property(self,property,value):
+        #sys.stderr.write("got buttonreadoutste.get_property()\n")
         # print "set_property(%s,%s)" % (property.name,str(value))
         if property.name=="buttonlabel":
             self.myprops[property.name]=value
@@ -136,18 +141,18 @@ class buttonreadoutstep(gtk.HBox):
         
         self.guistate=guistate
         self.paramdb=guistate.paramdb
-        self.dc_gui_io=guistate.io
+        self.dc_gui_io=guistate.iohandlers
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
         pass
 
-    def is_fixed(self):
+    def is_fixed(self): # note overridden by savebuttonstep
         # param readout is fixed when checklist is marked as
         # readonly or when checkbox is checked. 
         return self.checklist.readonly or self.step.gladeobjdict["checkbutton"].get_property("active")
 
-    def set_fixed(self):
+    def set_fixed(self):   # note: overridden by savebuttonstep
         fixed=self.is_fixed()
         self.gladeobjdict["readout"].set_editable(False) # readout only
         

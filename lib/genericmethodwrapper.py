@@ -10,12 +10,15 @@
 # will yield unwrapped copies unless the dispatch function
 # somehow wraps the newly created object. 
 import sys
+import os
 import types
 
 junk=5
 method_wrapper_type=junk.__str__.__class__
 
-method_attr_types=[ types.MethodType, method_wrapper_type ]
+builtin_function_or_method_type = os.system.__class__ # os.system should consistently be a builtin
+
+method_attr_types=[ types.MethodType, method_wrapper_type, builtin_function_or_method_type ]
 
 if hasattr(types,"UnboundMethodType"):
     method_attr_types.append("UnboundMethodType") # Py2.x only

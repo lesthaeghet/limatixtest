@@ -489,8 +489,10 @@ class xmltreevalue(value):
                 # find any that actually has an object
                 for descendent in descendentlist:
                     if descendent.__xmldoc is not None:
+                        #sys.stderr.write("Merging trees... returning nonblank... contexthref=%s\n" % (descendent.__xmldoc.getcontexthref().absurl()))
                         return descendent
                     pass
+                #sys.stderr.write("Merging trees... returning blank fallthrough\n")
                 return descendentlist[0]
             return value
 
@@ -526,6 +528,9 @@ class xmltreevalue(value):
             #    pythondb.post_mortem()
             #    pass
             pass
+
+        #sys.stderr.write("Merging trees... tag=%s parent contexthref=%s descendent contexthrefs=%s output contexthref=%s\n" % (newelem.tag,parent.__xmldoc.getcontexthref().absurl(),",".join([descendent.__xmldoc.getcontexthref().absurl() for descendent in descendentlist if descendent.__xmldoc is not None ]),contexthref.absurl()))
+
         return cls(newelem,contexthref=contexthref)
     pass
 
@@ -982,15 +987,20 @@ class hrefvalue(value):
         
         parsed=urlparse.urlparse(self.contextlist[-1])
         leaflesspath=posixpath.split(parsed.path)[0]
-        if not leaflesspath.endswith("/"):
+        if len(leaflesspath) > 0 and not leaflesspath.endswith("/"):
             leaflesspath+="/"
             pass
-        leaflessurl=urlparse.urlunparse((parsed[0],parsed[1],leaflesspath,parsed[3],parsed[4],parsed[5]))
-        
+
+        if len(leaflesspath) > 0:
+            leaflessurl=urlparse.urlunparse((parsed[0],parsed[1],leaflesspath,parsed[3],parsed[4],parsed[5]))
+            pass
+
         # Start with all but last element of href context
         newcontextlist=[]
         newcontextlist.extend(self.contextlist[:-1])
-        newcontextlist.append(leaflessurl)
+        if len(leaflesspath) > 0:
+            newcontextlist.append(leaflessurl)
+            pass
         
         return hrefvalue(tuple(newcontextlist))
     
@@ -2298,12 +2308,12 @@ class excitationparamsvalue(value) :
 class imagevalue(value):
     PILimage=None
 
-    def __init__(self,PILimage):
+    def __init__(self,PILimage,defunits=None):
 
         if isinstance(PILimage,basestring):
             assert(PILimage=="") # blank string
             # leave self.PILimage as None
-            pass
+            return
 
         if hasattr(PILimage,"PILimage"):
             # This is really an imagevalue()
@@ -2343,6 +2353,9 @@ class imagevalue(value):
 
         return imagevalue(PILimage)
 
+    def value(self):
+        return self.PILimage
+
     def isblank(self):
         return self.PILimage is None
 
@@ -2357,7 +2370,7 @@ class imagevalue(value):
         
         PNGbuf=StringIO()
         self.PILimage.save(PNGbuf,format="PNG")
-        xmldocu.setattr(tag,"data:image/png;base64,"+base64.b64encode(PNGbuf.getvalue()))
+        xmldocu.setattr(tag,"src","data:image/png;base64,"+base64.b64encode(PNGbuf.getvalue()))
         pass
 
     @classmethod

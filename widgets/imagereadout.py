@@ -1,6 +1,7 @@
 import os
 import sys
-
+import numpy as np
+import matplotlib.cm # Colormaps from matplotlib
 
 if "gi" in sys.modules:  # gtk3
     import gi
@@ -52,16 +53,16 @@ class imagereadout(gtk.Image,paramhandler):
                      "", # default value 
                      gobject.PARAM_READWRITE), # flags
 
-        "width": (gobject.TYPE_INT,
-                     "width",
+        "imagewidth": (gobject.TYPE_INT,
+                     "imagewidth",
                      "maximum width to scale image to, or -1 for unset",
                      -1, # minimum value
                      50000, # maximum value... essentially infinite
                      -1, # default value 
                      gobject.PARAM_READWRITE), # flags
         
-        "height": (gobject.TYPE_INT,
-                  "height",
+        "imageheight": (gobject.TYPE_INT,
+                  "imageheight",
                   "maximum height to scale image to, or -1 for unset",
                   -1, # minimum value
                   50000, # maximum value... essentially infinite
@@ -69,7 +70,7 @@ class imagereadout(gtk.Image,paramhandler):
                   gobject.PARAM_READWRITE), # flags
 
         }
-    __proplist = ["paramname","width","height"] 
+    __proplist = ["paramname","imagewidth","imageheight"] 
 
     __imagereadout_unique=None
     paramdb=None
@@ -86,12 +87,18 @@ class imagereadout(gtk.Image,paramhandler):
     def __init__(self):
 
         gobject.GObject.__init__(self)
-        paramhandler.__init__(self,super(imagereadout,self),self.__proplist)
+        #self.myprops["width"]=-1
+        #self.myprops["height"]=-1
+        paramhandler.__init__(self,super(imagereadout,self),[]) # ,self.__proplist)
+        self.myprops["imagewidth"]=-1
+        self.myprops["imageheight"]=-1
+        self.myprops["paramname"]=""
         
         # gtk.HBox.__init__(self) # Not supposed to call superclass __init__ method, just gobject __init__ according to    http://www.pygtk.org/articles/subclassing-gobject/sub-classing-gobject-in-python.htm  
         # self.myprops["dg-paramsuffix"]=""
 
-        self.fixed=False
+        self.fixed=False 
+
         self.fixedvalue=None
 
         self.errorflag=False
@@ -102,7 +109,7 @@ class imagereadout(gtk.Image,paramhandler):
     def set_fixed(self,fixed,fixedvalue=None,fixeddisplayfmt=None):
         if fixedvalue is None:
             # provide generic blank
-            fixedvalue=dc_value.stringvalue("")
+            fixedvalue=dc_value.imagevalue("")
             pass
         wasfixed=self.fixed
         self.fixed=fixed
@@ -124,6 +131,9 @@ class imagereadout(gtk.Image,paramhandler):
         pass
 
     def update_image(self):
+        if self.paramdb is None:
+            return
+
         if self.fixed:
             image=self.fixedvalue
             pass
@@ -134,20 +144,28 @@ class imagereadout(gtk.Image,paramhandler):
         if image is self.lastimage:
             return # no need to update
 
-        if image==lastimage:
+        if self.lastimage is not None and image is not None and image==self.lastimage:
             self.lastimage=image
             # still no need to update
             return
 
         # use numpy to convert PIL image to pixbuf
-        if image is None:
+        if image is None or image.isblank():
             # blank case
-            arr=np.zeros((2,2),dtype=np.uint8)
+            arr=np.zeros((2,2,3),dtype=np.uint8)
             pass
         else:
-            arr=np.array(image)
+            arr=np.array(image.value())
             pass
 
+        if len(arr.shape) < 3 or arr.shape[2] <= 1:
+            # grayscale image... convert to color by adding a 3rd dimension
+            cols=arr.shape[1]
+            rows=arr.shape[0]
+            #sys.stderr.write("imagereadout: converting grayscale to color\n")
+            arr=arr.reshape(rows,cols,1)*np.ones((1,1,3),dtype='uint8')
+            pass
+        #sys.stderr.write("imagereadout: arr.shape=%s\n" % (str(arr.shape)))
         if "gi" in sys.modules:  # gtk3           
             pixbuf=GdkPixbuf.Pixbuf.new_from_array(arr,gdk.COLORSPACE_RGB,8)
             pass
@@ -157,36 +175,37 @@ class imagereadout(gtk.Image,paramhandler):
             
 
         width=pixbuf.get_width()
-        height=pixbuf.get_width()
+        height=pixbuf.get_height()
+        #sys.stderr.write("imagereadout: pixbuf width=%d; height=%d dtype=%s\n" % (width,height,str(arr.dtype)))
 
             
         aspect_ratio=float(width)/height
 
-        if self.myprops["width"] >= 0 and self.myprops["height"] >= 0:
+        if self.myprops["imagewidth"] >= 0 and self.myprops["imageheight"] >= 0:
             # both width and height given
-            height_from_width=self.myprops["width"]/aspect_ratio
-            if height_from_width > self.myprops["height"]:
+            height_from_width=self.myprops["imagewidth"]/aspect_ratio
+            if height_from_width > self.myprops["imageheight"]:
                 # use aspect ratio and specified height
-                scaleheight=self.myprops["height"]
-                scalewidth=aspect_ratio*self.myprops["height"]
+                scaleheight=self.myprops["imageheight"]
+                scalewidth=aspect_ratio*self.myprops["imageheight"]
                 pass
             else:
                 # use aspect ratio and specified width
-                scalewidth=self.myprops["width"]
-                scaleheight=self.myprops["width"]/aspect_ratio
+                scalewidth=self.myprops["imagewidth"]
+                scaleheight=self.myprops["imagewidth"]/aspect_ratio
                 pass
             pass
-        elif self.myprops["width"] >= 0:
+        elif self.myprops["imagewidth"] >= 0:
             # just width given
             # use aspect ratio and specified width
-            scalewidth=self.myprops["width"]
-            scaleheight=self.myprops["width"]/aspect_ratio
+            scalewidth=self.myprops["imagewidth"]
+            scaleheight=self.myprops["imagewidth"]/aspect_ratio
             pass
-        elif self.myprops["height"] >= 0:
+        elif self.myprops["imageheight"] >= 0:
             # just height given
             # use aspect ratio and specified height
-            scaleheight=self.myprops["height"]
-            scalewidth=aspect_ratio*self.myprops["height"]
+            scaleheight=self.myprops["imageheight"]
+            scalewidth=aspect_ratio*self.myprops["imageheight"]
             pass
         else:
             # Nothing given... do not change size
@@ -220,8 +239,18 @@ class imagereadout(gtk.Image,paramhandler):
         
 
         if self.paramdb is None:  # allow manual initialization of paramdb, in case we are to use a non-default paramdb
-            self.paramdb=guistate.paramdb
+            self.paramdb=guistate.paramdb            
             pass
+        self.param=self.paramdb[self.myprops["paramname"]]
+
+        # now that self.paramdb is set we may need to resync
+        # to paramdb... show status as fixed (i.e. not sync'd)
+        # and call set_fixed to do the resync
+        fixedstatus=self.fixed
+        self.fixed=True
+        self.set_fixed(fixedstatus,self.fixedvalue)
+        
+
         self.__imagereadout_unique=[]
 
 
@@ -229,15 +258,20 @@ class imagereadout(gtk.Image,paramhandler):
         pass
 
     def sync_to_paramdb(self):
+        if self.param is None:
+            return  
+
         if self.myprops["paramname"] not in self.paramdb:
             raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
-        self.param=self.paramdb[self.myprops["paramname"]]
 
         self.newvalue_notify=self.param.addnotify(self.newvalue,pdb.param.NOTIFY_NEWVALUE,)
 
         pass
 
     def unsync_to_paramdb(self):
+        if self.param is None:
+            return  
+
         self.param.remnotify(self.newvalue_notify)
         self.newvalue_notify=None
         pass

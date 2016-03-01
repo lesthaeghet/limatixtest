@@ -463,6 +463,15 @@ class explogwindow(gtk.Window):
         
         # self.unsyncexplog()  # need to restart synchronization once dest has changed
 
+        # adjust contexthref of dc:checklists and dc:plans paramdb elements
+        # to explog directory
+        new_checklists=dcv.xmltreevalue(self.paramdb["checklists"].dcvalue,contexthref=href)
+        self.paramdb["checklists"].requestval_sync(new_checklists)
+
+        new_plans=dcv.xmltreevalue(self.paramdb["plans"].dcvalue,contexthref=href)
+        self.paramdb["plans"].requestval_sync(new_plans)
+
+
         self.explog=xmlexplog.explog(href,self.dc_gui_iohandlers,self.paramdb,use_locking=True,debug=False) # ,autoflush=self.autoflush,autoresync=self.autoresync)
         try: 
             pass
@@ -579,6 +588,7 @@ class explogwindow(gtk.Window):
             else:
                 loadparamsmsg += message
                 try: 
+                    #sys.stderr.write("explogwindow: Requesting %s of %s\n" % (str(dcvalue),dctag))
                     self.paramdb[dctag].requestval_sync(dcvalue)
                     loadparamsmsg+=" value \"%s\" " % (str(self.paramdb[dctag].dcvalue))
                     if self.paramdb[dctag].dcvalue==dcvalue:
@@ -666,6 +676,16 @@ class explogwindow(gtk.Window):
                 self.unsyncexplog()
                 self.explog.close()
                 pass
+
+            # adjust contexthref of dc:checklists and dc:plans paramdb elements
+            # to explog directory
+            new_checklists=dcv.xmltreevalue(self.paramdb["checklists"].dcvalue,contexthref=href)
+            self.paramdb["checklists"].requestval_sync(new_checklists)
+
+            new_plans=dcv.xmltreevalue(self.paramdb["plans"].dcvalue,contexthref=href)
+            self.paramdb["plans"].requestval_sync(new_plans)
+            
+
             self.explog=xmlexplog.explog(href,self.dc_gui_iohandlers,self.paramdb,oldfile=True,use_locking=True) # autoflush=self.autoflush,autoresync=self.autoresync)            
 
             try: 

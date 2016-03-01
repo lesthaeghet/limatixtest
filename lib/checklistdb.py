@@ -633,7 +633,9 @@ def addchecklisttoparamdb(checklist,paramdb,clparamname):
         
         newelement=checklistsdoc.addelement(checklistsdoc.getroot(),"dc:checklist")
         href.xmlrepr(checklistsdoc,newelement)
-        
+        #from lxml import etree
+        #sys.stderr.write("Adding new dc:checklist element: %s\n" % (etree.tostring(newelement)))
+
         
         #if canonname.startswith("mem://"):
         #    checklistsdoc.setattr(newelement,"xlink:href",canonname)
@@ -945,6 +947,11 @@ def filenamenotify(checklist,orighref,newhref,oldhref): #paramdb,clparamname):
                     # update the url
 
                     newhref.xmlrepr(checklistsdoc,checklisttag)
+                    from lxml import etree
+                    #sys.stderr.write("Updating new dc:checklist element: %s\n" % (etree.tostring(checklisttag)))
+                    #import pdb as pythondb
+                    #pythondb.set_trace()
+
                     # update paramdb entry
                     entry.paramdb[entry.clparamname].requestval_sync(dc_value.xmltreevalue(checklistsdoc,contexthref=entry.contexthref))
                     #sys.stderr.write("checklistdb: updatedentry=%s\n" % (str(entry.paramdb[entry.clparamname])))

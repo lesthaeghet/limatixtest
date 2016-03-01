@@ -756,9 +756,14 @@ class xmldoc(object):
         return self.filehref
     
     def getcontexthref(self):
+        #sys.stderr.write("xmldoc filehref: %s\n" % (str(self.filehref)))
+        #sys.stderr.write("contexthref: %s\n" % (str(self.contexthref)))
         if self.filehref is not None:
+            #sys.stderr.write("filehref contextlist: %s\n" % (str(self.filehref.contextlist)))
+            #sys.stderr.write("filehref leafless contextlist: %s\n" % (str(self.filehref.leafless().contextlist)))
             return self.filehref.leafless()
         else:
+            #sys.stderr.write("contexthref contextlist: %s\n" % (str(self.contexthref.contextlist)))
             return self.contexthref
         pass
 
@@ -2302,7 +2307,7 @@ class xmldoc(object):
         return None
 
 
-    def children(self,context,tag=None,namespaces=None,noprovenanceupdate=False):
+    def children(self,context,tag=None,namespaces=None,noprovenanceupdate=False,allow_comments=False):
         """Find context children specified by tag or all children. Return list
         """
         
@@ -2334,13 +2339,15 @@ class xmldoc(object):
                         provenance.elementaccessed(self._filename,self.doc,child)
                         pass
                     children.append(child)
-                    pass
+                    pass                
                 pass
             pass
         else:
             # tag is none
             children=[]
             for child in context.iterchildren():
+                if child.tag is etree.Comment and not allow_comments:
+                    continue
                 if not noprovenanceupdate:
                     provenance.elementaccessed(self._filename,self.doc,child)
                     pass
@@ -2350,6 +2357,9 @@ class xmldoc(object):
         
         return children
         
+    def is_comment(self,element):
+        """Determine whether an element is actually an XML comment"""
+        return element.tag is etree.Comment
     
     def setattr(self,tag,attrname,value,namespaces=None) :
         """Set an attribute of an element to the specified value.
@@ -3124,22 +3134,33 @@ class synced(object):
 
         pass
 
-    def find_a_context_href(self):
+    def find_a_context_href(self,paramset=None):
         # find a suitable context href for xml synchronization
+        # paramset is a (xmldocu,xmlpath,ETxmlpath,logfunc) tuple
 
+        doclist=copy.copy(self.doclist)
+        if paramset is not None:
+            doclist.append(paramset)
+            pass
         # First look for anything with a filename set
-        for (xmldocu,xmlpath,ETxmlpath,logfunc) in self.doclist:
+        for (xmldocu,xmlpath,ETxmlpath,logfunc) in doclist:
             if xmldocu is not None and xmldocu.filehref is not None:
+                #sys.stderr.write("find_a_context_href(): %s\n" % (xmldocu.getcontexthref().absurl()))
                 return xmldocu.getcontexthref()
             pass
 
         # Now look for anything 
-        for (xmldocu,xmlpath,ETxmlpath,logfunc) in self.doclist:
+        for (xmldocu,xmlpath,ETxmlpath,logfunc) in doclist:
             if xmldocu is not None and xmldocu.contexthref is not None:
+                #sys.stderr.write("find_a_context_href(): %s\n" % (xmldocu.getcontexthref().absurl()))
                 return xmldocu.getcontexthref()
             pass
         
+        # import pdb as pythondb
+        # pythondb.set_trace()
+
         # worst-case fallthrough
+        #sys.stderr.write("find_a_context_href(): Fallthrough\n")
         return dc_value.hrefvalue(".")
         
     
@@ -3267,8 +3288,8 @@ class synced(object):
             ParentFrame.set_label("Parent: from %s" % (str(parentsource)))
             ParentTextView=gtk.TextView()
             ParentTextBuffer=gtk.TextBuffer()
-            parentdoc=xmldoc.fromstring("<parent/>")
-            parent.xmlrepr(parentdoc.getroot())
+            parentdoc=xmldoc.fromstring("<parent/>",contexthref=contexthref)
+            parent.xmlrepr(parentdoc,parentdoc.getroot())
             ParentTextBuffer.set_text(parentdoc.tostring(pretty_print=True))
             ParentTextView.set_buffer(ParentTextBuffer)
             if "gi" in sys.modules:  # gtk3
@@ -3287,10 +3308,10 @@ class synced(object):
             desc_src=descendentsourcelist[deccnt]
             
             DescendentFrame=gtk.Frame()
-            DescendentFrame.set_label("Descendent %d: from %s" % (deccnt+1,str(parentsource)))
+            DescendentFrame.set_label("Descendent %d: from %s" % (deccnt+1,str(desc_src)))
             DescendentTextView=gtk.TextView()
             DescendentTextBuffer=gtk.TextBuffer()
-            descendentdoc=xmldoc.fromstring("<descendent/>")
+            descendentdoc=xmldoc.fromstring("<descendent/>",contexthref=contexthref)
             descendent.xmlrepr(descendentdoc,descendentdoc.getroot())
             DescendentTextBuffer.set_text(descendentdoc.tostring(pretty_print=True))
             DescendentTextView.set_buffer(DescendentTextBuffer)
@@ -3348,12 +3369,16 @@ class synced(object):
         #import pdb as pythondb
         #try:
 
+        # if self.controlparam.paramtype is dc_value.hrefvalue:
+        #     sys.stderr.write("domerge: contexthref=%s\n" % (contexthref.absurl()))
+        #     pass
+
         try : 
             result=self.controlparam.paramtype.merge(parent,descendentlist,contexthref=contexthref,**kwargs)
             pass
         except:
             (exctype,value)=sys.exc_info()[:2]
-            if manualmerge:
+            if manualmerge:   ###***!!!
                 if not "gtk" in sys.modules and not ("gi" in sys.modules and hasattr(sys.modules["gi"],"repository") and hasattr(sys.modules["gi"].repository,"Gtk")):
                     # if nothing else has loaded gtk2 or gtk3
                     # Just raise it
@@ -3539,7 +3564,7 @@ class synced(object):
 
         # for synced accumulating date support: 
         #initialloadvalue=self.createvalueobj(initialloadvalue)
-        contexthref=self.find_a_context_href()
+        contexthref=self.find_a_context_href(initialloadparams)
 
         humanpath=xmlpath
         if xmlpath is None:
@@ -3564,16 +3589,23 @@ class synced(object):
 
         if mergedval != self.controlparam.dcvalue:
             # need to update everything else
-            self.synchronize(mergedval)
+
+            # Pass initialloadparams so we can get a good contexthref for synchronization if one doesn't already exist
+            self.synchronize(mergedval,initialloadparams)
             pass
 
 
         pass
             
 
-    def synchronize(self,requestedvalue=None):
+    def synchronize(self,requestedvalue=None,requestedvalueparams=None):
         # prevent nested synchronization attempts
         # as we lock files
+        #
+        # requestedvalueparams is a (xmldocobj,xmlpath,ETxmlpath,logfunc)
+        # tuple that can be used as an extra context source for 
+        # find_a_context_href()
+
         self.in_synchronize=True
         xmldocobj=None
 
@@ -3622,7 +3654,7 @@ class synced(object):
             #for mv in mergevalues:
             #    sys.stderr.write("mv=%s %s\n" % (mv.__class__.__name__,str(mv)))
 
-            contexthref=self.find_a_context_href()
+            contexthref=self.find_a_context_href(requestedvalueparams)
             
             # domerge enforces the correct value class by using that class to do the merge 
             mergedval=self.domerge(humanpath,oldvalue,"in memory",mergevalues,mergesources,contexthref=contexthref,**self.mergekwargs)
@@ -3646,6 +3678,9 @@ class synced(object):
                     
             # Update param if necessary
             if mergedval != oldvalue: 
+                # if self.controlparam.paramtype is dc_value.xmltreevalue:
+                #     sys.stderr.write("Assigning merged value to %s (contexthref=%s; specified contexthref=%s): %s\n" % (self.controlparam.xmlname,mergedval._xmltreevalue__xmldoc.getcontexthref().absurl(),contexthref.absurl(),str(mergedval)))
+                #     pass
                 self.controlparam.assignval(mergedval,self.id)       
                 pass
                     

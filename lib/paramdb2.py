@@ -465,12 +465,13 @@ class threadserializedcontroller(object):
         self.saver=saver
         self.pollms=pollms
         self.state=param.CONTROLLER_STATE_QUIESCENT
-        
+        self.old_pending_requests=[]
+    
         
 
         # Request repeated calls to doquery() every pollms milliseconds
-        if self.pollms >= 0.0:
-            gobject.timeout_add(self.pollms,self.doquery)
+        if self.pollms >= 0.0 and self.getter is not None:
+            gobject.timeout_add(int(self.pollms),self.doquery)
             pass
         
         pass
@@ -478,34 +479,55 @@ class threadserializedcontroller(object):
 
     def doquery(self):
         if self.state!=param.CONTROLLER_STATE_QUIESCENT:
+            # sys.stderr.write("paramdb: %s: id(self.pendingrequest)=%s\n" % (self.controlparam.xmlname,str(id(self.pendingrequest))))
             # Don't do query unless nothing else is happening
-            return
+            assert(self.pendingrequest is not None)
+            return True
+ 
+        assert(self.pendingrequest is None)
+   
 
-    
-
-        if isinstance(self.getter,types.MethodType):
+        #if isinstance(self.getter,types.MethodType):
             # Bound method... do not provide serializedojbect
             # as first parameter
 
             # gobject_callback kwparam never really goes to the
             # getter but is stripped and handled by
             # threadserializedwrapper.wrap_dispatch()
-            self.pending_request=self.getter(gobject_callback=(self.callback,None)) # No additional callback params for a query
-            pass
-        else:
-            self.pending_request=self.getter(self.serializedobject,gobject_callback=(self.callback,None))  # No additional callback params for a query
-            pass
+        #    self.pending_request=self.getter(gobject_callback=(self.callback,None)) # No additional callback params for a query
+        #    pass
+        #else:
+            #import pdb as pythondb
+            #pythondb.set_trace()
+        #    sys.stderr.write("type(self.getter)=%s\n" % (str(type(self.getter))))
+        #    self.pending_request=self.getter(self.serializedobject,gobject_callback=(self.callback,None))  # No additional callback params for a query
+        #    pass
         
+        # (Checking for bound vs. unbound method (As above) turns out to 
+        # be unnecessary and problematic... because due to the 
+        # threadserializedwrapper it will always show up as a function,
+        # even if it is actually a method
+        
+        self.state=param.CONTROLLER_STATE_REQUEST_PENDING
+        self.pendingrequest=self.getter(gobject_callback=(self.callback,None)) # No additional callback params for a query
+        # sys.stderr.write("doquery(): id(self.pendingrequest)=%s\n" % (str(id(self.pendingrequest))))
+
         return True  # Get called-back again in another pollms seconds
 
     
     def callback(self,request_tuple,result,additional_callback_params):
         old=False
         if self.pendingrequest is request_tuple:
+            # sys.stderr.write("callback(): id(self.pendingrequest)=%s\n" % (str(id(self.pendingrequest))))
             self.pendingrequest=None
             self.state=param.CONTROLLER_STATE_QUIESCENT
             pass
         else:
+            if not (request_tuple in self.old_pending_requests):
+                # sys.stderr.write("paramdb2: id(pendingrequest)=%s\n" % (str(id(self.pendingrequest))))
+                # sys.stderr.write("paramdb2: id(request_tuple)=%s\n" % (str(id(request_tuple))))
+                # sys.stderr.write("paramdb2: old_pending_requests=%s\n" % (str(self.old_pending_requests)))
+                pass
             assert(request_tuple in self.old_pending_requests)
             self.old_pending_requests.remove(request_tuple)
             old=True
@@ -531,16 +553,20 @@ class threadserializedcontroller(object):
                 thisvalue=self.controlparam.paramtype("",defunits=self.controlparam.defunits)
                 pass
             
+            #if self.controlparam.paramtype is dc_value.hrefvalue:
+            #    sys.stderr.write("paramdb2: assigning %s to %s\n" % (str(thisvalue.contextlist),self.controlparam.xmlname))
+            #    pass
+
             if not lastvalue.equiv(thisvalue):
                 self.controlparam.assignval(thisvalue,self.id)
                 pass
 
-            if additional_callback_params is not None:
+            if additional_callback_params is not None and len(additional_callback_params) > 0:
                 # our client asked for a callback
                 clientcallback=additional_callback_params[0]
                 cbrunargs=additional_callback_params[1:]
                 
-                clientcallback(self.controlparam,id(request_tuple),None,self.controlparam.dcvalue,cbrunargs)
+                clientcallback(self.controlparam,id(request_tuple),None,self.controlparam.dcvalue,*cbrunargs)
 
                 pass
 
@@ -556,7 +582,7 @@ class threadserializedcontroller(object):
                 reqid=id(request_tuple)
                 pass
             
-            if additional_callback_params is not None:
+            if additional_callback_params is not None and len(additional_callback_params) > 0:
                 # our client asked for a callback
                 clientcallback=additional_callback_params[0]
                 cbrunargs=additional_callback_params[1:]
@@ -566,18 +592,20 @@ class threadserializedcontroller(object):
         return False
 
     def _cancelpending(self):
-        pending_request=self.pending_request
-        if self.serializedobject._wrap_classdict["threadmanager"].attempt_cancel_call(self.pending_request) is not None:
+        pendingrequest=self.pendingrequest
+        if pendingrequest is not None and self.serializedobject._wrap_classdict["threadmanager"].attempt_cancel_call(self.pendingrequest) is not None:
             # success in canceling
-            self.pending_request=None
+            # sys.stderr.write("_cancelpending: request %s cleared\n" % (str(id(pendingrequest))))
+            self.pendingrequest=None
+            self.state=param.CONTROLLER_STATE_QUIESCENT
 
             # move to old_pending_requests
-            self.old_pending_requests.append(pending_request)
+            self.old_pending_requests.append(pendingrequest)
  
-            # extract callback info from pending_request (this is the tuple from threadserializedwrapper.py
-            (cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)=pending_request            
+            # extract callback info from pendingrequest (this is the tuple from threadserializedwrapper.py
+            (cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)=pendingrequest            
             # trigger callback with error return
-            gobject.timeout_add(0,self.callback,pending_request,ValueError("Command overridden by new request"),callback_and_params[1])
+            gobject.timeout_add(0,self.callback,pendingrequest,ValueError("Command overridden by new request"),callback_and_params[1])
             
             
 
@@ -585,8 +613,10 @@ class threadserializedcontroller(object):
             pass
         else:
             # Could not cancel... move to old_pending_requests
-            self.old_pending_requests.append(pending_request)
-            self.pending_request=None
+            self.old_pending_requests.append(pendingrequest)
+            # sys.stderr.write("_cancelpending: request %s moved to old\n" % (str(id(pendingrequest))))
+            self.pendingrequest=None
+            self.state=param.CONTROLLER_STATE_QUIESCENT
             pass
         pass
     
@@ -598,22 +628,29 @@ class threadserializedcontroller(object):
             self._cancelpending()
             pass
 
-        assert(self.pending_request is None)
+        assert(self.pendingrequest is None)
         self.state=param.CONTROLLER_STATE_REQUEST_PENDING
         
         try:
-            if isinstance(self.setter,types.MethodType):
+            #if isinstance(self.setter,types.MethodType):
                 # Bound method... do not provide serializedojbect
                 # as first parameter
                 
                 # gobject_callback kwparam never really goes to the
                 # getter but is stripped and handled by
                 # threadserializedwrapper.wrap_dispatch()
-                self.pending_request=self.setter(newvalue,gobject_callback=(self.callback,cbargs))
+
+            # create dummy request tuple to use if we don't manage to assign the real one
+            #(cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)
+            self.pendingrequest=(None,None,None,None,(self.callback,cbargs),None,None)
+            self.state=param.CONTROLLER_STATE_REQUEST_PENDING
+
+            if self.setter is not None:
+                self.pendingrequest=self.setter(newvalue,gobject_callback=(self.callback,cbargs))
                 pass
-            elif self.setter is not None:
-                self.pending_request=self.setter(self.serializedobject,newvalue,gobject_callback=(self.callback,cbargs))
-                pass
+            #elif self.setter is not None:
+            #    self.pendingrequest=self.setter(self.serializedobject,newvalue,gobject_callback=(self.callback,cbargs))
+            #    pass
             else:
                 # no setter. This is a read-only parameter
                 # OK to set to blank
@@ -624,33 +661,31 @@ class threadserializedcontroller(object):
                         self.controlparam.assignval(newvalue,self.id)
                         pass
 
-                    # create dummy request tuple
-                    #(cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)
-                    request_tuple=(None,None,None,None,(self.callback,cbargs),None,None)
                     # Request callback in gobject mainloop
-                    self.pending_request=request_tuple
                     gobject.timeout_add(0,self.callback,request_tuple,newvalue,cbargs)
                     pass
-                    
+                else: 
+                    raise ValueError("Parameter %s is not settable" % (self.controlparam.xmlname))
                 pass
             pass
         except:
             (exctype,excvalue)=sys.exc_info()[:2]
-            sys.stderr.write("Exception issuing command... Should get callback with exception \n")
-            gobject.timeout_add(0,self.callback,self.pending_request,excvalue,cbargs)
+            sys.stderr.write("paramdb2: Exception attempting to assign to %s... Making callback with exception \n" % (self.controlparam.xmlname))
+            gobject.timeout_add(0,self.callback,self.pendingrequest,excvalue,cbargs)
             return None  # BUG: Should probably return valid request id in this case. Otherwise we use dgio idents, which are the id() of the pendingcommand structure
-        reqid=id(self.pending_request)
+        reqid=id(self.pendingrequest)
         return reqid
     
 
     def cancelrequest(self,param,requestid): 
         # returns True if successfully canceled
 
-        if id(self.pending_request)==requestid:
+        if id(self.pendingrequest)==requestid:
             # request to be cancelled is current... Cancel it!
-            if self.serializedobject._wrap_classdict["threadmanager"].attempt_cancel_call(self.pending_request) is not None:
+            if self.serializedobject._wrap_classdict["threadmanager"].attempt_cancel_call(self.pendingrequest) is not None:
                 # success in canceling
-                self.pending_request=None
+                # sys.stderr.write("cancelrequest: success on %s\n" % (str(id(self.pendingrequest))))
+                self.pendingrequest=None
                 self.state=param.CONTROLLER_STATE_QUIESCENT
     
                 return True
@@ -676,31 +711,35 @@ class threadserializedcontroller(object):
             self._cancelpending()
             pass
 
-        assert(self.pending_request is None)
+        assert(self.pendingrequest is None)
         self.state=param.CONTROLLER_STATE_REQUEST_PENDING
         
+        # create dummy request tuple to use if we don't manage to assign the real one
+            #(cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)
+        self.pendingrequest=(None,None,None,None,(self.callback,cbargs),None,None)
+        self.state=param.CONTROLLER_STATE_REQUEST_PENDING
         try:
-            if isinstance(self.saver,types.MethodType):
-                # Bound method... do not provide serializedojbect
-                # as first parameter
-                
-                # gobject_callback kwparam never really goes to the
-                # getter but is stripped and handled by
-                # threadserializedwrapper.wrap_dispatch()
-                self.pending_request=self.saver(savefilehref,gobject_callback=(self.callback,cbargs))
-                pass
-            elif self.saver is not None:
-                self.pending_request=self.saver(self.serializedobject,savefilehref,gobject_callback=(self.callback,cbargs))
-                pass
-            else:
-                raise ValueError("Attempt to perform save with no saver function set!")
+            #if isinstance(self.saver,types.MethodType):
+            #    # Bound method... do not provide serializedojbect
+            #    # as first parameter
+            #    
+            #    # gobject_callback kwparam never really goes to the
+            #    # getter but is stripped and handled by
+            #    # threadserializedwrapper.wrap_dispatch()
+            self.pendingrequest=self.saver(savefilehref,gobject_callback=(self.callback,cbargs))
+            #    pass
+            #elif self.saver is not None:
+            #    self.pendingrequest=self.saver(self.serializedobject,savefilehref,gobject_callback=(self.callback,cbargs))
+            #    pass
+            #else:
+            #    raise ValueError("Attempt to perform save with no saver function set!")
             pass
         except:
             (exctype,excvalue)=sys.exc_info()[:2]
             sys.stderr.write("Exception issuing command... Should get callback with exception \n")
-            gobject.timeout_add(0,self.callback,self.pending_request,excvalue,cbargs)
+            gobject.timeout_add(0,self.callback,self.pendingrequest,excvalue,cbargs)
             return None  # BUG: Should probably return valid request id in this case. Otherwise we use dgio idents, which are the id() of the pendingcommand structure
-        reqid=id(self.pending_request)
+        reqid=id(self.pendingrequest)
         return reqid
             
     
