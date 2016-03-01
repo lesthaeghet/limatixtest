@@ -66,6 +66,7 @@ class threadmanager(object):
         self.debug=False
         self.callqueue=collections.deque()
         self.thread=threading.Thread(None,self.threadcode)
+        self.thread.daemon=True # die off with ctrl-c, etc. 
         self.WakeupEvent=threading.Event()
         self.thread.start()
         pass
@@ -86,7 +87,7 @@ class threadmanager(object):
                     (cls,method,args,kwargs,callback_and_params,returnlist,donenotifyevent)=params
                     result=None
                     try: 
-                        #sys.stderr.write("threadcode(): Calling method\n")
+                        #sys.stderr.write("threadcode(): Calling method %s\n" % (str(method)))
                         result=method(*args,**kwargs)
                         pass
                     except:
@@ -101,7 +102,8 @@ class threadmanager(object):
 
                         result=excvalue
                         pass
-                    
+                    #sys.stderr.write("threadcode(): method %s complete\n" % (str(method)))                    
+
                     if callback_and_params is not None:
                         gobject.timeout_add(0,callback_and_params[0],params,result,callback_and_params[1])
                         pass
@@ -169,9 +171,10 @@ def wrap_dispatch(wrapped_object,methodname,methodtocall,args,kwargs):
     if methodname.startswith("__") and methodname.endswith("__") and methodname != "__init__":
         # magic methods other than __init__ are not dispatched to
         # the serialized thread, but are executed immediately here.
+        # (what should we do about __str__? (currently not serialized))
         retval=methodtocall(*args,**kwargs)
 
-        if gobject_callback is not None:
+        if gobject_callback is None:
             return retval
         else:
             gobject.timeout_add(0,gobject_callback[0],None,retval,gobject_callback[1])
@@ -183,6 +186,7 @@ def wrap_dispatch(wrapped_object,methodname,methodtocall,args,kwargs):
     
     if gobject_callback is not None:
         # Dispatch with callback
+        #sys.stderr.write("dispatch with callback(%s)\n" % (methodname))
         callqueue_params=(wrapped_object,methodtocall,args,kwargs,gobject_callback,None,None)
         manager.callqueue.append(callqueue_params)
         manager.WakeupEvent.set()

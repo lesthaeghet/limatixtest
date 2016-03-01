@@ -46,6 +46,18 @@ else :
     import gobject
     pass
 
+if hasattr(gtk,"ResponseType") and hasattr(gtk.ResponseType,"OK"):
+    # gtk3
+    RESPONSE_OK=gtk.ResponseType.OK
+    RESPONSE_CANCEL=gtk.ResponseType.CANCEL
+    RESPONSE_NO=gtk.ResponseType.NO
+    RESPONSE_YES=gtk.ResponseType.YES
+else :
+    RESPONSE_OK=gtk.RESPONSE_OK
+    RESPONSE_CANCEL=gtk.RESPONSE_CANCEL
+    RESPONSE_NO=gtk.RESPONSE_NO
+    RESPONSE_YES=gtk.RESPONSE_YES
+    pass
 
 
 # import pygram
@@ -451,7 +463,8 @@ class checklist(object):
 
             if self.chklistfile is not None:
                 # window title is filename if we are actively updating the file
-                self.gladeobjdict["CheckListWindow"].set_title(self.chklistfile)
+                #self.gladeobjdict["CheckListWindow"].set_title(self.chklistfile)
+                self.set_window_title()
                 
                 #self.xmldoc.autoflush=True
                 #print "Auto flush mode!!!"
@@ -608,7 +621,8 @@ class checklist(object):
                     exec("from steps.%s import %s as stepclass" % (cls+"step",cls+"step"),importobjdict,importobjdict)
                     pass
                 except ImportError:
-                    raise ValueError("Invalid step: %s" % (cls+"step"))
+                    excvalue=sys.exc_info()[1]
+                    raise ValueError("Invalid step: %s. ImportError: %s" % (cls+"step",str(excvalue)))
                 stepclass=importobjdict["stepclass"]
                 stepgprops=gobject.list_properties(stepclass) 
                 # convert gprops into types: dictionary of gobject.TYPE_whatever
@@ -632,6 +646,8 @@ class checklist(object):
                     
                 params={}
                 for child in self.xmldoc.children(curitem):
+                    if self.xmldoc.is_comment(child):
+                        continue
                     tag=self.xmldoc.gettag(child)
                     (prefix,dctag)=tag.split(":")
                     if prefix != "chx":
@@ -653,9 +669,10 @@ class checklist(object):
                     #    import pdb as pythondb
                     #    pythondb.set_trace()
                     #    pass
-                    
+                    description=""
                     if paramname=="description":
                         # try : 
+                        description=self.xmldoc.gettext(child)
                         params[paramname]=etree.tostring(xml2pango(child),encoding='utf-8').decode("utf-8")
                         pass
                     else:
@@ -682,7 +699,7 @@ class checklist(object):
                         elif stepgprop_gtypes[paramname].is_a(bool):
                             paramstr=self.xmldoc.xpathcontext(child,"string(.)").strip()
                             paramval=False
-                            if paramstr.lower()=="true":
+                            if len(paramstr)==0 or paramstr.lower()=="true":
                                 paramval=True
                                 pass
                             params[paramname]=paramval
@@ -703,6 +720,10 @@ class checklist(object):
 
                 if len(title)==0:
                     title=curitem.text
+                    pass
+
+                if title is None or len(title)==0:
+                    title=description
                     pass
             
                 if title is None: 
@@ -802,10 +823,11 @@ class checklist(object):
         
         
         # set window title to checklist name
-        if self.xmldoc.filehref is None:  # not using filename for window title
-            self.gladeobjdict["CheckListWindow"].set_title(origbasename)
-            pass
-        
+        # if self.xmldoc.filehref is None:  # not using filename for window title
+        #   self.gladeobjdict["CheckListWindow"].set_title(origbasename)
+        #    pass
+        self.set_window_title()
+
         self.build_checklistbox(initializefromunfilled)  # adds the step to self.steps
         # self.checkdone()
         
@@ -849,6 +871,28 @@ class checklist(object):
         self.gladeobjdict["ReadWriteButton"].connect("clicked",self.handle_readwrite)
         
         pass
+
+    def set_window_title(self):
+
+        titlehref=self.orighref  # fallback condition -- original filename
+        
+        if self.xmldoc.filehref is not None: 
+            titlehref=self.xmldoc.filehref  # current file name
+            pass
+        
+        # use filename part only
+        filepart=titlehref.get_bare_unquoted_filename()
+        
+        titlestr=filepart
+        
+        if self.is_done():
+            titlestr += " (done)"
+            pass
+
+        self.gladeobjdict["CheckListWindow"].set_title(titlestr)
+        pass
+        
+        
 
     def is_done(self):
         self.xmldoc.lock_ro()
@@ -1390,7 +1434,8 @@ class checklist(object):
 
             
             # reset window title to checklist name
-            self.gladeobjdict["CheckListWindow"].set_title(os.path.split(self.orighref.get_bare_unquoted_filename())[1])
+            #self.gladeobjdict["CheckListWindow"].set_title(os.path.split(self.orighref.get_bare_unquoted_filename())[1])
+            self.set_window_title()
 
             # clear notes
             notesels=self.xmldoc.xpath("chx:notes")
@@ -1801,6 +1846,36 @@ class checklist(object):
         if not self.verify_save():
             return
         
+        # Check if it's OK to be 'done'... in datacollect mode
+        # measnum should not have been used before
+        if self.datacollectmode and (self.done_is_save_measurement):
+            (measnum_in_xlg,beyond_latest_measnum)=self.check_measnum_status()
+            if measnum_in_xlg or not(beyond_latest_measnum):
+                # Ask user if OK to proceed
+                if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"QUESTION"):
+                    # gtk3
+                    Dialog=gtk.MessageDialog(type=gtk.MessageType.QUESTION,buttons=gtk.ButtonsType.YES_NO)
+                    pass
+                else : 
+                    Dialog=gtk.MessageDialog(type=gtk.MESSAGE_QUESTION,buttons=gtk.BUTTONS_YES_NO)
+                    pass
+                if measnum_in_xlg:
+                    statusmsg="already used in the experiment log."
+                    pass
+                else: 
+                    statusmsg="less than the most recent Measnum."
+                    pass
+
+                Dialog.set_markup(("Warning: Measurement number (Measnum=%d) is " % (self.paramdb["measnum"].dcvalue.value()))+ statusmsg + "\nOK to use this Measnum and write to the experiment log anyway?")
+                result=Dialog.run()
+                Dialog.destroy() 
+                if result!=RESPONSE_YES:
+                    return
+                pass
+            pass
+        
+
+
         try : 
 
             # sys.stderr.write("handle_done() try block. done_is_save_measurement=%s\n" % (str(self.done_is_save_measurement)))
@@ -1816,6 +1891,7 @@ class checklist(object):
             #import pdb as pythondb
             #pythondb.set_trace()
                 
+            self.set_window_title()  # update window title now that we are done
                 
             if self.done_is_save_measurement:
                 # sys.stderr.write("handle_done() saving measurement\n")
@@ -1985,7 +2061,8 @@ class checklist(object):
             self.gladeobjdict["SaveButton"].set_property("label","Done")
 
             # set window title
-            self.gladeobjdict["CheckListWindow"].set_title(os.path.split(name)[-1])
+            #self.gladeobjdict["CheckListWindow"].set_title(os.path.split(name)[-1])
+            self.set_window_title()
             
             # fh=file(name,"w")
             # fh.write(etree.tostring(self.xmldoc,pretty_print=True))
@@ -2102,14 +2179,45 @@ class checklist(object):
         
         return done
     
+    def check_measnum_status(self):
+        # Must lock explog, so don't call with checklist locked!!! 
+        
+        measnum=self.paramdb["measnum"].dcvalue
+        
+        
+        # evaluate experiment log status: 
+                
+        self.datacollect_explog.lock_ro()
+        try: 
+
+            # Measnum_in_xlg says whether we find this measnum in the experiment log already
+            measnum_in_xlg=len(self.datacollect_explog.xpath("dc:measurement[number(dc:measnum)=%d]" % (measnum.value()))) > 0
+                    
+                    
+            # find maximum measnum with xpath (per http://stackoverflow.com/questions/1128745/how-can-i-use-xpath-to-find-the-minimum-value-of-an-attribute-in-a-set-of-elemen )
+ 
+               
+            latest_measnum=self.datacollect_explog.xpathsingleint("number(dc:measurement/dc:measnum[not(. < ../../dc:measurement/dc:measnum)][1])",default=0)
+            beyond_latest_measnum = measnum.value() > latest_measnum
+
+            pass
+        finally:
+            self.datacollect_explog.unlock_ro()
+            pass
+        return (measnum_in_xlg,beyond_latest_measnum)
     
+
+   
     
     def ok_set_filename(self):
         # Return whether enough checkboxes have been checked that
         # it's OK to set the filename (and we still need to)
 
+        self.xmldoc.shouldbeunlocked()
         
         #sys.stderr.write("ok_set_filename()\n")
+        OK=False
+        measnum_in_xlg=None
 
         if self.xmldoc.filehref is not None:
             return False
@@ -2124,7 +2232,7 @@ class checklist(object):
         
 
 
-        self.xmldoc.lock_rw()
+        self.xmldoc.lock_ro()
         try: 
             destl=self.xmldoc.xpath("chx:dest")
             assert(len(destl) == 1)
@@ -2172,15 +2280,53 @@ class checklist(object):
                     # then it's OK to set the filename and autosave if 
                     # in datacollect mode
                     #  self.xmldoc.unlock_rw()   (now unlocked by finally block)
-                    return True
+
+                    OK=True
+
+                    pass
                 pass
             pass
         except:
             raise
         finally:
-            self.xmldoc.unlock_rw()
+            self.xmldoc.unlock_ro()
             pass
-        return False
+        
+        
+        if OK: 
+
+            # Make final check whether this makes sense -- is there
+            # a measnum conflict???
+            if self.datacollectmode and (self.done_is_save_measurement or self.has_save_measurement_step or self.part_of_a_measurement):
+                (measnum_in_xlg,beyond_latest_measnum)=self.check_measnum_status()
+
+                if measnum_in_xlg or not(beyond_latest_measnum):
+                    # Ask user if OK to proceed
+                    if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"QUESTION"):
+                        # gtk3
+                        Dialog=gtk.MessageDialog(type=gtk.MessageType.QUESTION,buttons=gtk.ButtonsType.YES_NO)
+                        pass
+                    else : 
+                        Dialog=gtk.MessageDialog(type=gtk.MESSAGE_QUESTION,buttons=gtk.BUTTONS_YES_NO)
+                        pass
+                    if measnum_in_xlg:
+                        statusmsg="already used in the experiment log."
+                        pass
+                    else: 
+                        statusmsg="less than the most recent Measnum."
+                        pass
+
+                    Dialog.set_markup(("Warning: Measurement number (Measnum=%d) is " % (self.paramdb["measnum"].dcvalue.value()))+ statusmsg + "\nOK to use this Measnum and assign a filename to this checklist anyway?")
+                    result=Dialog.run()
+                    Dialog.destroy() 
+                    if result==RESPONSE_YES:
+                        OK=True
+                    else:
+                        OK=False
+                    pass
+                pass
+            pass
+        return OK
 
 
     def requestedfilename(self):
@@ -2357,8 +2503,9 @@ class checklist(object):
                 # set filename field at bottom of window
                 self.private_paramdb["defaultfilename"].requestvalstr_sync(chklisthref.get_bare_unquoted_filename()) 
             
-                self.gladeobjdict["CheckListWindow"].set_title(chklisthref.get_bare_unquoted_filename())
-            
+                #self.gladeobjdict["CheckListWindow"].set_title(chklisthref.get_bare_unquoted_filename())
+                self.set_window_title()
+
                 pass
             else :
                 # not datacollectmode or datacollectmode but not part_of_a_measurement, done_is_save_measurement, etc. 
@@ -2593,9 +2740,6 @@ class checklist(object):
         
 
                 
-            if checked and self.ok_set_filename():
-                self.setchecklistfilename()
-                pass
             pass
         except: 
             raise
@@ -2603,6 +2747,11 @@ class checklist(object):
         finally:            
             self.xmldoc.unlock_rw()
             pass
+
+        if checked and self.ok_set_filename():
+            self.setchecklistfilename()
+            pass
+
 
         # self.xmldoc.shouldbeunlocked()  # must be unlocked for our changes to be flushed to disk
         

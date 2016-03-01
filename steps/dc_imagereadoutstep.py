@@ -21,6 +21,7 @@ from lxml import etree
 #sys.path.append("/home/sdh4/research/datacollect")
 import paramdb2 as pdb
 import dc_value
+import dc2_misc
 
 from dc_gtksupp import build_from_file
 from dc_gtksupp import dc_initialize_widgets
@@ -37,25 +38,25 @@ class dc_imagereadoutstep(gtk.HBox):
                      "", # default value 
                      gobject.PARAM_READWRITE), # flags
 
-        "width": (gobject.TYPE_INT,
-                     "width",
-                     "maximum width to scale image to, or -1 for unset",
+        "imagewidth": (gobject.TYPE_INT,
+                     "imagewidth",
+                     "maximum imagewidth to scale image to, or -1 for unset",
                      -1, # minimum value
                      50000, # maximum value... essentially infinite
                      -1, # default value 
                      gobject.PARAM_READWRITE), # flags
         
-        "height": (gobject.TYPE_INT,
-                  "height",
+        "imageheight": (gobject.TYPE_INT,
+                  "imageheight",
                   "maximum height to scale image to, or -1 for unset",
                   -1, # minimum value
                   50000, # maximum value... essentially infinite
                   -1, # default value 
                   gobject.PARAM_READWRITE), # flags
 
-        "save_to_xml": (gobject.TYPE_BOOLEAN,
-                  "save_to_xml",
-                  "Whether or not the image data should be saved into the checklist XML file",
+        "intermediate": (gobject.TYPE_BOOLEAN,
+                  "intermediate parameter setting",
+                  "Intermediate parameter setting: Intermediate step parameters are saved to the XML checklist file when the step is checked, and the widgets freeze when the checklist is read-only or once the checkbox ix checked",
                    False, # default value 
                   gobject.PARAM_READWRITE), # flags
 
@@ -65,7 +66,7 @@ class dc_imagereadoutstep(gtk.HBox):
                         "", # default value 
                         gobject.PARAM_READWRITE), # flags
         }
-    __proplist = ["paramname","width","height","save_to_xml","description"]
+    __proplist = ["paramname","imagewidth","imageheight","intermediate","description"]
 
     __dcvalue_xml_properties={} # dictionary by property of dc_value class to be transmitted as a serialized  xmldoc
     __dcvalue_href_properties=frozenset([]) # set of properties to be transmitted as an hrefvalue with the checklist context as contexthref
@@ -78,6 +79,7 @@ class dc_imagereadoutstep(gtk.HBox):
     checklist=None
     step=None
     guistate=None
+    paramdb=None
 
     paramnotify=None
                       
@@ -88,7 +90,7 @@ class dc_imagereadoutstep(gtk.HBox):
         # gtk.HBox.__init__(self) # Not supposed to call superclass __init__ method, just gobject __init__ according to    http://www.pygtk.org/articles/subclassing-gobject/sub-classing-gobject-in-python.htm  
         gobject.GObject.__init__(self)
 
-        self.myprops={"paramname": None, "width": -1, "height": -1, "save_to_xml": False, "description": None}
+        self.myprops={"paramname": None, "imagewidth": -1, "imageheight": -1, "intermediate": False, "description": None}
 
         (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"dc_imagereadoutstep.glade"))   
         
@@ -99,9 +101,9 @@ class dc_imagereadoutstep(gtk.HBox):
         self.step=step
 
         self.set_property("paramname","")
-        self.set_property("width",-1)
-        self.set_property("height",-1)
-        self.set_property("save_to_xml",False)
+        self.set_property("imagewidth",-1)
+        self.set_property("imageheight",-1)
+        self.set_property("intermediate",False)
         self.set_property("description","")
 
         self.pack_start(self.gladeobjdict["dc_imagereadoutstep"],True,True,0)
@@ -120,15 +122,15 @@ class dc_imagereadoutstep(gtk.HBox):
             self.myprops[property.name]=value
             self.gladeobjdict["imagereadout"].set_property("paramname",value)
             pass
-        elif property.name=="width":
+        elif property.name=="imagewidth":
             self.myprops[property.name]=value
-            self.gladeobjdict["width"].set_property("width",value)
+            self.gladeobjdict["imagereadout"].set_property("imagewidth",value)
             pass
-        elif property.name=="height":
+        elif property.name=="imageheight":
             self.myprops[property.name]=value
-            self.gladeobjdict["height"].set_property("height",value)
+            self.gladeobjdict["imagereadout"].set_property("imageheight",value)
             pass
-        elif property.name=="save_to_xml":
+        elif property.name=="intermediate":
             self.myprops[property.name]=value
             pass
         elif property.name=="description":
@@ -140,7 +142,10 @@ class dc_imagereadoutstep(gtk.HBox):
         pass
     
     def do_get_property(self,property):
-        return self.myprops[property.name]
+        name=property.name
+        #if name=="save-to-xml":
+        #    name="save_to_xml"
+        return self.myprops[name]
     
     def dc_gui_init(self,guistate):
         # need next line if subclassing a dc_gui class
@@ -150,19 +155,29 @@ class dc_imagereadoutstep(gtk.HBox):
         
         self.set_fixed()  # set to fixed value from xml file if appropriate, prior to initizliation of wrapped widget
         dc_initialize_widgets(self.gladeobjdict,guistate)
+        self.paramdb=self.guistate.paramdb
 
-
-        self.paramnotify=self.guistate.paramdb.addnotify(self.myprops["paramname"],self.changedcallback,pdb.param.NOTIFY_NEWVALUE)
+        self.paramnotify=self.paramdb.addnotify(self.myprops["paramname"],self.changedcallback,pdb.param.NOTIFY_NEWVALUE)
 
         pass
     
 
     def destroystep(self):
-        self.guistate.paramdb.remnotify(self.myprops["paramname"],self.paramnotify)
+        self.paramdb.remnotify(self.myprops["paramname"],self.paramnotify)
         self.paramnotify=None
         pass
 
     def is_fixed(self):
+        if self.paramdb is None: 
+            return True # fixed during initialization
+
+        # param readout is NEVER fixed when parameter intermediate is False
+        # ... non-intermediate params are saved in the experiment log, 
+        # not in the checklist
+        if not self.myprops["intermediate"]:
+            return False
+        
+
         # param readout is fixed when checklist is marked as
         # readonly or when checkbox is checked. 
         return self.checklist.readonly or self.step.gladeobjdict["checkbutton"].get_property("active")
@@ -199,110 +214,23 @@ class dc_imagereadoutstep(gtk.HBox):
         pass
 
     def value_from_xml(self):  # same as dc_paramstep
-        gotvalue=None
-        gotdisplayfmt=None
-        # xml_attribute=self.guistate.paramdb[self.myprops["paramname"]].xml_attribute
-
-        self.checklist.xmldoc.lock_ro()
-        try: 
-            xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
-            for child in xmltag:
-                childtag=self.checklist.xmldoc.gettag(child)
-                if childtag=="dc:"+self.myprops["paramname"] or childtag==self.myprops["paramname"]:
-                    if self.guistate is not None and self.guistate.paramdb is not None:
-                        # Use type specified in paramdb if possible
-                        paramtype=self.guistate.paramdb[self.myprops["paramname"]].paramtype
-                        pass
-                    else:
-                        # pull type from XML
-                        paramtype=dc_value.xmlextractvalueclass(self.checklist.xmldoc,child)
-                        #sys.stderr.write("element %s: paramtype=%s\n" % (etree.tostring(child),str(paramtype)))
-                        pass
-
-                    gotvalue=paramtype.fromxml(self.checklist.xmldoc,child)  # xml_attribute=xml_attribute)
-                    gotdisplayfmt=dc_value.xmlextractdisplayfmt(self.checklist.xmldoc,child)
-                    break
-                pass
-            pass
-        except: 
-            raise
-        finally:
-            self.checklist.xmldoc.unlock_ro()
-            pass
+        (gotvalue,gotdisplayfmt)=dc2_misc.stepwidget_value_from_xml(self,self.myprops["paramname"])
         return (gotvalue,gotdisplayfmt)
-    
 
     def update_xml(self): # same as dc_paramstep
         if self.is_fixed():
             return
 
-        if not self.myprops["save_to_xml"]:
+        # only intermediate params are saved to the checklist XML
+        if not self.myprops["intermediate"]:
             return
 
         
-        if self.guistate is None or self.guistate.paramdb is None:
+        if self.guistate is None or self.paramdb is None:
             return
         
-        newvalue=self.guistate.paramdb[self.myprops["paramname"]].dcvalue
-        # xml_attribute=self.guistate.paramdb[self.myprops["paramname"]].xml_attribute
-        gottag=False
-        
-        if self.checklist.xmldoc is None:
-            try: 
-                assert(0)
-                pass
-            except: 
-                #import pdb as pythondb
-                #pythondb.post_mortem()
-                raise
-                pass
-            
-        #print "Param Name:  %s" % (self.myprops["paramname"])          
-        
-        # chxstate="checked" in self.xmltag.attrib and self.xmltag.attrib["checked"]=="true"
-        # if chxstate: 
-        #     # once checked, inhibit updates
-        #     
-        #     pass
-        # else : 
-        #     # otherwise copy current state into xmltag
-        self.checklist.xmldoc.lock_rw()
-        try:
-            xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
-            if not newvalue.isblank():
-                for child in xmltag:
-                    childtag=self.checklist.xmldoc.gettag(child)
-                    if childtag=="dc:"+self.myprops["paramname"] or childtag==self.myprops["paramname"]:
-                        newvalue.xmlrepr(self.checklist.xmldoc,child) # ,xml_attribute=xml_attribute)
-                        dc_value.xmlstoredisplayfmt(self.checklist.xmldoc,child,self.guistate.paramdb[self.myprops["paramname"]].displayfmt)
-                        dc_value.xmlstorevalueclass(self.checklist.xmldoc,child,self.guistate.paramdb[self.myprops["paramname"]].paramtype)
-                        gottag=True
-                        break
-                    pass
-                if not gottag: 
-                    # need to create tag
-                    newchild=self.checklist.xmldoc.addelement(xmltag,"dc:"+self.myprops["paramname"])
-                    newvalue.xmlrepr(self.checklist.xmldoc,newchild) #xml_attribute=xml_attribute)
-                    dc_value.xmlstoredisplayfmt(self.checklist.xmldoc,newchild,self.guistate.paramdb[self.myprops["paramname"]].displayfmt)
-                    pass
-                pass
-            else:
-                # newvalue is blank
-                # ... remove dc:<paramname> tags from checklist entry
-                for child in xmltag:
-                    childtag=self.checklist.xmldoc.gettag(child)
-                    if childtag=="dc:"+self.myprops["paramname"] or childtag==self.myprops["paramname"]:
-                        self.checklist.xmldoc.remelement(child)
-                        pass
-                    pass
-                
-
-                pass
-        except: 
-            raise
-        finally:
-            self.checklist.xmldoc.unlock_rw()
-            pass
+        newvalue=self.paramdb[self.myprops["paramname"]].dcvalue
+        dc2_misc.stepwidget_update_xml(self,self.myprops["paramname"],newvalue)
         return newvalue
     
     # def te_reqsize(self,obj,requisition):

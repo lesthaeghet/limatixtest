@@ -9,6 +9,7 @@ import traceback
 import checklistdb
 import canonicalize_path
 import xmldoc
+import dc_value
 
 class dummy(object):
     pass
@@ -23,6 +24,8 @@ def load_config(href,paramdb,iohandlers,createparamserver):
     confdir="-I%s" % (os.path.join(thisdir,"../conf/"))
     # sys.stderr.write("confdir=%s\n" % confdir)
     
+    config_globals={"paramdb":paramdb,"iohandlers":iohandlers,"createparamserver":createparamserver,"DCCHREF":href,}
+
     # read config file, adding line to change quote characters to [[ ]] 
     configfh=open(href.getpath(),"rb")
     configstr="m4_changequote(`[[',`]]')\n".encode('utf-8')+configfh.read()
@@ -34,7 +37,7 @@ def load_config(href,paramdb,iohandlers,createparamserver):
     output=subproc.communicate(configstr)[0]
 
     try: 
-        exec(output,globals(),{"paramdb":paramdb,"iohandlers":iohandlers,"createparamserver":createparamserver,"DCCHREF":href,})
+        exec(output,config_globals)
         pass
     except: 
         tmpfname=os.tempnam(None,"dc2_preproc")
@@ -185,3 +188,124 @@ def chx2chf(parentcontextdir,parent,infilecontextdir,infile,outfilecontextdir,ou
     # write output file
     inxml.setfilename(outfile)
     pass
+
+def stepwidget_update_xml(stepwidget,paramname,newvalue):
+    """ Update, add, or remove an XML paramdb2 parameter value 
+        within the checklist entry for the checklist step
+        used by stepwidget. The parameter database used is
+        stepwidget.paramdb and a restorable path is presumed to 
+        be in stepwidget.xmlpath. 
+
+        paramname gives the name of the paramdb2 entry to 
+        create/update/remove the tag for and newvalue is the
+        value to represent. 
+        
+        If newvalue is blank, then it will remove the tag. """
+
+    gottag=False
+    
+    if stepwidget.checklist.xmldoc is None:
+        try: 
+            assert(0)
+            pass
+        except: 
+            # import pdb as pythondb
+            # pythondb.post_mortem()
+            raise
+        pass
+    # print "Param Name:  %s" % (paramname)          
+        
+    # chxstate="checked" in stepwidget.xmltag.attrib and stepwidget.xmltag.attrib["checked"]=="true"
+    # if chxstate: 
+    #     # once checked, inhibit updates
+    #     
+    #     pass
+    # else : 
+    #     # otherwise copy current state into xmltag
+    stepwidget.checklist.xmldoc.lock_rw()
+    try:
+        xmltag=stepwidget.checklist.xmldoc.restorepath(stepwidget.xmlpath)
+        if not newvalue.isblank():
+            for child in stepwidget.checklist.xmldoc.children(xmltag):
+                childtag=stepwidget.checklist.xmldoc.gettag(child)
+                if childtag=="dc:"+paramname or childtag==paramname:
+                    newvalue.xmlrepr(stepwidget.checklist.xmldoc,child) # ,xml_attribute=xml_attribute)
+                    # !!! If we are having trouble with writing absolute hrefs to the checklist file, try uncommenting these
+                    #if paramname=="troublesome_parameter":
+                    #    sys.stderr.write("dc2_misc: %s %s %s\n" % (str(newvalue.contextlist),str(stepwidget.checklist.xmldoc.filehref.contextlist),stepwidget.checklist.xmldoc.tostring(child)))
+                    dc_value.xmlstoredisplayfmt(stepwidget.checklist.xmldoc,child,stepwidget.paramdb[paramname].displayfmt)
+                    dc_value.xmlstorevalueclass(stepwidget.checklist.xmldoc,child,stepwidget.paramdb[paramname].paramtype)
+                    gottag=True
+                    break
+                pass
+            if not gottag: 
+                # need to create tag
+                newchild=stepwidget.checklist.xmldoc.addelement(xmltag,"dc:"+paramname)
+                newvalue.xmlrepr(stepwidget.checklist.xmldoc,newchild) #xml_attribute=xml_attribute)
+                dc_value.xmlstoredisplayfmt(stepwidget.checklist.xmldoc,newchild,stepwidget.paramdb[paramname].displayfmt)
+                dc_value.xmlstorevalueclass(stepwidget.checklist.xmldoc,newchild,stepwidget.paramdb[paramname].paramtype)
+                # !!! If we are having trouble with writing absolute hrefs to the checklist file, try uncommenting these
+                # if paramname=="troublesome":
+                #     sys.stderr.write("dc2_misc: %s %s %s\n" % (str(newvalue.contextlist),str(stepwidget.checklist.xmldoc.getcontexthref().contextlist),stepwidget.checklist.xmldoc.tostring(newchild)))
+                #     pass
+                pass
+            pass
+        else:
+            # newvalue is blank
+            # ... remove dc:<paramname> tags from checklist entry
+            for child in stepwidget.checklist.xmldoc.children(xmltag):
+                childtag=stepwidget.checklist.xmldoc.gettag(child)
+                if childtag=="dc:"+paramname or childtag==paramname:
+                    stepwidget.checklist.xmldoc.remelement(child)
+                    pass
+                pass
+            
+            pass
+        pass
+    except: 
+        raise
+    finally:
+        stepwidget.checklist.xmldoc.unlock_rw()
+        pass
+    
+    return newvalue
+
+def stepwidget_value_from_xml(stepwidget,paramname):
+            
+    gotvalue=None
+    gotdisplayfmt=None
+    # xml_attribute=stepwidget.paramdb[stepwidget.myprops["paramname"]].xml_attribute
+
+    stepwidget.checklist.xmldoc.lock_ro()
+    try: 
+        xmltag=stepwidget.checklist.xmldoc.restorepath(stepwidget.xmlpath)
+        for child in stepwidget.checklist.xmldoc.children(xmltag):
+            childtag=stepwidget.checklist.xmldoc.gettag(child)
+            if childtag=="dc:"+paramname or childtag==paramname:
+                if stepwidget.paramdb is not None:
+                    # Use type specified in paramdb if possible
+                    paramtype=stepwidget.paramdb[paramname].paramtype
+                    pass
+                else:
+                    # pull type from XML
+                    paramtype=dc_value.xmlextractvalueclass(stepwidget.checklist.xmldoc,child)
+                    # sys.stderr.write("element %s: paramtype=%s\n" % (etree.tostring(child),str(paramtype)))
+                    pass
+                if paramtype is not None:
+                    gotvalue=paramtype.fromxml(stepwidget.checklist.xmldoc,child)  # xml_attribute=xml_attribute)
+                    gotdisplayfmt=dc_value.xmlextractdisplayfmt(stepwidget.checklist.xmldoc,child)
+                    pass
+                else :
+                    gotvalue=dc_value.stringvalue("") # blank
+                    gotdisplayfmt=None
+                    pass
+                break
+            pass
+        pass
+    except: 
+        raise
+    finally:
+        stepwidget.checklist.xmldoc.unlock_ro()
+        pass
+    return (gotvalue,gotdisplayfmt)
+    

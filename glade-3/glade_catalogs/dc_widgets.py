@@ -19,6 +19,7 @@ from selectableparamreadout import selectableparamreadout
 from labelled_selectableparamreadout import labelled_selectableparamreadout
 from paragraphparam import paragraphparam
 from excitationparam import excitationparam
+from imagereadout import imagereadout
 
 from dc_wraplabel import dc_wraplabel
 

@@ -21,6 +21,7 @@ from lxml import etree
 #sys.path.append("/home/sdh4/research/datacollect")
 import paramdb2 as pdb
 import dc_value
+import dc2_misc
 
 from dc_gtksupp import build_from_file
 from dc_gtksupp import dc_initialize_widgets
@@ -46,6 +47,8 @@ class specimendisplaystep(gtk.HBox):
 
     paramnotify=None
                       
+    guistate=None
+    paramdb=None
     gladeobjdict=None
     
     def __init__(self,checklist,step,xmlpath):
@@ -90,20 +93,20 @@ class specimendisplaystep(gtk.HBox):
         # super(dg_readout).__dc_gui_init(self,io)
         
         self.guistate=guistate
-        
+        self.paramdb=self.guistate.paramdb
         self.set_fixed()  # set to fixed value from xml file if appropriate
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
 
         self.changedcallback(None,None) #  update xml
 
-        self.paramnotify=self.guistate.paramdb.addnotify("specimen",self.changedcallback,pdb.param.NOTIFY_NEWVALUE)
+        self.paramnotify=self.paramdb.addnotify("specimen",self.changedcallback,pdb.param.NOTIFY_NEWVALUE)
 
         pass
     
 
     def destroystep(self):
-        self.guistate.paramdb.remnotify("specimen",self.paramnotify)
+        self.paramdb.remnotify("specimen",self.paramnotify)
         self.paramnotify=None
         pass
 
@@ -142,33 +145,21 @@ class specimendisplaystep(gtk.HBox):
             pass
         pass
 
-    def value_from_xml(self):
-        gotvalue=None
-        # xml_attribute=self.guistate.paramdb["specimen"].xml_attribute
 
-        self.checklist.xmldoc.lock_ro()
-        try: 
-            xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
-            for child in xmltag:
-                childtag=self.checklist.xmldoc.gettag(child)
-                if childtag=="dc:specimen" or childtag=="specimen":
-                    gotvalue=self.guistate.paramdb["specimen"].paramtype.fromxml(self.checklist.xmldoc,child) # xml_attribute=xml_attribute)
-                    break
-                pass
-            pass
-        except: 
-            raise
-        finally:
-            self.checklist.xmldoc.unlock_ro()
-            pass
+    def value_from_xml(self):
+        (gotvalue,gotdisplayfmt)=dc2_misc.stepwidget_value_from_xml(self,"specimen")
         return gotvalue
+
 
     def update_xml(self):
         if self.is_fixed():
             return
         
-        newvalue=self.guistate.paramdb["specimen"].dcvalue
-        #xml_attribute=self.guistate.paramdb["specimen"].xml_attribute
+
+        return   # specimendisplaystep does not currently support "intermediate" mode as it is read-only anyway
+
+        newvalue=self.paramdb["specimen"].dcvalue
+        #xml_attribute=self.paramdb["specimen"].xml_attribute
         gottag=False
         
         if self.checklist.xmldoc is None:
