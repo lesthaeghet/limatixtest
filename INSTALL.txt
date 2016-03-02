@@ -15,8 +15,12 @@ Prerequisites:
   datacollect2-QAutils (not used directly, but documents checklist
                         format/structure and can render checklists as PDF)
   
+Datacollect2 can be installed simply by unpacking the archive in a suitable
+location once these prerequisites are installed. You may want to add the
+'bin' directory to your system PATH and/or insert symbolic links to the
+files in the 'bin' directory. You may also want to add the 'lib' directory
+to your system PYTHONPATH. 
 
-
-To install:
+To install into /usr/local/datacollect2 on Linux or Unix/MacOS platforms:
   "make"
   "sudo make install"

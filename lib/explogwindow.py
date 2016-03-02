@@ -1130,6 +1130,8 @@ class explogwindow(gtk.Window):
 
     def choose_openchecklists(self,event):
         # open the checklists (checklistdbwin) window
+        if self.explog is None:
+            return
         if self.explog.filehref is None:
             return
         if self.checklistdbwin is None:

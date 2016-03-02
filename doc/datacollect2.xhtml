@@ -1,0 +1,275 @@
+<html xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml">
+  <head><title>Datacollect2</title></head>
+  <body>
+    <h1>Datacollect2</h1>
+    <h2>Introduction</h2>
+    <p>
+      The practice of experimental academic research has recently gotten
+      much more complicated because of the advent of computers and
+      automation. Physical handwritten laboratory notebooks are no
+      longer adequate to hold our gigantic data files. Both data and
+      analysis are rife with errors. <tt>Datacollect2</tt> is a tool to
+      help us work more consistenly, reduce errors, and automatically
+      record the structure of our experiments along with our results and
+      our data. A companion tool,
+      <tt>dc_process</tt> helps define consistent and repeatable
+      analysis processes, and a separate companion
+      package <tt>databrowse</tt> provides a web-based interface to
+      data repositories.
+    </p>
+    <p>
+      The idea of Datacollect2 is to take those procedures that we
+      follow on a routine basis -- the typical steps in whatever we do
+      -- and formalize them into computerized checklists. Controls to
+      command and query electronic instrumentation are integrated into
+      the checklist steps, making performing the checklists very
+      efficient.  The checklists then become the basis for creating
+      (automatically, of course) an experiment log that combines
+      electronic readouts with manual inputs, photographs, etc. The
+      experiment log and checklists create a cross-linked, navigable
+      record of the experiment.
+    </p>
+    <p>
+      The laboratory records of many scientists are a mess of
+      handwritten or electronic notes and large numbers of badly
+      organized data files and folders. Datacollect2 can help
+      record the natural structure of the experiment in a cross-linked
+      form that makes it discoverable. The computerized checklists,
+      rather than being "paperwork", make laboratory data collection
+      more efficient: Integration with instrumentation puts controls
+      right where you need them, and the well-defined processes help
+      reduce errors and waste.
+    </p>
+    <p>
+      The use of checklists in other industries such as aerospace and
+      medicine has dramatically reduced rates of errors in those
+      fields. Recording the filled checklists keeps a record of what
+      was done, and integration with electronic instrumentation allows
+      some data to be directly extracted from its source, reducing the
+      opportunity for transcription errors. When desired, the overall
+      plan for an experiment or sequence of experiments can itself be
+      represented in a checklist, helping to provide further context
+      (and providing a concrete outlet for experiment planning).
+    </p>
+    <p>
+      Datacollect2 is a system for checklist-based experiment logging
+      -- it is a tool for recording what you are doing and what you
+      have done.  Datacollect2 <em>is not</em> a tool for creating
+      sophisticated integrated experiment control and data acquisition
+      systems ("virtual instruments"): Other tools such as Dataguzzler
+      and LabView are far more suited to that
+      task. Datacollect2 <em>is</em> a tool suited to recording your
+      use of virtual instruments, especially if the virtual
+      instruments provide a programmatic interface that can be used to
+      accept commands from and transmit output to Datacollect2. (Note:
+      As of this writing, a general-purpose Datacollect2 interface for
+      Dataguzzler does exist, but no such interface has yet been developed
+      for LabView.
+    </p>
+    <p>
+      Datacollect2 is built on open Web standards such as XML, XLink,
+      and the idea of the URL as a form of cross-reference.
+      Experiment logs and checklists are stored in XML text files,
+      which has unique advantages in being extensible and both human-
+      and machine-readable. XLink provides a standardized way to
+      define a cross-reference in XML, such as from an experiment log
+      to a checklist. The fact that XLink is standardized makes the
+      cross-reference discoverable using automated tools. 
+    </p>
+    <p>
+      Datacollect2 helps you create discoverable experiment logs,
+      cross-linked with checklists and data files, but the structure
+      is not very useful without a way to look at those experiment logs and
+      navigate the structure. The separate companion package
+      <tt>databrowse</tt> is a plug-in for web-server software that
+      creates a navigable and configurable online representation of your
+      data repository, with the ability to browse checklists and experiment
+      logs, follow cross links, and drill down into data files. It is
+      extendable via custom plug-ins to be able to analyze any type of
+      data file. 
+    </p>
+    <p>
+      An internal library within Datacollect2, <tt>xmldoc</tt>
+      provides a programmatic interface for extracting tabular data
+      from experiment logs. An internal class
+      library <tt>dc_value</tt> provides representations of numbers
+      with physical units, cross-references, and more.  The processing
+      tool, <tt>dc_process</tt>, is distributed along with
+      Datacollect2. It provides a framework for defining
+      data analysis and processing steps while keeping the intermediate
+      results well-organized.
+    </p>
+    <p>
+      The basic idea of <tt>dc_process</tt> is that you define
+      analysis and processing steps which transform the original
+      experiment log (<tt>.xlg</tt> file) into a processed experiment
+      log (<tt>.xlp</tt> file). The processed experiment log starts
+      out identical to the original experiment log, which is never
+      modified.  Each processing step then operates on the processed
+      log, adding additional information, perhaps generating processed
+      data files from the originals. Processing steps can be rerun as
+      needed and during debugging. <tt>dc_process</tt>
+      uses <em>provenance tracking</em> to help verify consistency of
+      the generated output.
+
+    </p>
+    <h2> Getting Started </h2>
+    <p>
+      !!!
+    </p>
+    <h2> Datacollect2 Building Blocks </h2>
+    <h3>XML, XPath, and XLink</h3>
+    <p>
+      The most fundamental building block of Datacollect2 is XML, which is
+      a data model usually represented as text with opening and
+      closing tags in brackets, similar to mid-1990's HTML. Here is a very
+      simple experiment log:
+    </p>
+    <pre>
+&lt;?xml version='1.0' encoding='UTF-8'?&gt;
+&lt;dc:experiment xmlns:dc="http://thermal.cnde.iastate.edu/datacollect"
+	       xmlns:xlink="http://www.w3.org/1999/xlink"&gt;
+  &lt;dc:summary&gt;
+    &lt;dc:specimen&gt;A53-1394Q&lt;/dc:specimen&gt;
+    &lt;dc:perfby&gt;Holland&lt;/dc:perfby&gt;
+    &lt;dc:date&gt;2016-03-01&lt;/dc:date&gt;
+    &lt;dc:dest xlink:href="A53-1394Q_test_files/"/&gt;
+    &lt;dc:measnum&gt;1&lt;/dc:measnum&gt; &lt;!-- This is a comment --&gt;
+    &lt;dc:checklists/&gt;
+  &lt;/dc:summary&gt;
+&lt;/dc:experiment&gt;
+    </pre>
+    <p>
+      The first line (optional) marks this file as XML. The basic
+      component of XML is the <em>element</em>, for
+      example <tt>&lt;dc:date&gt;2016-03-01&lt;/dc:date&gt;</tt> which
+      is defined by opening and
+      closing <em>tags</em>, <tt>&lt;dc:date&gt;</tt>
+      and <tt>&lt;/dc:date&gt;</tt> respectively, and whatever is
+      enclosed by those tags. The structure is hierarchical:
+      The <tt>&lt;dc:summary&gt;</tt> element contains
+      the <tt>&lt;dc:specimen&gt;</tt>, <tt>&lt;dc:perfby&gt;</tt>, <tt>&lt;dc:dest&gt;</tt>, <tt>&lt;dc:measnum&gt;</tt>,
+      and <tt>&lt;dc:checklists&gt;</tt>
+      tags. The <tt>&lt;dc:dest&gt;</tt> tag has
+      an <em>attribute</em>, <tt>xlink:href</tt> with
+      value <tt>A53-1394Q_test_files/</tt> representing
+      the <em>relative URL</em> of an <em>XLink</em> cross linked
+      directory (folder).
+    </p>
+    <p>
+      All opening tags (no leading slash) must have corresponding
+      closing tags (with leading slash). The exception is illustrated
+      in the <tt>&lt;dc:checklists&gt;</tt> tag, above. The form with
+      a trailing slash &lt;dc:checklists/&gt; is a shorthand for the
+      opening tag immediately followed by the closing tag, with no
+      content in between.
+    </p>
+    <p>
+      An XML document must have a single <em>root</em> element, in
+      this case the <tt>&lt;dc:experiment&gt;</tt> element on the
+      second, third, and last lines. (XML structures that do not have
+      a single root are known as <em>fragments</em>.)
+      The <tt>&lt;dc:experiment&gt;</tt> tag on the second and third
+      lines has two <em>namespace declarations</em> that look like
+      attributes. They define what namespaces are referred to by the <tt>dc:</tt> and
+      <tt>xlink:</tt>. While the namespace values look like URLs, the URLs are
+      never accessed directly, just used as unique identifiers. A
+      namespace declaration with no prefix, e.g.
+      <tt>xmlns="http://thermal.cnde.iastate.edu/checklist"</tt>
+      defines the <em>default namespace</em> that applies to tags that have no prefix.
+      Within that definition, a <tt>&lt;checkitem&gt;</tt> tag
+      would be interpreted in the <tt>http://thermal.cnde.iastate.edu/checklist</tt> namespace even though it doesn't have a prefix. 
+    </p>
+    <p>
+      A segment of text in an XML document is known as a <em>text node</em>. Text nodes, elements, comments, and <em>processing instructions</em> (which we will not discuss in detail) are collectively known as <em>nodes</em>
+    </p>
+    <p>
+      An attribute named <tt>xlink:href</tt> (i.e. named <tt>href</tt>
+      in the <tt>http://www.w3.org/1999/xlink</tt> namespace) is the
+      XLink standard way of denoting a cross reference. XLink defines
+      other possible attributes as well, such
+      as <tt>xlink:arcrole</tt>, which is used to specify how the
+      cross reference should be interpreted. For example, within
+      Datacollect2 we use an <tt>xlink:arcrole</tt>
+      of <tt>http://thermal.cnde.iastate.edu/linktoparent</tt> to
+      represent a reverse cross reference to the parent of a document.
+    </p>
+    <p>
+      Because the attribute names and namespace for XLink attributes are
+      unique, the structure of cross-references can be discovered simply
+      for searching for those attributes, without otherwise needing to
+      understand the particular XML documents being searched themselves.
+      XLink cross references are URLs, not filenames; they always use
+      forward slash ('/') to refer to subdirectories or subfolders, never
+      back slash ('\'), regardless of platform. The parent directory/parent
+      folder can be referenced with '..'. 
+      XLink cross references can be relative (no <em>transport protocol</em> such as http:// and no leading slash), server- or filesystem-absolute (with leading slash), or world-absolute (full URL with transport protocol). Please note
+      that while the Datacollect2 libraries will correctly manipulate
+      world-absolute URLs, the current version is limited to accessing
+      local files, typically by realtive URLs. 
+    </p>
+    <p>
+      In processing an experiment log, it is often necessary to
+      refer to a particular element within an XML file. This can
+      be done by specifying its XPath. For example, in the above
+      XML file, the &lt;dc:perfby&gt; element could be identifed
+      by the absolute XPath <tt>/dc:experiment/dc:summary/dc:perfby</tt>.
+      XPaths can also be specified as relative to a particular
+      <em>context node</em>, which defaults to the root element
+      (in this case the <tt>&lt;dc:experiment&gt;</tt> tag). As
+      a relative path from the default context node, the
+      path to the &lt;dc:perfby&gt; element would be
+      specified as <tt>dc:summary/dc:perfby</tt>. The context node
+      itself can always be referenced with a single period ("<tt>.</tt>").
+      A parent element can be referenced with a double period ("<tt>..</tt>").
+      For example, relative to the <tt>&lt;dc:perfby&gt;</tt> element as
+      context node, the path to the <tt>&lt;dc:summary&gt;</tt> element
+      would be ".." and the path to the <tt>&lt;dc:experiment&gt;</tt>
+      element would be <tt>"../.."</tt>. 
+    </p>
+    <p>
+      An XPath like <tt>dc:summary/dc:perfby</tt> would match multiple
+      elements if, for example, there were
+      multiple <tt>&lt;dc:summary&gt;</tt> and/or
+      multiple <tt>&lt;dc:perfby&gt;</tt> tags present.
+      <tt>dc:summary/dc:perfby[1]</tt> would return the
+      first <tt>dc:perfby</tt> element within each <tt>dc:summary</tt>
+      element. More sophisticated constraints are also possible.
+      For example to match a <tt>dc:measurement</tt> element containing
+      a <tt>dc:measnum</tt> element with the particular value 5, use
+      <tt>dc:measurement[dc:measnum='5']</tt>. XPaths can also refer
+      to attributes by referring to them with a leading at sign ("@").
+      For example in the above XML example the cross reference would
+      be identified with <tt>dc:summary/dc:dest/@xlink:href</tt>. Note
+      that namespace prefixes (<tt>dc:</tt> and <tt>xlink:</tt> in this case)
+      are always needed when referring to namespaced elements, even when
+      a default namespace has been set (with <tt>xmlns=...</tt>, as described above). 
+    </p>
+    <h3>Experiment Logs</h3>
+    <p>
+      !!!
+    </p>
+    <h3>Checklists</h3>
+    <p>
+      !!!
+    </p>
+    <h3>Plans</h3>
+    <p>
+      !!!
+    </p>
+    <h3>The Parameter Database</h3>
+    <p>
+      !!!
+    </p>
+    <h2>Integration with Measurement Hardware</h2>
+    <p>
+      !!!
+    </p>
+
+    <h2>dc_process</h2>
+    <p>
+      !!!
+    </p>
+
+  </body>
+</html>
