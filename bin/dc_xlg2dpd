@@ -16,36 +16,37 @@ dg_units.units_config("insert_basic_units")
 
 
 
-class dummy(object):
-    pass
+#class dummy(object):
+#    pass
+#
+## trace symbolic link to find installed directory
+#thisfile=sys.modules[dummy.__module__].__file__
+#if os.path.islink(thisfile):
+#    installedfile=os.readlink(thisfile)
+#    if not os.path.isabs(installedfile):
+#        installedfile=os.path.join(os.path.dirname(thisfile),installedfile)
+#        pass
+#    pass
+#else:
+#    installedfile=thisfile
+#    pass
+#
+#installeddir=os.path.dirname(installedfile)
+#
+#if os.path.exists(os.path.join(installeddir,"../lib/checklist.py")):
+#    installeddir=os.path.join(installeddir,"../")
+#    pass
+#elif os.path.exists(os.path.join(installeddir,"../gui2/lib/checklist.py")):
+#    installeddir=os.path.join(installeddir,"../gui2")
+#    pass
 
-# trace symbolic link to find installed directory
-thisfile=sys.modules[dummy.__module__].__file__
-if os.path.islink(thisfile):
-    installedfile=os.readlink(thisfile)
-    if not os.path.isabs(installedfile):
-        installedfile=os.path.join(os.path.dirname(thisfile),installedfile)
-        pass
-    pass
-else:
-    installedfile=thisfile
-    pass
+#sys.path.append(installeddir)
+#sys.path.append(os.path.join(installeddir,"lib/"))
 
-installeddir=os.path.dirname(installedfile)
-
-if os.path.exists(os.path.join(installeddir,"../lib/checklist.py")):
-    installeddir=os.path.join(installeddir,"../")
-    pass
-elif os.path.exists(os.path.join(installeddir,"../gui2/lib/checklist.py")):
-    installeddir=os.path.join(installeddir,"../gui2")
-    pass
-
-sys.path.append(installeddir)
-sys.path.append(os.path.join(installeddir,"lib/"))
-
-import xmldoc
-import canonicalize_path
-import paramdbfile
+from datacollect2 import dc_value
+from datacollect2 import xmldoc
+from datacollect2 import canonicalize_path
+from datacollect2 import paramdbfile
 
 
 x2d_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://thermal.cnde.iastate.edu/checklist"}

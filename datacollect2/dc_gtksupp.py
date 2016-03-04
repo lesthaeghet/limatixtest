@@ -3,6 +3,7 @@ import os.path
 import glob
 import copy
 import sys
+import pkg_resources
 
 if "gi" in sys.modules:  # gtk3
     import gi
@@ -133,13 +134,23 @@ def dc_initialize_widgets(objdict,guistate):
 
 def import_widgets():
 
-    direc=os.path.split(widgets.__file__)[0]
-    
-    to_import=glob.glob(os.path.join(direc,"*.py"))
-    
-    for fname in to_import:
-        modname=os.path.splitext(os.path.split(fname)[1])[0]
-        # sys.stderr.write("modname=%s\n" % (modname))
-        exec("from widgets import %s" % (modname))
+    # Import all widgets registered with "datacollect2.widget" entry points
+
+    # This way when we load in a .glade interface description 
+    # that uses one of these widgets, it will load. 
+
+    for entrypoint in pkg_resources.iter_entry_points("datacollect2.widget"):
+        entrypoint.load()
         pass
+
+
+    #direc=os.path.split(widgets.__file__)[0]
+    #
+    #to_import=glob.glob(os.path.join(direc,"*.py"))
+    #
+    #for fname in to_import:
+    #    modname=os.path.splitext(os.path.split(fname)[1])[0]
+    #    # sys.stderr.write("modname=%s\n" % (modname))
+    #    exec("from widgets import %s" % (modname))
+    #    pass
     pass

@@ -12,8 +12,8 @@ dcp_steps_files=glob.glob("dcp_steps/*")
 conf_files=glob.glob("conf/*")
 doc_files=glob.glob("doc/*")
 root_files=["README.txt","INSTALL.txt"]
-datacollect2_widgets_package_files=["glade-3/glade_catalogs/*"]
-datacollect2_widgets_package_files=["*.glade"]
+#datacollect2_widgets_glade_catalogs_package_files=["*.xml"]
+datacollect2_widgets_package_files=["*.glade","glade_catalogs/*"]
 datacollect2_steps_package_files=["*.glade"]
 datacollect2_package_files=["*.glade"]
 
@@ -23,6 +23,10 @@ canonicalize_path_package_files=["canonical_paths.conf","tag_index_paths.conf"]
 datacollect2_step_paths=glob.glob("datacollect2/steps/*.py")
 datacollect2_step_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in datacollect2_step_paths if not path.endswith("__init__.py")]
 datacollect2_step_entrypoints = [ '%s = datacollect2.steps.%s' % (stepname,stepname) for stepname in datacollect2_step_names]
+
+datacollect2_widget_paths=glob.glob("datacollect2/widgets/*.py")
+datacollect2_widget_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in datacollect2_widget_paths if not path.endswith("__init__.py")]
+datacollect2_widget_entrypoints = [ '%s = datacollect2.widgets.%s' % (widgetname,widgetname) for widgetname in datacollect2_widget_names]
 
 #package_files=["canonical_paths.conf","tag_index_paths.conf"]
 
@@ -107,7 +111,8 @@ setup(name="datacollect2",
                "bin/dc_process",
                "bin/dc_ricohphoto",
                "bin/dc_xlg2dpd",],
-      entry_points={"datacollect2.step": datacollect2_step_entrypoints})
+      entry_points={"datacollect2.step": datacollect2_step_entrypoints,
+                    "datacollect2.widget": datacollect2_widget_entrypoints})
 
 
 

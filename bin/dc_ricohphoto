@@ -20,46 +20,46 @@ import dg_units
 dg_units.units_config("insert_basic_units")
 
 
-class dummy(object):
-    pass
+#class dummy(object):
+#    pass
 
-# trace symbolic link to find installed directory
-thisfile=sys.modules[dummy.__module__].__file__
-if os.path.islink(thisfile):
-    installedfile=os.readlink(thisfile)
-    if not os.path.isabs(installedfile):
-        installedfile=os.path.join(os.path.dirname(thisfile),installedfile)
-        pass
-    pass
-else:
-    installedfile=thisfile
-    pass
+## trace symbolic link to find installed directory
+#thisfile=sys.modules[dummy.__module__].__file__
+#if os.path.islink(thisfile):
+#    installedfile=os.readlink(thisfile)
+#    if not os.path.isabs(installedfile):
+#        installedfile=os.path.join(os.path.dirname(thisfile),installedfile)
+#        pass
+#    pass
+#else:
+#    installedfile=thisfile
+#    pass
 
-installeddir=os.path.dirname(installedfile)
+#installeddir=os.path.dirname(installedfile)
 
-if os.path.exists(os.path.join(installeddir,"../lib/checklist.py")):
-    installeddir=os.path.join(installeddir,"../")
-    pass
-elif os.path.exists(os.path.join(installeddir,"../gui2/lib/checklist.py")):
-    installeddir=os.path.join(installeddir,"../gui2")
-    pass
+#if os.path.exists(os.path.join(installeddir,"../lib/checklist.py")):
+#    installeddir=os.path.join(installeddir,"../")
+#    pass
+#elif os.path.exists(os.path.join(installeddir,"../gui2/lib/checklist.py")):
+#    installeddir=os.path.join(installeddir,"../gui2")
+#    pass
+#
+#sys.path.append(installeddir)
+#sys.path.append(os.path.join(installeddir,"lib/"))
 
-sys.path.append(installeddir)
-sys.path.append(os.path.join(installeddir,"lib/"))
+from datacollect2.dc_value import numericunitsvalue as numericunitsv
+from datacollect2.dc_value import stringvalue as stringv
+from datacollect2.dc_value import photosvalue as photosv
 
-from dc_value import numericunitsvalue as numericunitsv
-from dc_value import stringvalue as stringv
-from dc_value import photosvalue as photosv
+from datacollect2 import paramdb2 as pdb
 
-import paramdb2 as pdb
+from datacollect2.dc_gtksupp import import_widgets
+from datacollect2.dc_gtksupp import guistate as create_guistate
 
-from dc_gtksupp import import_widgets
-from dc_gtksupp import guistate as create_guistate
-
-from dc_dbus_barcode import dc_dbus_barcode
+from datacollect2.dc_dbus_barcode import dc_dbus_barcode
 
 
-import ricohcamera
+from datacollect2 import ricohcamera
 
 if "gobject" in sys.modules:  # only for GTK2
     gobject.threads_init()

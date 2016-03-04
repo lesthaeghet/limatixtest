@@ -27,38 +27,37 @@ import datetime
 import dg_units
 dg_units.units_config("insert_basic_units")
 import dg_timestamp
-import canonicalize_path
 
-class dummy(object):
-    pass
+#class dummy(object):
+#    pass
 
-# trace symbolic link to find installed directory
-thisfile=sys.modules[dummy.__module__].__file__
-if os.path.islink(thisfile):
-    installedfile=os.readlink(thisfile)
-    if not os.path.isabs(installedfile):
-        installedfile=os.path.join(os.path.dirname(thisfile),installedfile)
-        pass
-    pass
-else:
-    installedfile=thisfile
-    pass
+## trace symbolic link to find installed directory
+#thisfile=sys.modules[dummy.__module__].__file__
+#if os.path.islink(thisfile):
+#    installedfile=os.readlink(thisfile)
+#    if not os.path.isabs(installedfile):
+#        installedfile=os.path.join(os.path.dirname(thisfile),installedfile)
+#        pass
+#    pass
+#else:
+#    installedfile=thisfile
+#    pass
 
-installeddir=os.path.dirname(installedfile)
+#installeddir=os.path.dirname(installedfile)
 
-if os.path.exists(os.path.join(installeddir,"../lib/checklist.py")):
-    installeddir=os.path.join(installeddir,"../")
-    pass
-elif os.path.exists(os.path.join(installeddir,"../gui2/lib/checklist.py")):
-    installeddir=os.path.join(installeddir,"../gui2")
-    pass
+#if os.path.exists(os.path.join(installeddir,"../lib/checklist.py")):
+#    installeddir=os.path.join(installeddir,"../")
+#    pass
+#elif os.path.exists(os.path.join(installeddir,"../gui2/lib/checklist.py")):
+#    installeddir=os.path.join(installeddir,"../gui2")
+#    pass
 
-sys.path.append(installeddir)
-sys.path.append(os.path.join(installeddir,"lib/"))
+#sys.path.append(installeddir)
+#sys.path.append(os.path.join(installeddir,"lib/"))
 
-import dc_value as dcv
-import dc_provenance as provenance
-import xmldoc
+import datacollect2.dc_value as dcv
+import datacollect2.dc_provenance as provenance
+from datacollect2 import xmldoc
 
 def usage():
     print ("""Usage: %s file.xlp
