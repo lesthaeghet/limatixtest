@@ -14,6 +14,7 @@ import os
 import os.path
 import string
 import numbers
+import math
 import copy
 import traceback
 import urllib
@@ -63,28 +64,28 @@ else :
 # import pygram
 
 
-import xmldoc
-import canonicalize_path
-import checklistdb
+from . import xmldoc
+from . import canonicalize_path
+from . import checklistdb
 
 
 
 import dg_timestamp
 
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
-from dc_gtksupp import guistate as create_guistate
+from .dc_gtksupp import build_from_file
+from .dc_gtksupp import dc_initialize_widgets
+from .dc_gtksupp import guistate as create_guistate
 
-from steptemplate import steptemplate
-import paramdb2 as pdb
-from dc_value import numericunitsvalue as numericunitsv
-from dc_value import stringvalue as stringv
-from dc_value import hrefvalue as hrefv
-from dc_value import accumulatingintegersetvalue as accumulatingintegersetv
-from dc_value import accumulatingdatesetvalue as accumulatingdatesetv
-from dc_value import datesetvalue as datesetv
-from dc_value import integersetvalue as integersetv
-from dc_value import integervalue as integerv
+from .steptemplate import steptemplate
+from . import paramdb2 as pdb
+from .dc_value import numericunitsvalue as numericunitsv
+from .dc_value import stringvalue as stringv
+from .dc_value import hrefvalue as hrefv
+from .dc_value import accumulatingintegersetvalue as accumulatingintegersetv
+from .dc_value import accumulatingdatesetvalue as accumulatingdatesetv
+from .dc_value import datesetvalue as datesetv
+from .dc_value import integersetvalue as integersetv
+from .dc_value import integervalue as integerv
 
 try: 
     import builtins  # python3
@@ -612,11 +613,13 @@ class checklist(object):
             for curitem in checkitems:
                 cls=self.xmldoc.getattr(curitem,"class","text")
 
-                if ("." in cls) or ("/" in cls):
-                    raise ValueError("invalid character in step class %s" % (cls))
+                for char in cls: 
+                    if char=="." or char=="/" or (not(char.isalnum()) and char != "_"):
+                        raise ValueError("invalid character in step class %s" % (cls))
+                    pass
 
                 # Try to import class so as to obtain parameter types
-                importobjdict={}
+                importobjdict=copy.copy(globals())
                 try:
                     exec("from steps.%s import %s as stepclass" % (cls+"step",cls+"step"),importobjdict,importobjdict)
                     pass
@@ -2197,9 +2200,14 @@ class checklist(object):
             # find maximum measnum with xpath (per http://stackoverflow.com/questions/1128745/how-can-i-use-xpath-to-find-the-minimum-value-of-an-attribute-in-a-set-of-elemen )
  
                
-            latest_measnum=self.datacollect_explog.xpathsingleint("number(dc:measurement/dc:measnum[not(. < ../../dc:measurement/dc:measnum)][1])",default=0)
-            beyond_latest_measnum = measnum.value() > latest_measnum
-
+            latest_measnum=self.datacollect_explog.xpathsingle("number(dc:measurement/dc:measnum[not(. < ../../dc:measurement/dc:measnum)][1])",default=None)
+            if latest_measnum is not None and not math.isnan(latest_measnum):                
+                beyond_latest_measnum = measnum.value() > latest_measnum
+                pass
+            else:
+                beyond_latest_measnum=True
+                pass
+            
             pass
         finally:
             self.datacollect_explog.unlock_ro()

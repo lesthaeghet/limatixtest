@@ -13,7 +13,7 @@ else :
     pass
 
 
-from widgets.dc_wraplabel import dc_wraplabel
+from ..widgets.dc_wraplabel import dc_wraplabel
 
 __pychecker__="no-import no-argsused"
 

@@ -17,10 +17,10 @@ import csv
 import string
 
 import dg_timestamp
-import canonicalize_path
+from . import canonicalize_path
 
-import xmldoc
-import dc_process_common
+from . import xmldoc
+from .import dc_process_common
 
 from lxml import etree
 from pytz import reference

@@ -19,12 +19,12 @@ else :
 from lxml import etree
 
 #sys.path.append("/home/sdh4/research/datacollect")
-import paramdb2 as pdb
-import dc_value
-import dc2_misc
+from .. import paramdb2 as pdb
+from .. import dc_value
+from .. import dc2_misc
 
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
+from ..dc_gtksupp import build_from_file
+from ..dc_gtksupp import dc_initialize_widgets
 __pychecker__="no-import no-argsused"
 
 # gtk superclass should be first of multiple inheritances

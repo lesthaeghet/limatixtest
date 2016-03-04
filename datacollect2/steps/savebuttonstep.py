@@ -38,13 +38,13 @@ else :
 
 import dg_file as dgf
 import dg_comm as dgc
-import paramdb2 as pdb
+from .. import paramdb2 as pdb
 
-import dc_value
-import dc2_misc
+from .. import dc_value
+from .. import dc2_misc
 
 from buttonreadoutstep import buttonreadoutstep
-import canonicalize_path
+from .. import canonicalize_path
 
 class simpleobj:
     name=None

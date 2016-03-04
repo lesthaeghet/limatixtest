@@ -18,10 +18,10 @@ else :
     pass
 
 #sys.path.append("/home/sdh4/research/datacollect")
-import dc_value
+from .. import dc_value
 
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
+from ..dc_gtksupp import build_from_file
+from ..dc_gtksupp import dc_initialize_widgets
 
 debug=False  # set to true to enable more debug output
 __pychecker__="no-import no-argsused"

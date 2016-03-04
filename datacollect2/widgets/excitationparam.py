@@ -16,21 +16,21 @@ else :
     import gtk.gdk as gdk
     pass
 
-import paramdb2 as pdb
+from .. import paramdb2 as pdb
 
-from dc_value import numericunitsvalue as numericunitsv
-from dc_value import stringvalue as stringv
-from dc_value import excitationparamsvalue as excitationparamsv
+from ..dc_value import numericunitsvalue as numericunitsv
+from ..dc_value import stringvalue as stringv
+from ..dc_value import excitationparamsvalue as excitationparamsv
 # import dc_value
 
 
 # WARNING: Not thread safe, in part because of 
 #  changedinhibit flag
 
-from dc_gtksupp import paramhandler
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
-from dc_gtksupp import guistate as gs_guistate
+from ..dc_gtksupp import paramhandler
+from ..dc_gtksupp import build_from_file
+from ..dc_gtksupp import dc_initialize_widgets
+from ..dc_gtksupp import guistate as gs_guistate
 
 if hasattr(gtk,"StateType") and hasattr(gtk.StateType,"NORMAL"):
     # gtk3

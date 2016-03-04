@@ -9,7 +9,7 @@ import threading
 import subprocess
 import viewautoexp
 
-import dc_value
+from .. import dc_value
 
 try:
     from Queue import Queue, Empty

@@ -1,5 +1,6 @@
 import os
 import os.path
+import copy
 import sys
 
 if "gi" in sys.modules:  # gtk3
@@ -56,7 +57,7 @@ class steptemplate(gtk.HBox):
         self.gladeobjdict["numbertitle"].set_property("label","%d. %s" % (self.stepnumber,self.stepdescr))
 
         stepclass = None
-        stepobjdict={}
+        stepobjdict=copy.copy(globals())
 
         exec("from steps.%s import %s as stepclass" % (steptype,steptype),stepobjdict,stepobjdict)
         stepclass=stepobjdict["stepclass"]

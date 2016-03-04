@@ -6,9 +6,9 @@ import urlparse
 import urllib
 import copy
 
-import xmldoc
-import canonicalize_path
-import dc_value
+from . import xmldoc
+from . import canonicalize_path
+from . import dc_value
 
 # ***!!! Should add "origfilename" and "done" attributes to dc:checklist tags...
 

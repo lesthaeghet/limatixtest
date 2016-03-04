@@ -19,7 +19,7 @@ else :
     import gtk
     pass
 
-import paramdb2
+from . import paramdb2
 
 import xml.sax.saxutils
 
