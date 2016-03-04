@@ -28,7 +28,7 @@ except ImportError:
 import urllib
 
 try: 
-    import dc_provenance as provenance
+    from . import dc_provenance as provenance
     pass
 except ImportError:
     sys.stderr.write("xmldoc: Warning provenance support not available\n")
@@ -39,9 +39,11 @@ except ImportError:
         def elementaccessed(cls,filename,doc,element):
             pass
 
+        @classmethod
         def warnnoprovenance(cls,msg):
             pass
             
+        @classmethod
         def elementgenerated(cls,doc,element):
             pass
         pass
@@ -53,12 +55,12 @@ import numpy as np
 import dg_units as dgu
 
 
-import dc_value
+from . import dc_value
 
 
 try: 
-    from canonicalize_path import canonicalize_path
-    from canonicalize_path import relative_path_to
+    from .canonicalize_path import canonicalize_path
+    from .canonicalize_path import relative_path_to
     pass
 except ImportError:
     from os.path import realpath as canonicalize_path
@@ -66,13 +68,13 @@ except ImportError:
     pass
 
 try: 
-    from canonicalize_path import canonicalize_etxpath
-    from canonicalize_path import getelementetxpath
-    from canonicalize_path import create_canonical_etxpath
-    from canonicalize_path import canonical_etxpath_split
-    from canonicalize_path import canonical_etxpath_join
-    from canonicalize_path import canonical_etxpath_absjoin
-    from canonicalize_path import etxpath_isabs
+    from .canonicalize_path import canonicalize_etxpath
+    from .canonicalize_path import getelementetxpath
+    from .canonicalize_path import create_canonical_etxpath
+    from .canonicalize_path import canonical_etxpath_split
+    from .canonicalize_path import canonical_etxpath_join
+    from .canonicalize_path import canonical_etxpath_absjoin
+    from .canonicalize_path import etxpath_isabs
     pass
 except ImportError:
     canonicalize_etxpath=None
@@ -141,7 +143,7 @@ def loadgtk():
 def loadgobject():
     global gobject
     if gobject is None:
-        if not "gobject" in sys.modules and not "gtk" in sys.modules:  # gtk3
+        if "gi" in sys.modules:  # gtk3
             from gi.repository import GObject as gobject
             pass
         else : 
@@ -1572,7 +1574,10 @@ class xmldoc(object):
             pass
 
         if isinstance(parent,basestring):
+            parentstr=parent
             parent=self.find(parent) # convert path to element
+            if parent is None:
+                raise ValueError("Parent element %s not found in file %s" % (parentstr,str(self.filehref)))
             pass
 
         assert (not elname.startswith("@")) # attributes can only be added with AddSimpleElement
@@ -1627,7 +1632,7 @@ class xmldoc(object):
             pass
 
 	# Out List Of New Nodes
-	newnodes = []
+        newnodes = []
 
         # regular element, not attribute
         # Indent according to the number parent traversals to get to the document
@@ -3422,7 +3427,6 @@ class synced(object):
                 # No element -- append one to the parent
             
                 (parent,separator,elname)=xmlpath.rpartition("/")
-            
                 xmlel=xmldocobj.addelement(parent,elname)
                 pass
             else :

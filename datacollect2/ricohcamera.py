@@ -53,16 +53,16 @@ import dg_timestamp
 from PIL import Image
 
 
-from readablehash import readablehash
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
+from .readablehash import readablehash
+from .dc_gtksupp import build_from_file
+from .dc_gtksupp import dc_initialize_widgets
 
-from dc_value import numericunitsvalue as numericunitsv
-from dc_value import stringvalue as stringv
+from .dc_value import numericunitsvalue as numericunitsv
+from .dc_value import stringvalue as stringv
 
-from dbus_camera import dbus_camera
+from .dbus_camera import dbus_camera
 
-import paramdb2 as pdb
+from . import paramdb2 as pdb
 
 try : 
     import qrcode # requires python-qrcode package https://github.com/lincolnloop/python-qrcode

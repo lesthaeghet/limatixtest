@@ -25,7 +25,7 @@ except ImportError:
     pass
 
 
-import paramdbfile
+from . import paramdbfile
 
 if hasattr(string,"maketrans"):
     maketrans=string.maketrans
@@ -54,27 +54,27 @@ else :
     pass
 import xml.sax.saxutils
 
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
-from dc_dbus_paramserver import dc_dbus_paramserver
+from .dc_gtksupp import build_from_file
+from .dc_gtksupp import dc_initialize_widgets
+from .dc_dbus_paramserver import dc_dbus_paramserver
 
-import canonicalize_path
+from . import canonicalize_path
 
-import paramdb2 as pdb
-import checklist
-import dc2_misc
+from . import paramdb2 as pdb
+from . import checklist
+from . import dc2_misc
 
-import xmldoc
-import dc_value as dcv
-import xmlexplog
-import paramdb2_editor
-import checklistdb
-import checklistdbwin
-
-
+from . import xmldoc
+from . import dc_value as dcv
+from . import xmlexplog
+from . import paramdb2_editor
+from . import checklistdb
+from . import checklistdbwin
 
 
-import ricohcamera
+
+
+from . import ricohcamera
 
 chx_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://thermal.cnde.iastate.edu/checklist"}
 

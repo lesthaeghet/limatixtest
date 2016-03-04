@@ -6,7 +6,7 @@ import gtk
 # gtk=Gtk
 
 def mycallback(obj):
-    print "got callback. obj.testparam=%s" % (str(obj.testparam))
+    print("got callback. obj.testparam=%s" % (str(obj.testparam)))
     return True
 
 # see: http://www.pygtk.org/articles/subclassing-gobject/sub-classing-gobject-in-python.htm

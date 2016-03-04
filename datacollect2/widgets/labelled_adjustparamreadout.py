@@ -16,7 +16,7 @@ else :
     pass
 
 
-from adjustparamreadout import adjustparamreadout
+from .adjustparamreadout import adjustparamreadout
 
 __pychecker__="no-import no-argsused"
 

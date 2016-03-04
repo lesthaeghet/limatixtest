@@ -19,7 +19,7 @@ import string
 import dg_timestamp
 from . import canonicalize_path
 
-from . import xmldoc
+# from . import xmldoc  # remove to eliminate circular reference
 from .import dc_process_common
 
 from lxml import etree
@@ -729,6 +729,8 @@ def getnonprocessparent(foundelement):
 
 def suggest(docdict,processdict,processdictbypath,processdictbyusedelement,elementdict,globalmessagelists,totalmessagelists):
 
+    from . import xmldoc # don't want this in top-of-file because it creates a circular reference
+
     suggestion_processes=set([])
     suggestions=set([])
     suggestions_by_prxfile={}
@@ -943,7 +945,9 @@ def checkprovenance(element_etxpath,refuuids_or_mtime,nsmap={},referrer_etxpath=
             pass
         else :
             xmldocu=None
-            try : 
+            try :
+                from . import xmldoc # don't want this in top-of-file because it creates a circular reference
+
                 xmldocu=xmldoc.xmldoc.loadfile(filepath)
                 pass
             except IOError:

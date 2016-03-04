@@ -154,7 +154,7 @@ def dc_xmlfilterinplace(source,xpath,filterparams,filterfunc,*filterfuncargs,**f
         pass
     
     if not filterparams.WriteEnable: 
-        print "dc_xmlfilterinplace: XML file writing is disabled (?)"
+        print("dc_xmlfilterinplace: XML file writing is disabled (?)")
         pass
 
     sourcelist=createfilelist(source,filterparams.use_databrowse);
@@ -262,7 +262,7 @@ def dc_xmlfilter(filename,dest,xpath,filterparams,filterfunc,*filterfuncargs,**f
                 os.rename(dest,targetbase+".bak");
                 pass
             except :
-                print "Error renaming %s to %s" % (dest,targetbase+".bak")
+                print ("Error renaming %s to %s" % (dest,targetbase+".bak"))
                 raise
             pass
         pass

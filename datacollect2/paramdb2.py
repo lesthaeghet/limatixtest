@@ -22,12 +22,12 @@ from lxml import etree
 
 import dataguzzler as dg
 import dg_comm as dgc
-import dg_io
+from . import dg_io
 
-import dc_value 
+from . import dc_value 
 
-from dc_value import stringvalue as stringv
-from dc_value import numericunitsvalue as numericunitsv
+from .dc_value import stringvalue as stringv
+from .dc_value import numericunitsvalue as numericunitsv
 
 try:
     import databrowse.lib.db_lib as dbl

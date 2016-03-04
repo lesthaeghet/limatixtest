@@ -281,17 +281,17 @@ if __name__=="__main__":
         inp=raw_input("dc_unitscalc--> ");
         try :
             res=pygram.parse(grammar,inp+"\n",globals(),globals());
-            print res.format("%g")
+            print(res.format("%g"))
             pass
         except pygram.pyg_syntaxerror:
-            print "Syntax error"
+            print("Syntax error")
             pass
-        except pygram.pyg_reductionexception, exc:
+        except pygram.pyg_reductionexception as exc:
             if exc.value[0] is KeyError :
-                print "Unknown variable %s" % (exc.value[1])
+                print("Unknown variable %s" % (exc.value[1]))
                 pass
             elif exc.value[0] is ValueError:
-                print "ValueError: %s" % (exc.value[1])
+                print("ValueError: %s" % (exc.value[1]))
             else :
                 raise
             pass

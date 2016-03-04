@@ -21,10 +21,10 @@ except ImportError:
     pass
 
 
-import xmldoc
-import dc_value
-import canonicalize_path
-import checklistdb
+from . import xmldoc
+from . import dc_value
+from . import canonicalize_path
+from . import checklistdb
 
 paramdbfile_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue"}
 

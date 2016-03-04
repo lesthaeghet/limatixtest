@@ -1,6 +1,5 @@
 import os
 import sys
-import xmldoc
 from lxml import etree
 
 def findstep(prxdoc,stepname):

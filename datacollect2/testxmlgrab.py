@@ -14,5 +14,5 @@ meastags=dc_xmlgrab2.dc_xmlgrab(filename,"/dc:experiment/dc:measurement")
 hae=dc_xmlgrab2.dc_xml2numpy(meastags,"dc:hae")
 haeunits=dc_xmlgrab2.dc_xml2numpystr(meastags,"dc:hae/@dcv:units")
 
-print hae
-print haeunits
+print(hae)
+print(haeunits)

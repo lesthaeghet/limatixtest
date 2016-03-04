@@ -27,6 +27,7 @@ if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
     import gi
     gi.require_version('Gtk','3.0')
     from gi.repository import Gtk as gtk
+    from gi.repository import GObject as gobject
     pass
 else :  # gtk2
     import gobject

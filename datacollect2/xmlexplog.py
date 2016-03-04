@@ -5,8 +5,8 @@ import sys
 import dg_timestamp
 
 from lxml import etree 
-import xmldoc
-import paramdb2 as pdb
+from . import xmldoc
+from . import paramdb2 as pdb
 
 
 

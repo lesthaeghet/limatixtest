@@ -2,9 +2,27 @@ import os
 import sys
 import socket
 import time
-import urlparse
 import urllib
 import copy
+
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    from urllib.parse import urlparse
+    from urllib.parse import urlunparse
+    from urllib.parse import urljoin
+    pass
+
 
 from . import xmldoc
 from . import canonicalize_path
@@ -261,7 +279,7 @@ def xlinkhref2canonpath(contextdir,doc,element):
 
     URL=doc.getattr(element,"xlink:href",namespaces={"xlink": "http://www.w3.org/1999/xlink"})
     ## sys.stderr.write("xlinkhref2canonpath: URL=%s\n" % (URL))
-    ParsedURL=urlparse.urlparse(URL)
+    ParsedURL=urlparse(URL)
     if ParsedURL.scheme == "mem": # in-memory
         return URL # just return the full unparsed, unescaped url for in-memory.... will be canonical
     if ParsedURL.scheme != "":

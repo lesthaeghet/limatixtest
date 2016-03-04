@@ -16,7 +16,7 @@ else :
     pass
 
 
-from selectableparamreadout import selectableparamreadout
+from .selectableparamreadout import selectableparamreadout
 
 __pychecker__="no-import no-argsused"
 

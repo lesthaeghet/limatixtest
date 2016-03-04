@@ -40,3 +40,11 @@ PYCHECKER=$(shell if [[ `$(PYCHECKER_PATH) -V | awk -F . '{print $$1}'` > 0 ||  
 else
 PYCHECKER=/none
 endif
+
+PYTHON3=$(shell if [ -x /bin/python3 ] ; then echo "/bin/python3" ; elif [ -x /usr/bin/python3 ] ; then echo "/usr/bin/python3" ; elif [ -x /usr/local/bin/python3 ] ; then echo "/usr/local/bin/python3" ; elif [ -x /opt/bin/python3 ] ; then echo "/opt/bin/python3" ; else echo "/none" ; fi )
+
+PYTHON2.7=$(shell if [ -x /bin/python2.7 ] ; then echo "/bin/python2.7" ; elif [ -x /usr/bin/python2.7 ] ; then echo "/usr/bin/python2.7" ; elif [ -x /usr/local/bin/python2.7 ] ; then echo "/usr/local/bin/python2.7" ; elif [ -x /opt/bin/python2.7 ] ; then echo "/opt/bin/python2.7" ; else echo "/none" ; fi )
+
+PYTHON2.6=$(shell if [ -x /bin/python2.6 ] ; then echo "/bin/python2.6" ; elif [ -x /usr/bin/python2.6 ] ; then echo "/usr/bin/python2.6" ; elif [ -x /usr/local/bin/python2.6 ] ; then echo "/usr/local/bin/python2.6" ; elif [ -x /opt/bin/python2.6 ] ; then echo "/opt/bin/python2.6" ; else echo "/none" ; fi )
+
+DEFAULTPY=$(shell if [ -x /bin/python ] ; then echo "/bin/python" ; elif [ -x /usr/bin/python ] ; then echo "/usr/bin/python" ; elif [ -x /usr/local/bin/python ] ; then echo "/usr/local/bin/python" ; elif [ -x /opt/bin/python ] ; then echo "/opt/bin/python" ; else echo "/none" ; fi )

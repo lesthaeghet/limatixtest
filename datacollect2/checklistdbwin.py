@@ -29,9 +29,9 @@ else :
     import gobject
     pass
     
-import dc_value
-import paramdb2 as pdb
-import checklistdb
+from . import dc_value
+from . import paramdb2 as pdb
+from . import checklistdb
 
 
 __pychecker__="no-argsused no-import"

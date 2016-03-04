@@ -50,7 +50,7 @@ import atexit
 # or glib.threads_init()
 
 # sys.stderr.write("sys.path=%s\n" % (str(sys.path)))
-if "gtk" in sys.modules or "gobject" in sys.modules:
+if not "gi" in sys.modules:
     # GTK2/PyGTK
     # import gobject
     from gobject import timeout_add

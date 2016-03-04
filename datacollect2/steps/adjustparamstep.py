@@ -191,8 +191,7 @@ class adjustparamstep(gtk.HBox):
         
         try :
             valueclass=dc_value.value
-            
-            exec "valueclass=dc_value.%svalue" % (self.myprops["dc-valuetype"])
+            valueclass=getattr(dc_value,"%svalue" % (self.myprops["dc-valuetype"]))
             
             valueset=valueclass(self.gladeobjdict["setparam"].get_text(),self.myprops["dc-valuedefunits"])
             

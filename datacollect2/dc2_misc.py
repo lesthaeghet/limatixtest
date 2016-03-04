@@ -6,10 +6,10 @@ import socket
 import urllib
 import traceback
 
-import checklistdb
-import canonicalize_path
-import xmldoc
-import dc_value
+from . import checklistdb
+from . import canonicalize_path
+from . import xmldoc
+from . import dc_value
 
 class dummy(object):
     pass

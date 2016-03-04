@@ -8,7 +8,6 @@ import numpy as np
 import datetime
 import collections
 import numbers
-import urlparse
 import urllib
 import posixpath
 import base64
@@ -26,12 +25,15 @@ except ImportError:
     from urllib.request import url2pathname
     from urllib.parse import quote
     from urllib.parse import unquote
+    from urllib.parse import urlparse
+    from urllib.parse import urlunparse
+    from urllib.parse import urljoin
     pass
 from lxml import etree
 
 treesync=None
 try: 
-    from dc_lxml_treesync import dc_lxml_treesync as treesync
+    from .dc_lxml_treesync import dc_lxml_treesync as treesync
     pass
 except ImportError:
     sys.stderr.write("dc_value: Warning: unable to import dc_lxml_treesync -- XML comparisons not supported\n")
@@ -49,7 +51,7 @@ except ImportError:
 #import canonicalize_path
 
 from . import dc_provenance as provenance
-from . import xmldoc
+# from . import xmldoc
 
 import dg_units  # note: main program should call dg_units.units_config("insert_basic_units")
 
@@ -259,6 +261,8 @@ class xmltreevalue(value):
     __xmldoc=None  # PRIVATE -- must use get_xmldoc() to get a copy!!!
     
     def __init__(self,xmldoc_element_or_string,defunits=None,nsmap=None,contexthref=None,force_abs_href=False):
+        from . import xmldoc   # don't want this in the top-of module because it creates a circular reference
+        
         # contexthref is desired context of new document (also assumed context of source, if source has no context)
         if isinstance(xmldoc_element_or_string,self.__class__):
             self.__xmldoc=xmldoc_element_or_string.get_xmldoc(nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
@@ -304,6 +308,8 @@ class xmltreevalue(value):
 
 
     def get_xmldoc(self,nsmap=None,contexthref=None,force_abs_href=False):
+        from . import xmldoc   # don't want this in the top-of module because it creates a circular reference
+
         if self.__xmldoc is None: 
             return None
             
@@ -361,7 +367,8 @@ class xmltreevalue(value):
         #       This will need to be handled some other way
 
         # assert(xml_attribute is None) # An xml tree cannot fit in an attribute
-        
+        from . import xmldoc   # don't want this in the top-of module because it creates a circular reference
+
         oldattrs=element.attrib.keys()
         for oldattr in oldattrs:
             if oldattr.startswith(DCV):
@@ -727,7 +734,7 @@ class hrefvalue(value):
         culledcontext=[]
         foundabspath=False
         for pos in range(len(contextlist)-1,-1,-1):
-            parsed=urlparse.urlparse(contextlist[pos])
+            parsed=urlparse(contextlist[pos])
             if foundabspath and parsed.scheme=='':
                 # already have an absolute path, and no scheme specified...
                 # another absolute or relative path with no scheme is useless
@@ -755,21 +762,21 @@ class hrefvalue(value):
             return False
         # since unnecessary context is culled on creation, the
         # scheme comes from the scheme of the first element
-        return urlparse.urlparse(self.contextlist[0]).scheme=='mem'
+        return urlparse(self.contextlist[0]).scheme=='mem'
 
     def ishttp(self):
         if len(self.contextlist)==0:
             return False
         # since unnecessary context is culled on creation, the
         # scheme comes from the scheme of the first element
-        return urlparse.urlparse(self.contextlist[0]).scheme=='http'
+        return urlparse(self.contextlist[0]).scheme=='http'
 
     def isfile(self):
         if len(self.contextlist)==0:
             return False
         # since unnecessary context is culled on creation, the
         # scheme comes from the scheme of the first element
-        scheme=urlparse.urlparse(self.contextlist[0]).scheme
+        scheme=urlparse(self.contextlist[0]).scheme
 
         return scheme=="" or scheme=="file"
     
@@ -784,7 +791,7 @@ class hrefvalue(value):
 
         URL=""
         for pos in range(len(self.contextlist)-1,-1,-1):
-            URL=urlparse.urljoin(self.contextlist[pos],URL)
+            URL=urljoin(self.contextlist[pos],URL)
             pass
         return URL
         
@@ -818,17 +825,17 @@ class hrefvalue(value):
         # Join up remaining new_context
         new_context_URL=""
         for pos in range(len(new_context.contextlist)-1,common_context-1,-1):
-            new_context_URL=urlparse.urljoin(new_context.contextlist[pos],new_context_URL)
+            new_context_URL=urljoin(new_context.contextlist[pos],new_context_URL)
             pass
 
         # join up remaining pieces of our url
         our_URL=""
         for pos in range(len(self.contextlist)-1,common_context-1,-1):
-            our_URL=urlparse.urljoin(self.contextlist[pos],our_URL)
+            our_URL=urljoin(self.contextlist[pos],our_URL)
             pass
 
-        new_context_parsed=urlparse.urlparse(new_context_URL)
-        our_parsed=urlparse.urlparse(our_URL)
+        new_context_parsed=urlparse(new_context_URL)
+        our_parsed=urlparse(our_URL)
         if new_context_parsed.scheme != "" or our_parsed.scheme != "":
             # Removing common context ancestors did not remove
             # all scheme specification....
@@ -887,9 +894,9 @@ class hrefvalue(value):
             if common_context >= 1:
                 # Join with last bit of common context and retry
 
-                joined_self=hrefvalue(urlparse.urljoin(self.contextlist[common_context-1],our_URL),contexthref=self.contextlist[:(common_context-1)])
+                joined_self=hrefvalue(urljoin(self.contextlist[common_context-1],our_URL),contexthref=self.contextlist[:(common_context-1)])
 
-                joined_new_context=hrefvalue(urlparse.urljoin(new_context.contextlist[common_context-1],new_context_URL),contexthref=new_context.contextlist[:(common_context-1)])
+                joined_new_context=hrefvalue(urljoin(new_context.contextlist[common_context-1],new_context_URL),contexthref=new_context.contextlist[:(common_context-1)])
 
                 return joined_self.attempt_relative_url(joined_new_context)
             else:
@@ -963,7 +970,7 @@ class hrefvalue(value):
         if len(self.contextlist) < 1:
             return ""
         
-        parsed=urlparse.urlparse(self.contextlist[-1])
+        parsed=urlparse(self.contextlist[-1])
         return posixpath.split(parsed.path)[1]
 
     def get_bare_unquoted_filename(self):
@@ -985,14 +992,14 @@ class hrefvalue(value):
         if len(self.contextlist) < 1:
             return self
         
-        parsed=urlparse.urlparse(self.contextlist[-1])
+        parsed=urlparse(self.contextlist[-1])
         leaflesspath=posixpath.split(parsed.path)[0]
         if len(leaflesspath) > 0 and not leaflesspath.endswith("/"):
             leaflesspath+="/"
             pass
 
         if len(leaflesspath) > 0:
-            leaflessurl=urlparse.urlunparse((parsed[0],parsed[1],leaflesspath,parsed[3],parsed[4],parsed[5]))
+            leaflessurl=urlunparse((parsed[0],parsed[1],leaflesspath,parsed[3],parsed[4],parsed[5]))
             pass
 
         # Start with all but last element of href context

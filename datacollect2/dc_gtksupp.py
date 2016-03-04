@@ -18,7 +18,7 @@ else :
 
 from lxml import etree
 
-import widgets
+from . import widgets
 
 __pychecker__="no-import"
 

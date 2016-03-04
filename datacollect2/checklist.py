@@ -107,7 +107,7 @@ thisdir=os.path.split(sys.modules[dummy.__module__].__file__)[0]
 
 # sys.path.append('steps/')
 
-from widgets.dc_wraplabel import dc_wraplabel
+from .widgets.dc_wraplabel import dc_wraplabel
 
 
 
@@ -870,7 +870,7 @@ class checklist(object):
         # 1. Need to subclass scroller
         # 2. Replace signal with get_preffered_width() and get_preferred_height virtual functions (see https://developer.gnome.org/gtk3/3.0/ch25s02.html)
         # 3. Virtual functions must be named do_get_preferred. (see http://stackoverflow.com/questions/9496322/overriding-virtual-methods-in-pygobject)
-        if "gtk" in sys.modules: 
+        if not( "gi" in sys.modules): 
             # gtk2 only
             self.gladeobjdict["Scroller"].connect("size-request",self.scroller_reqsize)
             pass

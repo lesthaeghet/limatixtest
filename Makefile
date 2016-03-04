@@ -74,30 +74,45 @@ depend:
 	@for i in $(SUBDIRS) ; do if [ -d $$i ] && [ -f $$i/Makefile ] ; then $(MAKE) $(MFLAGS) -C $$i depend ; fi done
 
 install:
-	@for i in $(SUBDIRS) ; do if [ -d $$i ] && [ -f $$i/Makefile ] ; then $(MAKE) $(MFLAGS) -C $$i install ; fi done
-	$(INSTALL) -d $(DCINSTDIR)
-	rm -f $(PREFIX)/datacollect2
-	ln -s $(DCINSTDIR) $(PREFIX)/datacollect2
-	$(INSTALL) -d $(DCINSTDIR)/lib
-	$(INSTALL) -d $(DCINSTDIR)/conf
-	$(INSTALL) -d $(DCINSTDIR)/doc
-	$(INSTALL) -d $(DCINSTDIR)/bin
-	@for i in $(PYSUBDIRS) ; do if [ -d $$i ] ; then $(INSTALL) -d $(DCINSTDIR)/$$i/ ; echo $$i/*.py $$i/*.glade ; $(INSTALL) $$i/*.py $$i/*.glade $(DCINSTDIR)/$$i/; fi done
-	@for i in $(CHXSUBDIRS) ; do if [ -d $$i ] ; then $(INSTALL) -d $(DCINSTDIR)/$$i/ ; echo $$i/*.chx ; $(INSTALL) $$i/*.chx $(DCINSTDIR)/$$i/ ; $(INSTALL) $$i/*.png $(DCINSTDIR)/$$i/ ; fi done	
-	$(INSTALL) -d $(DCINSTDIR)/glade-3
-	$(INSTALL) glade-3/*.txt $(DCINSTDIR)/glade-3/
-	$(INSTALL) -d $(DCINSTDIR)/glade-3/glade_catalogs
-	$(INSTALL) glade-3/glade_catalogs/* $(DCINSTDIR)/glade-3/glade_catalogs/
-	$(INSTALL) -d $(DCINSTDIR)/glade-3/glade_modules
-	$(INSTALL) glade-3/glade_modules/* $(DCINSTDIR)/glade-3/glade_modules/
-	$(INSTALL) README.txt $(DCINSTDIR)/
-	$(INSTALL) lib/*.glade $(DCINSTDIR)/lib
-	$(INSTALL) lib/*.py $(DCINSTDIR)/lib
-	$(INSTALL) conf/*.glade $(DCINSTDIR)/conf
-	$(INSTALL) conf/*.dcc $(DCINSTDIR)/conf
-	$(INSTALL) doc/* $(DCINSTDIR)/doc
-	( for i in $(PROGS) ; do $(INSTALL) bin/$$i $(DCINSTDIR)/bin/ ; done )
-	( for i in $(PROGS) ; do rm -f $(PREFIX)/bin/$$i ; ln -s $(DCINSTDIR)/bin/$$i $(PREFIX)/bin/$$i ; done )
+	( for i in $(PROGS) ; do rm -f $(PREFIX)/bin/$$i ; done )
+ifneq ($(PYTHON2.6), /none)
+	$(PYTHON2.6) ./setup.py install --prefix=$(PREFIX) 
+endif
+ifneq ($(PYTHON2.7), /none)
+	$(PYTHON2.7) ./setup.py install --prefix=$(PREFIX) 
+endif
+ifneq ($(PYTHON3), /none)
+	$(PYTHON3) ./setup.py install --prefix=$(PREFIX) 
+endif
+ifneq ($(DEFAULTPY), /none)
+	$(DEFAULTPY) ./setup.py install --prefix=$(PREFIX) 
+	$(DEFAULTPY) ./setup.py install_data # --prefix=$(PREFIX) 
+endif
+
+
+	#	$(INSTALL) -d $(DCINSTDIR)
+	#rm -f $(PREFIX)/datacollect2
+	#ln -s $(DCINSTDIR) $(PREFIX)/datacollect2
+	#$(INSTALL) -d $(DCINSTDIR)/lib
+	#$(INSTALL) -d $(DCINSTDIR)/conf
+	#$(INSTALL) -d $(DCINSTDIR)/doc
+	#$(INSTALL) -d $(DCINSTDIR)/bin
+	#@for i in $(PYSUBDIRS) ; do if [ -d $$i ] ; then $(INSTALL) -d $(DCINSTDIR)/$$i/ ; echo $$i/*.py $$i/*.glade ; $(INSTALL) $$i/*.py $$i/*.glade $(DCINSTDIR)/$$i/; fi done
+	#@for i in $(CHXSUBDIRS) ; do if [ -d $$i ] ; then $(INSTALL) -d $(DCINSTDIR)/$$i/ ; echo $$i/*.chx ; $(INSTALL) $$i/*.chx $(DCINSTDIR)/$$i/ ; $(INSTALL) $$i/*.png $(DCINSTDIR)/$$i/ ; fi done	
+	#$(INSTALL) -d $(DCINSTDIR)/glade-3
+	#$(INSTALL) glade-3/*.txt $(DCINSTDIR)/glade-3/
+	#$(INSTALL) -d $(DCINSTDIR)/glade-3/glade_catalogs
+	#$(INSTALL) glade-3/glade_catalogs/* $(DCINSTDIR)/glade-3/glade_catalogs/
+	#$(INSTALL) -d $(DCINSTDIR)/glade-3/glade_modules
+	#$(INSTALL) glade-3/glade_modules/* $(DCINSTDIR)/glade-3/glade_modules/
+	#$(INSTALL) README.txt $(DCINSTDIR)/
+	#$(INSTALL) lib/*.glade $(DCINSTDIR)/lib
+	#$(INSTALL) lib/*.py $(DCINSTDIR)/lib
+	#$(INSTALL) conf/*.glade $(DCINSTDIR)/conf
+	#$(INSTALL) conf/*.dcc $(DCINSTDIR)/conf
+	#$(INSTALL) doc/* $(DCINSTDIR)/doc
+	#( for i in $(PROGS) ; do $(INSTALL) bin/$$i $(DCINSTDIR)/bin/ ; done )
+	#( for i in $(PROGS) ; do rm -f $(PREFIX)/bin/$$i ; ln -s $(DCINSTDIR)/bin/$$i $(PREFIX)/bin/$$i ; done )
 
 
 

@@ -225,7 +225,7 @@ class multiparamstep(gtk.HBox):
         try :
             valueclass1=dc_value.value
             
-            exec "valueclass1=dc_value.%svalue" % (self.myprops["dc-valuetype1"])
+            valueclass=getattr(dc_value,"%svalue" % (self.myprops["dc-valuetype"]))
 
             valueset1=valueclass1(self.gladeobjdict["setparam1"].get_text(),self.myprops["dc-valuedefunits1"])
             
@@ -267,7 +267,7 @@ class multiparamstep(gtk.HBox):
         
         try : 
             valueclass2=dc_value.value
-            exec "valueclass2=dc_value.%svalue" % (self.myprops["dc-valuetype2"])
+            valueclass2=getattr(dc_value,"%svalue" % (self.myprops["dc-valuetype2"]))
             valueset2=valueclass2(self.gladeobjdict["setparam2"].get_text(),self.myprops["dc-valuedefunits2"])
             
             valuereadout2=valueclass2(self.gladeobjdict["readout2"].get_text(),self.myprops["dc-valuedefunits2"])
