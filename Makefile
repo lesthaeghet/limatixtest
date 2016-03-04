@@ -58,8 +58,11 @@ all:
 
 clean:
 	@for i in $(SUBDIRS) ; do if [ -d $$i ] && [ -f $$i/Makefile ] ; then $(MAKE) $(MFLAGS) -C $$i clean; fi done
-	rm -f *.bak *~ core.* *.o *.pyc a.out octave-core *.pycheck widgets/*~ steps/*~ widgets/core.* steps/core.* widgets/*.pyc steps/*.pyc checklists/*~ glade-3/*~ glade-3/glade_catalogs/*~ glade-3/glade_catalogs/*.pyc glade-3/glade_modules/*~ glade-3/glade_modules/*.pyc lib/*~ lib/core.* lib/*.o lib/*.pyc lib/a.out lib/octave-core lib/*.pycheck conf/*~ conf/core.* conf/*.bak conf/*.pyc doc/*.bak doc/*.pyc doc/*~ bin/*~ bin/*.bak bin/*.pyc
+	rm -f *.bak *~ core.* *.o *.pyc a.out octave-core *.pycheck datacollect2/widgets/*~ datacollect2/steps/*~ datacollect2/widgets/core.* datacollect2/steps/core.* datacollect2/widgets/*.pyc datacollect2/steps/*.pyc checklists/*~ datacollect2/widgets/glade-3/*~ datacollect2/widgets/glade-3/glade_catalogs/*~ datacollect2/widgets/glade-3/glade_catalogs/*.pyc datacollect2/widgets/glade-3/glade_modules/*~ datacollect2/widgets/glade-3/glade_modules/*.pyc datacollect2/*~ datacollect2/core.* datacollect2/*.o datacollect2/*.pyc datacollect2/a.out datacollect2/octave-core datacollect2/*.pycheck conf/*~ conf/core.* conf/*.bak conf/*.pyc doc/*.bak doc/*.pyc doc/*~ bin/*~ bin/*.bak bin/*.pyc
 	rm -rf lib/__pycache__ steps/__pycache__ widgets/__pycache__
+	rm -rf build/
+	rm -rf dist/
+	rm -rf datacollect2.egg-info
 
 distclean: clean
 	@for i in $(SUBDIRS) ; do if [ -d $$i ] && [ -f $$i/Makefile ] ; then $(MAKE) $(MFLAGS) -C $$i distclean ; fi done

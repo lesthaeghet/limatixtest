@@ -13,6 +13,9 @@ conf_files=glob.glob("conf/*")
 doc_files=glob.glob("doc/*")
 root_files=["README.txt","INSTALL.txt"]
 datacollect2_widgets_package_files=["glade-3/glade_catalogs/*"]
+datacollect2_widgets_package_files=["*.glade"]
+datacollect2_steps_package_files=["*.glade"]
+datacollect2_package_files=["*.glade"]
 
 canonicalize_path_config_files=["datacollect2/canonicalize_path/canonical_paths.conf.example","datacollect2/canonicalize_path/tag_index_paths.conf.example"]
 canonicalize_path_package_files=["canonical_paths.conf","tag_index_paths.conf"]
@@ -75,12 +78,11 @@ setup(name="datacollect2",
       # url="http://thermal.cnde.iastate.edu/dataguzzler",
       zip_safe=False,
       packages=["datacollect2",
-                "datacollect2.lib",
                 "datacollect2.steps",
                 "datacollect2.widgets", 
                 "datacollect2.canonicalize_path", 
                 "datacollect2.dc_lxml_treesync"],
-      package_dir={"datacollect2.canonicalize_path": "datacollect2/canonicalize_path/canonicalize_path"}
+      package_dir={"datacollect2.canonicalize_path": "datacollect2/canonicalize_path/canonicalize_path"},
       cmdclass={"install_lib": install_lib_save_prefix},
       data_files=[ ("share/datacollect2/checklists",share_checklist_files),
                    ("share/datacollect2/dcp_steps",dcp_steps_files),
@@ -88,9 +90,21 @@ setup(name="datacollect2",
                    ("share/datacollect2/doc",doc_files),
                    ("share/datacollect2",root_files),
                    ("etc/canonicalize_path",canonicalize_path_config_files)],
-      package_data={"canonicalize_path": canonicalize_path_package_files, 
-                    "datacollect2.widgets": datacollect2_widgets_package_files},
-      scripts=["datacollect2/bin/datacollect2"])
+      package_data={"datacollect2.canonicalize_path": canonicalize_path_package_files, 
+                    "datacollect2.widgets": datacollect2_widgets_package_files,
+                    "datacollect2.steps": datacollect2_steps_package_files,
+                    "datacollect2": datacollect2_package_files},
+      scripts=["bin/datacollect2",
+               "bin/dc_checklist",
+               "bin/dc_checkprovenance",
+               "bin/dc_chx2chf",
+               "bin/dc_glade",
+               "bin/dc_gui",
+               "bin/dc_paramdb2",
+               "bin/dc_process",
+               "bin/dc_ricohphoto",
+               "bin/dc_xlg2dpd"])
+
 
 
 

@@ -40,8 +40,8 @@ dg_units.units_config("insert_basic_units")
 
 
 
-#class dummy(object):
-#    pass
+class dummy(object):
+    pass
 
 ## trace symbolic link to find installed directory
 #thisfile=sys.modules[dummy.__module__].__file__
@@ -54,9 +54,9 @@ dg_units.units_config("insert_basic_units")
 #else:
 #    installedfile=thisfile
 #    pass
-#
+
 #installeddir=os.path.dirname(installedfile)
-#
+
 #if os.path.exists(os.path.join(installeddir,"../lib/checklist.py")):
 #    installeddir=os.path.join(installeddir,"../")
 #    pass
@@ -84,21 +84,21 @@ from datacollect2.dc_dbus_barcode import dc_dbus_barcode
 
 #import dg_io 
 import datacollect2.paramdb2 as pdb
-import datacollect2.paramdbfile
-import datacollect2.dc2_misc
+from datacollect2 import paramdbfile
+from datacollect2 import dc2_misc
 
-import datacollect2.checklist
+from datacollect2 import checklist
 
 from datacollect2.dc_gtksupp import build_from_file
 from datacollect2.dc_gtksupp import dc_initialize_widgets
 from datacollect2.dc_gtksupp import import_widgets
 from datacollect2.dc_gtksupp import guistate as create_guistate
 
-from explogwindow import explogwindow
+from datacollect2 import explogwindow
 
-import datacollect2.xmldoc
-import datacollect2.xmlexplog
-import datacollect2.checklistdb
+from datacollect2 import xmldoc
+from datacollect2 import xmlexplog
+from datacollect2 import checklistdb
 
 # from dc_dbus_paramserver import dc_dbus_paramserver
 
@@ -320,7 +320,9 @@ dc2_misc.set_hostname(paramdb)
 # Connect to dbus (barcode reader)
 dbuslink=dc_dbus_barcode(paramdb)
 
-explogwin=explogwindow(os.path.join(installeddir,"lib/","explogwin.glade"),paramdb,SingleSpecimen)
+
+
+explogwin=explogwindow.explogwindow(os.path.join(os.path.split(explogwindow.__file__)[0],"explogwin.glade"),paramdb,SingleSpecimen)
 
 ## Create dbus paramserver
 #paramserver=dc_dbus_paramserver(paramdb,explogwin.checklists)

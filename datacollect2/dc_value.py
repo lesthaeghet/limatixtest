@@ -31,7 +31,7 @@ from lxml import etree
 
 treesync=None
 try: 
-    import dc_lxml_treesync as treesync
+    from dc_lxml_treesync import dc_lxml_treesync as treesync
     pass
 except ImportError:
     sys.stderr.write("dc_value: Warning: unable to import dc_lxml_treesync -- XML comparisons not supported\n")
@@ -48,8 +48,8 @@ except ImportError:
 
 #import canonicalize_path
 
-import dc_provenance as provenance
-import xmldoc
+from . import dc_provenance as provenance
+from . import xmldoc
 
 import dg_units  # note: main program should call dg_units.units_config("insert_basic_units")
 

@@ -44,11 +44,11 @@ else :
     import gobject
     pass
 
-import canonicalize_path
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
-import dc2_misc
-import dc_value
+from .. import canonicalize_path
+from ..dc_gtksupp import build_from_file
+from ..dc_gtksupp import dc_initialize_widgets
+from .. import dc2_misc
+from .. import dc_value
 
 __pychecker__="no-import no-argsused"
 

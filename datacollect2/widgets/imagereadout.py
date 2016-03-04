@@ -24,10 +24,10 @@ else :
 
     pass
 
-import paramdb2 as pdb
+from .. import paramdb2 as pdb
 
 try : 
-    import dc_value
+    from .. import dc_value
     pass
 except:
     sys.stderr.write("imagereadout: unable to import dc_value class... widget will not operate correctly")
@@ -38,7 +38,7 @@ except:
 # WARNING: Not thread safe, in part because of 
 #  changedinhibit flag
 
-from dc_gtksupp import paramhandler
+from ..dc_gtksupp import paramhandler
 
 __pychecker__="no-import no-argsused no-constCond"
 

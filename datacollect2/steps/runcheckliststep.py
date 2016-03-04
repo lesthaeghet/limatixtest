@@ -25,15 +25,15 @@ import __main__
 
 #sys.path.append("/home/sdh4/research/datacollect")
 from lxml import etree
-import dc_value
-import paramdb2 as pdb
-import xmldoc
-import canonicalize_path
-import checklistdb
-import standalone_checklist
+from .. import dc_value
+from .. import paramdb2 as pdb
+from .. import xmldoc
+from .. import canonicalize_path
+from .. import checklistdb
+from .. import standalone_checklist
 
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
+from ..dc_gtksupp import build_from_file
+from ..dc_gtksupp import dc_initialize_widgets
 
 
 __pychecker__="no-import no-argsused no-constattr"

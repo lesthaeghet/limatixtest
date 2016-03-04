@@ -25,7 +25,7 @@ import xml.sax.saxutils
 
 __pychecker__="no-argsused"
 
-import dc_value
+from . import dc_value
 
 dbus_camera_name="edu.iastate.cnde.thermal.RicohCamera"
 dbus_camera_path="/edu/iastate/cnde/thermal/RicohCamera"
