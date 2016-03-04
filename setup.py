@@ -20,6 +20,9 @@ datacollect2_package_files=["*.glade"]
 canonicalize_path_config_files=["datacollect2/canonicalize_path/canonical_paths.conf.example","datacollect2/canonicalize_path/tag_index_paths.conf.example"]
 canonicalize_path_package_files=["canonical_paths.conf","tag_index_paths.conf"]
 
+datacollect2_step_paths=glob.glob("datacollect2/steps/*.py")
+datacollect2_step_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in datacollect2_step_paths if not path.endswith("__init__.py")]
+datacollect2_step_entrypoints = [ '%s = datacollect2.steps.%s' % (stepname,stepname) for stepname in datacollect2_step_names]
 
 #package_files=["canonical_paths.conf","tag_index_paths.conf"]
 
@@ -103,7 +106,8 @@ setup(name="datacollect2",
                "bin/dc_paramdb2",
                "bin/dc_process",
                "bin/dc_ricohphoto",
-               "bin/dc_xlg2dpd"])
+               "bin/dc_xlg2dpd",],
+      entry_points={"datacollect2.step": datacollect2_step_entrypoints})
 
 
 
