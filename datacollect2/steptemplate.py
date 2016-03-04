@@ -15,11 +15,10 @@ else :
     import gtk
     pass
     
-from dc_gtksupp import build_from_file
-from dc_gtksupp import dc_initialize_widgets
+from .dc_gtksupp import build_from_file
+from .dc_gtksupp import dc_initialize_widgets
 
-from dc_value import hrefvalue as hrefv
-
+from .dc_value import hrefvalue as hrefv
 
 class steptemplate(gtk.HBox):
     __gtype_name__="steptemplate"
@@ -38,7 +37,7 @@ class steptemplate(gtk.HBox):
     xmlpath=None
     paramdb=None
 
-    def __init__(self,stepnumber,stepdescr,steptype,params,checklist,xmlpath,paramdb):
+    def __init__(self,stepnumber,stepdescr,steptype,params,chklist,xmlpath,paramdb):
         gobject.GObject.__init__(self)
         
         self.stepnumber=stepnumber
@@ -46,7 +45,7 @@ class steptemplate(gtk.HBox):
         self.steptype=steptype
         # self.execcode=execcode
         self.params=params
-        self.checklist=checklist
+        self.checklist=chklist
         self.xmlpath=xmlpath
         self.paramdb=paramdb
 
@@ -56,13 +55,18 @@ class steptemplate(gtk.HBox):
 
         self.gladeobjdict["numbertitle"].set_property("label","%d. %s" % (self.stepnumber,self.stepdescr))
 
-        stepclass = None
-        stepobjdict=copy.copy(globals())
+        #stepclass = None
+        #stepobjdict=copy.copy(globals())
 
-        exec("from steps.%s import %s as stepclass" % (steptype,steptype),stepobjdict,stepobjdict)
-        stepclass=stepobjdict["stepclass"]
+        #exec("from steps.%s import %s as stepclass" % (steptype,steptype),stepobjdict,stepobjdict)
+        #stepclass=stepobjdict["stepclass"]
 
-        self.stepobj=stepclass(checklist,self,xmlpath)
+        # for some reason this import fails on py2.6 if we do it up top!
+        from .checklist import get_step
+        stepclass=get_step(steptype)
+
+
+        self.stepobj=stepclass(chklist,self,xmlpath)
         
         # self.gladeobjdict["steptemplatehbox"].add_with_properties(self.stepobj,"position",0) # step info goes between number and checkbutton (pos #0) 
         self.gladeobjdict["steptemplatehbox"].pack_start(self.stepobj,True,True,0) # step info goes between number and checkbutton (pos #0) 

@@ -18,6 +18,7 @@ import math
 import copy
 import traceback
 import urllib
+import pkg_resources
 
 try:
     # py2.x
@@ -249,6 +250,25 @@ def href_exists(href):
 
 syncedparam = lambda param: xmldoc.synced(param)
 
+
+def get_step(name):
+    matches=[]
+    for entrypoint in pkg_resources.iter_entry_points("datacollect2.step"):
+        if entrypoint.name==name:
+            matches.append(entrypoint)
+            pass
+        pass
+    if len(matches) == 0:
+        raise ValueError("Step %s not provided by any installed Python module or package.\nStep must be configured using setuptools with entry_points={\"datacollect2.step\": \"%s = <importable Python module>\"" % (name,name))
+    
+    elif len(matches) > 1:
+        sys.stderr.write("datacollect2 checklist: step %s is provided by multiple modules (%s). Using %s\n" % (name,str([entrypoint.module_name for entrypoint in matches]),matches[0].module_name))
+        pass
+    
+    stepmodule=matches[0].load()
+    stepclass=getattr(stepmodule,name)
+    
+    return stepclass
 
 
 class checklist(object):
@@ -619,14 +639,7 @@ class checklist(object):
                     pass
 
                 # Try to import class so as to obtain parameter types
-                importobjdict=copy.copy(globals())
-                try:
-                    exec("from steps.%s import %s as stepclass" % (cls+"step",cls+"step"),importobjdict,importobjdict)
-                    pass
-                except ImportError:
-                    excvalue=sys.exc_info()[1]
-                    raise ValueError("Invalid step: %s. ImportError: %s" % (cls+"step",str(excvalue)))
-                stepclass=importobjdict["stepclass"]
+                stepclass=get_step(cls+"step")
                 stepgprops=gobject.list_properties(stepclass) 
                 # convert gprops into types: dictionary of gobject.TYPE_whatever
                 stepgprop_gtypes=dict([(prop.name,prop.value_type) for prop in stepgprops])
@@ -1257,7 +1270,7 @@ class checklist(object):
                 ## append terminating "pass" statement to code list
                 #codelist.append("\n pass\n")
             
-                step=steptemplate(cnt,item.title,item.cls+"step",params=item.params,checklist=self,xmlpath=item.xmlpath,paramdb=self.paramdb)
+                step=steptemplate(cnt,item.title,item.cls+"step",params=item.params,chklist=self,xmlpath=item.xmlpath,paramdb=self.paramdb)
             
                 self.gladeobjdict["MinorBox"].pack_start(step,True,True,0)
 
