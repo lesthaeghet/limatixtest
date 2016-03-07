@@ -1812,7 +1812,7 @@ class checklist(object):
 
                 # Hide "read only" warning and button
                 # sys.stderr.write("hiding ReadonlyHBox\n")
-                self.gladeobjdict["ReadonlyHBox"].hide_all()
+                self.gladeobjdict["ReadonlyHBox"].hide()
                 
                 # un-gray out notes entry
                 self.gladeobjdict["NotesText"].set_fixed(False)

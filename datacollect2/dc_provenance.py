@@ -25,6 +25,20 @@ from .import dc_process_common
 from lxml import etree
 from pytz import reference
 
+
+try: 
+    import builtins  # python3
+    pass
+except ImportError: 
+    import __builtin__ as builtins # python2
+    pass
+    
+if not hasattr(builtins,"basestring"):
+    basestring=str  # python3
+    unicode=str # python3
+    pass
+
+
 # NOTE: See provenance.xsd for overall documentation of provenance approach.
 
 # !!! Should go through and switch xmldoc API usage to etree API usage 
@@ -77,7 +91,7 @@ def determinehostname():
     if hostname is None or not '.' in hostname:
         # try running 'hostname --fqdn'
         hostnameproc=subprocess.Popen(['hostname','--fqdn'],stdout=subprocess.PIPE)
-        hostnamep=hostnameproc.communicate()[0].strip()
+        hostnamep=hostnameproc.communicate()[0].decode('utf-8').strip()
         if hostname is None:
             hostname=hostnamep
             pass
@@ -110,9 +124,9 @@ def write_process_log(doc,process_el,status,stdoutstderrlog):
     log_el.attrib["status"]=status
     pass
 
-def write_input_file(doc,process_el,inputfile):
+def write_input_file(doc,process_el,inputfilehref):
     inpf_el=doc.addelement(process_el,"dcp:inputfile")
-    inpf_el.text=inputfile
+    inpf_el.text=inputfilehref.absurl() # !!! FIXME !!! -- should use xlink:href!!!
     pass
 
     
@@ -161,7 +175,7 @@ def reference_pymodule(doc,parent,tagname,contextelement,module,warnlevel="none"
 
     
 
-def reference_file(doc,parent,tagname,contextelement,reference,warnlevel="error"):
+def reference_file(doc,parent,tagname,contextelement,referencehref,warnlevel="error"):
     # filecontext_xpath is "/"+outputroot.tag
     # warnlevel should be "none" "info", "warning", or "error" and represents when the 
     # reference to this file does not match the file itself, how loud the warning
@@ -171,8 +185,14 @@ def reference_file(doc,parent,tagname,contextelement,reference,warnlevel="error"
 
     doc.setattr(element,"type","fileetxpath") 
     # print "relpath=", canonicalize_path.relative_path_to(os.path.dirname(doc.filename),reference)
-    doc.setattr(element,"filepath",canonicalize_path.relative_path_to(os.path.dirname(doc.filename),reference))
-    absfilepath=canonicalize_path.canonicalize_path(reference)
+    #doc.setattr(element,"filepath",canonicalize_path.relative_path_to(os.path.dirname(doc.filename),reference))
+    # !!! *** Should use new hrefvalue code???
+
+    # !!!*** should use xlink:href???
+    doc.setattr(element,"filepath",canonicalize_path.relative_path_to(os.path.dirname(doc.filehref.getpath()),referencehref.getpath()))
+    
+    
+    absfilepath=canonicalize_path.canonicalize_path(referencehref.getpath())
     doc.setattr(element,"absfilepath",absfilepath)
 
     # print "doc.get_canonical_etxpath(contextelement)=%s" %(doc.get_canonical_etxpath(contextelement))
@@ -503,7 +523,7 @@ def finishtrackprovenance():
 def writeprocessprovenance(doc,rootprocesspath,parentprocesspath,referenced_elements):
     # Create dcp:process element that contains dcp:used tags listing all referenced elements 
 
-    ourcanonicalname=canonicalize_path.canonicalize_path(doc.filename)
+    ourcanonicalname=canonicalize_path.canonicalize_path(doc.filehref.getpath())
 
     rootprocess_el=doc.restorepath(rootprocesspath)
     parentprocess_el=doc.restorepath(parentprocesspath)
@@ -528,7 +548,7 @@ def writeprocessprovenance(doc,rootprocesspath,parentprocesspath,referenced_elem
         else :
             # etxpath=="".. Just dependent on the file
             assert(uuids_or_mtime=="" or uuids_or_mtime.startswith("mtime="))
-            used_el=reference_file(doc,process_el,"dcp:used",rootprocess_el.getparent(),filepath,warnlevel="error")
+            used_el=reference_file(doc,process_el,"dcp:used",rootprocess_el.getparent(),hrefvalue(quote(filepath)),warnlevel="error")
             if len(uuids_or_mtime) > 0:
                 doc.setattr(used_el,"dcp:timestamp",uuids_or_mtime[6:])
                 

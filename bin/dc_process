@@ -53,7 +53,10 @@ class stdiohandler(object):
         self.name=orig.name
         self.newlines=orig.newlines
         self.seek=orig.seek
-        self.softspace=orig.softspace
+        if hasattr(orig,"softspace"): # not present in python3
+            self.softspace=orig.softspace
+            pass
+        
         self.tell=orig.tell
         self.flush=orig.flush
         self.truncate=orig.truncate
@@ -75,9 +78,15 @@ import copy
 import inspect
 import numbers
 import traceback
-import StringIO
 import ast
 from lxml import etree
+
+try:
+    from cStringIO import StringIO
+    pass
+except ImportError:
+    from io import StringIO
+    pass
 
 if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
     import gi
@@ -169,7 +178,7 @@ outputnsmap={
 
 steppath=[".","/usr/local/dataguzzler/gui2/process_steps"]
 
-def find_script_in_path(scriptdir,scriptname):
+def find_script_in_path(contexthref,scriptname):
     # BUG *** !!!!! We really shouldn't use scriptdir at all,
     # use the scriptpath, but for now we do for backwards compatibility
 
@@ -178,10 +187,10 @@ def find_script_in_path(scriptdir,scriptname):
         pass
     
     if os.path.isabs(scriptname):
-        return scriptname
+        return dcv.hrefvalue(quote(scriptname))
     
     if os.path.pathsep in scriptname:
-        return os.path.join(scriptdir,scriptname)
+        return dcv.hrefvalue(quote(scriptname),contexthref=contexthref)
 
     for trypath in steppath:
         if trypath==".":
@@ -189,7 +198,7 @@ def find_script_in_path(scriptdir,scriptname):
             pass
         
         if os.path.exists(os.path.join(trypath,scriptname)):
-            return os.path.join(trypath,scriptname)
+            return dcv.hrefvalue(quote(scriptname),contexthref=dcv.hrefvalue(quote(trypath)))
         pass
     
     raise IOError("Could not find script %s in path %s" % (scriptname,unicode(steppath)))
@@ -256,11 +265,13 @@ class stepparamvalue(object):
                 pass
 
             if self.hrefflag:
-                result=outdoc.get_href(contextnode=result)
+                #result=outdoc.get_href(contextnode=result)
+                result=dcv.hrefvalue.fromxml(outdoc,result)
                 pass
             
             if self.hreffullpathflag:
-                result=outdoc.get_href_fullpath(contextnode=result)
+                resulthref=dcv.hrefvalue.fromxml(outdoc,result)
+                result=resulthref.getpath()
                 pass
 
             if self.numericvalueflag:
@@ -374,7 +385,7 @@ def procstepmatlab(*args,**kwargs):
     #     (but may have been unlocked in the interim)
     raise NotImplementedError("procstepmatlab")
 
-def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scriptpath,pycode_text,pycode_lineno):
+def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scripthref,pycode_text,pycode_lineno):
 
     if not ipythonmodelist[0]:
         resultdict=runfunc(**argkw)
@@ -428,10 +439,10 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
             pass
         
         if pycode_text is None:            
-            kernel.shell.write("\n\nExecute %s/%s\n" % (scriptpath,runfunc.__name__))
+            kernel.shell.write("\n\nExecute %s/%s\n" % (scripthref.getpath(),runfunc.__name__))
             pass
         else: 
-            kernel.shell.write("\n\nExecute %s/%s/%s\n" % (scriptpath,action,runfunc.__name__))
+            kernel.shell.write("\n\nExecute %s/%s/%s\n" % (scripthref.getpath(),action,runfunc.__name__))
             pass
 
         kernel.shell.write("Assign return value to \"ret\" and press Ctrl-D\n")
@@ -454,7 +465,7 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
                 assert(lines[0].startswith("def")) # first line of function is the defining line
                 del lines[0] # remove def line
                 lines.insert(0,"if 1:\n") # allow function to be indented
-                runfunc_syntaxtree=ast.parse("".join(lines), filename=scriptpath, mode='exec') # BUG: Should set dont_inherit parameter and properly determine which __future__ import flags should be passed
+                runfunc_syntaxtree=ast.parse("".join(lines), filename=scripthref.getpath(), mode='exec') # BUG: Should set dont_inherit parameter and properly determine which __future__ import flags should be passed
 
                 # fixup line numbers
                 for syntreenode in ast.walk(runfunc_syntaxtree):
@@ -518,7 +529,7 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
 
             runfunc_lines=code_container.body
 
-            kernel.shell.push({"runfunc_lines": runfunc_lines,"scriptpath": scriptpath},interactive=False) # provide processed syntax tree for debugging purposes
+            kernel.shell.push({"runfunc_lines": runfunc_lines,"scripthref": scripthref},interactive=False) # provide processed syntax tree for debugging purposes
             
             # kernel.shell.run_code(compile("kernel.shell.run_ast_nodes(runfunc_lines,scriptpath,interactivity='all')","None","exec"))
             from PyQt4.QtCore import QTimer
@@ -529,17 +540,17 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
                 
             
             def runcode():
-                control.execute("kernel.shell.run_ast_nodes(runfunc_lines,scriptpath,interactivity='none')")
+                control.execute("kernel.shell.run_ast_nodes(runfunc_lines,scripthref.getpath(),interactivity='none')")
                 QTimer.singleShot(25,showret) # get callback 25ms into main loop
                 pass
             
             QTimer.singleShot(25,runcode) # get callback 25ms into main loop
-            # control.execute("kernel.shell.run_ast_nodes(runfunc_lines,scriptpath,interactivity='none')")
+            # control.execute("kernel.shell.run_ast_nodes(runfunc_lines,scripthref.getpath(),interactivity='none')")
 
             pass
         except:
             (exctype, excvalue) = sys.exc_info()[:2] 
-            sys.stderr.write("%s while attempting to prepare %s code for interactive execution: %s\n" % (exctype.__name__,scriptpath,str(excvalue)))
+            sys.stderr.write("%s while attempting to prepare URL %s code for interactive execution: %s\n" % (exctype.__name__,scripthref.absurl(),str(excvalue)))
             traceback.print_exc()
             raise
 
@@ -627,7 +638,7 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
         pass
     pass
 
-def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,stepprocesspath,elementpath,stepglobals,argnames,argsdefaults,params,cwd_fd,inputfilename,ipythonmodelist,execfunc,action,scriptpath,pycode_text,pycode_lineno):
+def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,stepprocesspath,elementpath,stepglobals,argnames,argsdefaults,params,cwd_fd,inputfilehref,ipythonmodelist,execfunc,action,scripthref,pycode_text,pycode_lineno):
     # *** output should be rwlock'd exactly ONCE when this is called
     # *** Output will be rwlock'd exactly ONCE on return
     #     (but may have been unlocked in the interim)
@@ -660,8 +671,8 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             elif argname=="_xmldoc":  # _xmldoc parameter gets output XML document
                 argkw[argname]=output         # supply output XML document
                 pass
-            elif argname=="_inputfilename":  # _inputfilename parameter gets name (but not path) of input file
-                argkw[argname]=inputfilename
+            elif argname=="_inputfilename":  # _inputfilename parameter gets unquoted name (but not path) of input file
+                argkw[argname]=inputfilehref.get_bare_unquoted_filename()
                 pass
             elif argname=="_tag": # _tag parameter gets current tag we are operating on
                 argkw[argname]=element
@@ -688,7 +699,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             if execfunc.__name__.endswith("unlocked"): 
                 assert(not "_tag" in argnames) # can't supply tag if lock is released
                 output.unlock_rw() # release output lock 
-                resultdict=procsteppython_do_run(stepglobals,execfunc,argkw,ipythonmodelist,action,scriptpath,pycode_text,pycode_lineno)
+                resultdict=procsteppython_do_run(stepglobals,execfunc,argkw,ipythonmodelist,action,scripthref,pycode_text,pycode_lineno)
                 
                 output.lock_rw() # secure output lock 
                 
@@ -697,7 +708,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
                 
                 pass
             else: 
-                resultdict=procsteppython_do_run(stepglobals,execfunc,argkw,ipythonmodelist,action,scriptpath,pycode_text,pycode_lineno)
+                resultdict=procsteppython_do_run(stepglobals,execfunc,argkw,ipythonmodelist,action,scripthref,pycode_text,pycode_lineno)
                 
             
                 output.should_be_rwlocked_once() # Verify that after running, the output is still locked exactly once
@@ -729,7 +740,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
     
 
 
-def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap,output,steptag,scripttag,rootprocesspath,stepprocesspath,stepglobals,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilename,debugmode,ipythonmodelist,execfunc,action):
+def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap,output,steptag,scripttag,rootprocesspath,stepprocesspath,stepglobals,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilehref,debugmode,ipythonmodelist,execfunc,action):
     
     
     (argnames, varargs, keywords, defaults)=inspect.getargspec(execfunc)        
@@ -752,7 +763,7 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
     # Search for matching elements
 
     # sys.stderr.write("elementmatch=%s\n" % (elementmatch))
-    elements=output.xpath(elementmatch,namespaces=elementmatch_nsmap,variables={"filepath":output.filename,"filename":os.path.split(output.filename)[1]})
+    elements=output.xpath(elementmatch,namespaces=elementmatch_nsmap,variables={"filepath":output.filehref.getpath(),"filename":os.path.split(output.filehref.getpath())[1]})
 
 
     if len(elements)==0:
@@ -775,7 +786,7 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
         el_starttime=dg_timestamp.now().isoformat()
         
         # Capture python stdio/stderr 
-        errcapt=StringIO.StringIO()
+        errcapt=StringIO()
         stdouthandler.set_dest(errcapt)
         stderrhandler.set_dest(errcapt)
 
@@ -784,7 +795,7 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
         output.should_be_rwlocked_once()
 
         try : 
-            (modified_elements,referenced_elements)=procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,stepprocesspath,elementpath,stepglobals,argnames,argsdefaults,params,cwd_fd,inputfilename,ipythonmodelist,execfunc,action,scriptpath,pycode_text,pycode_lineno)
+            (modified_elements,referenced_elements)=procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,stepprocesspath,elementpath,stepglobals,argnames,argsdefaults,params,cwd_fd,inputfilehref,ipythonmodelist,execfunc,action,scripthref,pycode_text,pycode_lineno)
             pass
         except KeyboardInterrupt: 
             # Don't want to hold off keyboard interrupts!
@@ -793,7 +804,7 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
             (exctype, excvalue) = sys.exc_info()[:2] 
             
             
-            sys.stderr.write("%s while processing step %s element on element %s in file %s: %s\n" % (exctype.__name__,action,etxpath2human(elementpath,output.nsmap),output.filename,unicode(excvalue)))
+            sys.stderr.write("%s while processing step %s element on element %s in file %s: %s\n" % (exctype.__name__,action,etxpath2human(elementpath,output.nsmap),output.filehref.getpath(),unicode(excvalue)))
             traceback.print_exc()
             
             status="exception"
@@ -820,7 +831,7 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
         # print "Target location=%s" % (canonicalize_path.create_canonical_etxpath(output.filename,output.doc,element))
         # print "Relative location=%s" % (canonicalize_path.relative_etxpath_to(canonicalize_path.create_canonical_etxpath(output.filename,output.doc,rootprocess_el.getparent()),canonicalize_path.create_canonical_etxpath(output.filename,output.doc,element)))
 
-        targetpath=canonicalize_path.relative_etxpath_to(canonicalize_path.create_canonical_etxpath(output.filename,output.doc,rootprocess_el.getparent()),canonicalize_path.create_canonical_etxpath(output.filename,output.doc,element))
+        targetpath=canonicalize_path.relative_etxpath_to(canonicalize_path.create_canonical_etxpath(output.filehref.getpath(),output.doc,rootprocess_el.getparent()),canonicalize_path.create_canonical_etxpath(output.filehref.getpath(),output.doc,element))
     # targetpath=output.savepath(element)
 
         process_el=provenance.writeprocessprovenance(output,rootprocesspath,stepprocesspath,referenced_elements)
@@ -848,7 +859,7 @@ def procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap
 
     pass
 
-def procsteppython(scriptpath,pycode_el,prxdoc,output,steptag,scripttag,rootprocesspath,initelementmatch,initelementmatch_nsmap,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilename,debugmode,ipythonmodelist):
+def procsteppython(scripthref,pycode_el,prxdoc,output,steptag,scripttag,rootprocesspath,initelementmatch,initelementmatch_nsmap,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilehref,debugmode,ipythonmodelist):
     # *** output should be rwlock'd exactly ONCE when this is called
     # *** Output will be rwlock'd exactly ONCE on return
     #     (but may have been unlocked in the interim)
@@ -862,11 +873,17 @@ def procsteppython(scriptpath,pycode_el,prxdoc,output,steptag,scripttag,rootproc
     
     syspath_save=sys.path
     syspath_new=copy.deepcopy(syspath_save)
-    syspath_new.insert(0,os.path.split(scriptpath)[0])
+    syspath_new.insert(0,os.path.split(scripthref.getpath())[0])
     sys.path=syspath_new
 
     if pycode_el is None: 
-        execfile(scriptpath,stepglobals)  # load in step
+        #execfile(scripthref.getpath(),stepglobals)  # load in step
+        
+        with open(scripthref.getpath()) as f:
+            code = compile(f.read(), scripthref.getpath(), 'exec')
+            exec(code, stepglobals)
+            pass
+        
         pycode_text=None
         pycode_lineno=None
         pass
@@ -875,7 +892,7 @@ def procsteppython(scriptpath,pycode_el,prxdoc,output,steptag,scripttag,rootproc
         pycode_lineno=pycode_el.sourceline
         # precede code with pycode_lineno blank lines so that parse errors, etc. get the right line number
         #pycode_parsed=ast.parse(("\n"*(pycode_lineno-1))+pycode_text,scriptpath)
-        pycode_compiled=compile(("\n"*(pycode_lineno-1))+pycode_text,scriptpath,"exec")
+        pycode_compiled=compile(("\n"*(pycode_lineno-1))+pycode_text,scripthref.getpath(),"exec")
         exec(pycode_compiled,stepglobals)
         pass
     sys.path=syspath_save
@@ -941,7 +958,7 @@ def procsteppython(scriptpath,pycode_el,prxdoc,output,steptag,scripttag,rootproc
         pass
 
     if initfunc is not None:
-        procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap,output,steptag,scripttag,rootprocesspath,stepprocesspath,stepglobals,initelementmatch,initelementmatch_nsmap,params,[],cwd_fd,inputfilename,debugmode,ipythonmodelist,initfunc,action)
+        procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap,output,steptag,scripttag,rootprocesspath,stepprocesspath,stepglobals,initelementmatch,initelementmatch_nsmap,params,[],cwd_fd,inputfilehref,debugmode,ipythonmodelist,initfunc,action)
         pass
     
     
@@ -957,7 +974,7 @@ def procsteppython(scriptpath,pycode_el,prxdoc,output,steptag,scripttag,rootproc
         pass
 
 
-    procsteppython_execfunc(scriptpath,pycode_text,pycode_lineno,prxdoc,prxnsmap,output,steptag,scripttag,rootprocesspath,stepprocesspath,stepglobals,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilename,debugmode,ipythonmodelist,runfunc,action)
+    procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap,output,steptag,scripttag,rootprocesspath,stepprocesspath,stepglobals,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilehref,debugmode,ipythonmodelist,runfunc,action)
 
     print("") # add newline
 
@@ -970,7 +987,7 @@ def procsteppython(scriptpath,pycode_el,prxdoc,output,steptag,scripttag,rootproc
     pass
 
 
-def procstep(scriptdir,prxdoc,output,steptag,processpath,defaultelementmatch,defaultelementmatch_nsmap,filters,cwd_fd,inputfilename,debugmode,ipythonmodelist):
+def procstep(scriptdirhref,prxdoc,output,steptag,processpath,defaultelementmatch,defaultelementmatch_nsmap,filters,cwd_fd,inputfilehref,debugmode,ipythonmodelist):
     # *** output should be unlocked when this is called
 
 
@@ -1014,14 +1031,16 @@ def procstep(scriptdir,prxdoc,output,steptag,processpath,defaultelementmatch,def
                          
     pycode_el=None
     if prxdoc.hasattr(scripttag,"xlink:href"): 
-        scriptpath=prxdoc.get_href_fullpath(contextnode=scripttag)
+        #scriptpath=prxdoc.get_href_fullpath(contextnode=scripttag)
+        scripthref=dcv.hrefvalue.fromxml(prxdoc,scripttag)
+        #scriptpath=scripthref.getpath()
         pass
     elif prxdoc.hasattr(scripttag,"name"): 
-        scriptpath=find_script_in_path(scriptdir,prxdoc.getattr(scripttag,"name"))
+        scripthref=find_script_in_path(prxdoc.filehref,prxdoc.getattr(scripttag,"name"))
         pass
     else: 
         pycode_el=prxdoc.child(scripttag,"prx:pycode") # set to pycode tag or None
-        scriptpath=prxdoc.filename
+        scripthref=prxdoc.filehref
         if pycode_el is None: 
             raise ValueError("script %s does not specify file or python code" % (prxdoc.tostring(scripttag)))
         pass
@@ -1062,11 +1081,11 @@ def procstep(scriptdir,prxdoc,output,steptag,processpath,defaultelementmatch,def
 
     output.lock_rw() # procsteppython/procstepmatlab are called with output locked exactly once
     try : 
-        if pycode_el is not None or scriptpath.endswith(".py"):
-            procsteppython(scriptpath,pycode_el,prxdoc,output,steptag,scripttag,processpath,initelementmatch,initelementmatch_nsmap,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilename,debugmode,ipythonmodelist)
+        if pycode_el is not None or scripthref.get_bare_unquoted_filename().endswith(".py"):
+            procsteppython(scripthref,pycode_el,prxdoc,output,steptag,scripttag,processpath,initelementmatch,initelementmatch_nsmap,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilehref,debugmode,ipythonmodelist)
             pass
         elif scriptpath.endsith(".m"):
-            procstepmatlab(scriptdir,scriptpath,prxdoc,output,steptag,scripttag,processpath,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilename,debugmode,ipythonmodelist)
+            procstepmatlab(scriptdirhref,scriptpath,prxdoc,output,steptag,scripttag,processpath,elementmatch,elementmatch_nsmap,params,filters,cwd_fd,inputfilehref,debugmode,ipythonmodelist)
             pass
         pass
     except: 
@@ -1177,7 +1196,8 @@ if __name__=="__main__":
         
         
     prxfile=positionals[0]
-    scriptdir=os.path.split(prxfile)[0]
+    prxfilehref=dcv.hrefvalue(prxfile,contexthref=None)
+    scriptdirhref=prxfilehref.leafless()
 
     prx_nsmap={
         "prx": "http://thermal.cnde.iastate.edu/datacollect/processinginstructions",
@@ -1186,7 +1206,7 @@ if __name__=="__main__":
         };
     
     # prxdoc is loaded into memory once, so we don't use locking on it. 
-    prxdoc=xmldoc.xmldoc.loadfile(prxfile,nsmap=prx_nsmap,readonly=True,use_locking=False,debug=True)  #!!!*** Should turn debug mode off eventually... it will speed things up
+    prxdoc=xmldoc.xmldoc.loadhref(prxfilehref,nsmap=prx_nsmap,readonly=True,use_locking=False,debug=True)  #!!!*** Should turn debug mode off eventually... it will speed things up
     # prxdoc.merge_namespace("prx",)
     assert(prxdoc.gettag(prxdoc.getroot())=="prx:processinginstructions")
 
@@ -1233,7 +1253,7 @@ if __name__=="__main__":
     inputfiles=prxdoc.xpath("prx:inputfile")
     outputfiles=prxdoc.xpath("prx:outputfile")
     if len(outputfiles) > 0 and len(outputfiles) != len(inputfiles):
-        raise ValueError(".prx file %s specifies %d input files but %d output files.\nMust either specify ALL output files or NO output files\n" % (prxfile,len(inputfiles),len(outputfiles)))
+        raise ValueError(".prx URL %s specifies %d input files but %d output files.\nMust either specify ALL output files or NO output files\n" % (prxfilehref.absurl(),len(inputfiles),len(outputfiles)))
     
 
     if listfiles:
@@ -1262,7 +1282,7 @@ if __name__=="__main__":
 
     for argv_inputfile in argv_inputfiles:
         if argv_inputfile not in [ prxdoc.gettext(inputfile_el) for inputfile_el in inputfiles ] and argv_inputfile not in [ prxdoc.getattr(inputfile_el,"xlink:href") for inputfile_el in inputfiles ]:
-            sys.stderr.write("Specified input file %s is not listed in %s\nTry listing available files with --files.\n" % (argv_inputfile,prxfile))
+            sys.stderr.write("Specified input URL %s is not listed in %s\nTry listing available files with --files.\n" % (argv_inputfile,prxfilehref.absurl()))
             sys.exit(1)
             pass
         pass
@@ -1271,17 +1291,20 @@ if __name__=="__main__":
         inputfile_el=inputfiles[inputfile_cnt]
 
         if prxdoc.hasattr(inputfile_el,"xlink:href"):
-            inputfileraw=prxdoc.getattr(inputfile_el,"xlink:href")
-            inputfile=prxdoc.get_href_fullpath(inputfile_el)
+            #inputfileraw=prxdoc.getattr(inputfile_el,"xlink:href")
+            #inputfile=prxdoc.get_href_fullpath(inputfile_el)
+            inputfilehref=dcv.hrefvalue.fromxml(prxdoc,inputfile_el)
+            #inputfile=inputfilehref.getpath()
             pass
         else:
             print("WARNING: input file should be specified in xlink:href attribute!")
             inputfileraw=prxdoc.gettext(inputfile_el)
-            inputfile=inputfileraw
-            if not(os.path.isabs(inputfile)):
-                inputfile=os.path.join(scriptdir,inputfile)
-                pass
-
+            inputfilehref=dcv.hrefvalue(inputfileraw,scriptdirhref)
+            #inputfile=inputfileraw
+            #if not(os.path.isabs(inputfile)):
+            #    inputfile=hrefvalue(os.path.join(scriptdir,inputfile)
+            #    pass
+            #
             pass
         
         if len(argv_inputfiles) > 0: # input files specified on command line
@@ -1289,31 +1312,34 @@ if __name__=="__main__":
                 continue # skip over input files we are supposed to ignore
             pass
 
-        (inputdir,inputfilename)=os.path.split(inputfile)
+        #(inputdir,inputfilename)=os.path.split(inputfile)
 
 
         
-        outputfile=None
+        outputfilehref=None
 
         try:
             outputfiletag=prxdoc.xpathsingle("prx:outputfile[%d]" % (inputfile_cnt+1))
             if prxdoc.hasattr(outputfiletag,"xlink:href"):
-                outputfile=prxdoc.get_href_fullpath(outputfiletag)
+                #outputfile=prxdoc.get_href_fullpath(outputfiletag)
+                outputfilehref=dcv.hrefvalue.fromxml(prxdoc,outputfiletag)
+                #outputfile=outputfilehref.getpath()
             else:
-                outputfile=prxdoc.gettext(outputfiletag)
-                if not os.path.isabs(outputfile):
-                    outputfile=os.path.join(scriptdir,outputfile)
-                    pass
+                outputfileraw=prxdoc.gettext(outputfiletag)
+                outputfilehref=dcv.hrefvalue(outputfile,scriptdirhref)
+                #if not os.path.isabs(outputfile):
+                #    outputfile=os.path.join(scriptdir,outputfile)
+                #    pass
                 pass
             
             pass
         except NameError:
             pass
 
-        if outputfile is None:
+        if outputfilehref is None:
 
-            if os.path.splitext(inputfile)[1]==".xlg":
-                outputfile=os.path.splitext(inputfile)[0]+".xlp"
+            if posixpath.splitext(inputfilehref.get_bare_unquoted_filename())[1]==".xlg":
+                outputfilehref=dcv.hrefvalue(quote(posixpath.splitext(inputfilehref.get_bare_unquoted_filename())[0]+".xlp"),inputfilehref.leafless())
                 pass
 
             # if not(os.path.isabs(outputfile)):
@@ -1322,11 +1348,11 @@ if __name__=="__main__":
         
         
         
-        print("\n\nProcessing input file %s to output file %s." % (inputfile,outputfile)) 
+        print("\n\nProcessing input URL %s to output URL %s." % (inputfilehref.absurl(),outputfilehref.absurl())) 
 
         copiedfile=False
         inputfilter=None
-        if not os.path.exists(outputfile):
+        if not os.path.exists(outputfilehref.getpath()):
             # Need to create outputfile by copying or running inputfilter
             cf_starttime=dg_timestamp.now().isoformat()
 
@@ -1340,8 +1366,9 @@ if __name__=="__main__":
 
                 # run input filter
                 # Get path from xlink:href
-                inputfilterpath=prxdoc.get_href_fullpath(inputfilter)
-
+                #inputfilterpath=prxdoc.get_href_fullpath(inputfilter)
+                inputfilterhref=dcv.hrefvalue.fromxml(prxdoc,inputfilter)
+                inputfilterpath=inputfilterhref.getpath()
                 # build arguments
                 inputfilterargs=[inputfilterpath]
 
@@ -1353,8 +1380,8 @@ if __name__=="__main__":
                     pass
 
                 # add input and output filenames as params to filter
-                inputfilterargs.append(inputfile)
-                inputfilterargs.append(outputfile)
+                inputfilterargs.append(inputfilehref.getpath())
+                inputfilterargs.append(outputfilehref.getpath())
 
                 # Call input filter... will raise
                 # exception if input filter fails. 
@@ -1363,7 +1390,7 @@ if __name__=="__main__":
                 pass
             else:
                 # use shutil to copy input to output
-                shutil.copyfile(inputfile,outputfile)
+                shutil.copyfile(inputfilehref.getpath(),outputfilehref.getpath())
                 pass
             
             # Will mark provenance of each element of output file
@@ -1372,7 +1399,7 @@ if __name__=="__main__":
             pass
 
     
-        output=xmldoc.xmldoc.loadfile(outputfile,readonly=False,num_backups=50,use_locking=True,nsmap=outputnsmap,debug=True) # !!!*** Remove debug mode eventually for performance reasons
+        output=xmldoc.xmldoc.loadhref(outputfilehref,readonly=False,num_backups=50,use_locking=True,nsmap=outputnsmap,debug=True) # !!!*** Remove debug mode eventually for performance reasons
         if copiedfile:
             sys.stderr.write("Merging dcp namespace!\n")
             output.lock_rw()
@@ -1412,12 +1439,12 @@ if __name__=="__main__":
         outputroot=output.getroot()
         process_el=output.addelement(outputroot,"dcp:process")
         wcb_el=output.addelement(process_el,"dcp:wascontrolledby")
-        prxfile_el=provenance.reference_file(output,wcb_el,"dcp:prxfile",outputroot,prxfile,"info")
-        output.setattr(prxfile_el,"dcp:timestamp",datetime.datetime.fromtimestamp(os.path.getmtime(prxfile),dg_timestamp.UTC()).isoformat())
+        prxfile_el=provenance.reference_file(output,wcb_el,"dcp:prxfile",outputroot,prxfilehref,"info")
+        output.setattr(prxfile_el,"dcp:timestamp",datetime.datetime.fromtimestamp(os.path.getmtime(prxfilehref.getpath()),dg_timestamp.UTC()).isoformat())
         
         provenance.write_timestamp(output,process_el,"dcp:starttimestamp",overall_starttime)
         provenance.write_process_info(output,process_el)
-        provenance.write_input_file(output,process_el,inputfile)
+        provenance.write_input_file(output,process_el,inputfilehref)
     
         # Give our dcp:process element a unique hash   (hash is used for distinguishing adjacent process elements)
         provenance.set_hash(output,process_el,process_el)
@@ -1429,7 +1456,7 @@ if __name__=="__main__":
             # Add a sub dcp:process representing file copy action
             cfprocess_el=output.addelement(process_el,"dcp:process")
             # have dcp:used point to the input file we copied from 
-            provenance.reference_file(output,cfprocess_el,"dcp:used",outputroot,inputfile,warnlevel="warning")
+            provenance.reference_file(output,cfprocess_el,"dcp:used",outputroot,inputfilehref,warnlevel="warning")
             provenance.write_action(output,cfprocess_el,"_copy_input_file")
             provenance.write_timestamp(output,cfprocess_el,"dcp:starttimestamp",cf_starttime)
             provenance.write_timestamp(output,cfprocess_el,"dcp:finishtimestamp")
@@ -1445,9 +1472,9 @@ if __name__=="__main__":
         output.unlock_rw()  # free output lock
 
         for step in steps:   # OK to pass step as element because prxdoc is strictly in memory
-            print("\nProcessing step %s on %s." % (dc_process_common.getstepname(prxdoc,step),outputfile)) 
+            print("\nProcessing step %s on URL %s." % (dc_process_common.getstepname(prxdoc,step),outputfilehref.absurl())) 
 
-            procstep(scriptdir,prxdoc,output,step,processpath,elementmatch,elementmatch_nsmap,filters,cwd_fd,inputfilename,debugmode,ipythonmodelist)
+            procstep(scriptdirhref,prxdoc,output,step,processpath,elementmatch,elementmatch_nsmap,filters,cwd_fd,inputfilehref,debugmode,ipythonmodelist)
             pass
 
         output.shouldbeunlocked()
