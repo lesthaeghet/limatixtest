@@ -81,7 +81,7 @@ except ImportError:
     pass
 
 try: 
-    import StringIO
+    from cStringIO import StringIO
     pass
 except ImportError:
     from io import StringIO
@@ -96,6 +96,7 @@ except ImportError:
     
 if not hasattr(builtins,"basestring"):
     basestring=str  # python3
+    unicode=str # python3
     pass
 
 
@@ -374,7 +375,7 @@ class xmldoc(object):
             contexthref=dc_value.hrefvalue(pathname2url(contextdir))
             pass
         
-        SIO=StringIO.StringIO(xml_string)
+        SIO=StringIO(xml_string)
         newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,FileObj=SIO,use_locking=use_locking,contexthref=contexthref,debug=debug)
         SIO.close()
         
@@ -3282,11 +3283,16 @@ class synced(object):
             ScrolledWindow.set_policy(gtk.POLICY_NEVER,gtk.POLICY_ALWAYS)
             pass
         
-        box.add(ScrolledWindow)
-        Viewport=gtk.Viewport()
-        ScrolledWindow.add(Viewport)
+        box.pack_start(ScrolledWindow,True,True,0)
+        #Viewport=gtk.Viewport()
+        #ScrolledWindow.add(Viewport)
         VBox=gtk.VBox()
-        Viewport.add(VBox)
+        #Viewport.add(VBox)
+        ScrolledWindow.add_with_viewport(VBox)
+        #box.add(VBox)
+        
+        #import pdb as pythondb
+        #pythondb.set_trace()
         
         if parent is not None:
             ParentFrame=gtk.Frame()
@@ -3346,12 +3352,16 @@ class synced(object):
         MergedFrame.add(MergedTextView)
         VBox.add(MergedFrame)
 
+        box.show_all()
+        ScrolledWindow.show_all()
+        #Viewport.show_all()
+        VBox.show_all()
         dialog.show_all()
 
         dialogval=dialog.run()
 
         if dialogval==1:
-            mergeddoc=xmldoc.fromstring(MergedTextBuffer.get_text(MergedTextBuffer.get_start_iter(),MergedTextBuffer.get_end_iter()))
+            mergeddoc=xmldoc.fromstring(MergedTextBuffer.get_text(MergedTextBuffer.get_start_iter(),MergedTextBuffer.get_end_iter(),False))
             mergedvalue=paramtype.fromxml(mergeddoc,mergeddoc.getroot())
             
             dialog.destroy()

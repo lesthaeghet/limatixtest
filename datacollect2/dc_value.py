@@ -18,6 +18,9 @@ try:
     from urllib import url2pathname
     from urllib import quote
     from urllib import unquote
+    from urlparse import urlparse
+    from urlparse import urlunparse
+    from urlparse import urljoin    
     pass
 except ImportError:
     # py3.x
