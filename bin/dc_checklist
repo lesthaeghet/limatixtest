@@ -6,6 +6,22 @@ import os.path
 import string
 import datetime
 
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    pass
+
+
 if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
     import gi
     gi.require_version('Gtk','3.0')
@@ -65,6 +81,7 @@ try:
 except ImportError:
     pass
 
+from datacollect2 import dc_value
 from datacollect2 import paramdb2 as pdb
 from datacollect2 import dc2_misc
 from datacollect2 import standalone_checklist
@@ -194,8 +211,9 @@ for configfile in configfiles:
 dbuslink=dc_dbus_barcode(paramdb)
 
 
+filehref=dc_value.hrefvalue(pathname2url(fname),contexthref=None)
 
-standalone_checklist.open_checklist(fname,paramdb,iohandlers)
+standalone_checklist.open_checklist(filehref,paramdb,iohandlers)
 
 
 
