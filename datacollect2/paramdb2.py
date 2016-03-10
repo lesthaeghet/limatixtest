@@ -7,6 +7,20 @@ import traceback
 import types
 import re
 import numpy as np
+import collections
+
+
+try: 
+    import builtins  # python3
+    pass
+except ImportError: 
+    import __builtin__ as builtins # python2
+    pass
+    
+if not hasattr(builtins,"basestring"):
+    basestring=str  # python3
+    unicode=str # python3
+    pass
 
 if "gi" in sys.modules:  # gtk3
     import gi
@@ -145,11 +159,29 @@ class etree_paramdb_ext(object): # etree extension class for paramdb that define
     
     def __init__(self,paramdb):
         self._paramdb=paramdb
-        functions=('paramdb','formatintegermindigits')
+        functions=('param','paramdb','formatintegermindigits')
         self.extensions=etree.Extension(self,functions,ns='http://thermal.cnde.iastate.edu/datacollect')
         pass
     
-    def paramdb(self,context,name):
+    def param(self,context,name):
+
+        if not(isinstance(name,basestring)):
+            # We didn't get a string of some sort
+            if isinstance(name,collections.Sequence): 
+                # some sort of list
+                if len(name) != 1:
+                    raise ValueError("etree_paramdb_ext: XPath evaluation of dc:param() yielded %d values for parameter name" % (len(name)))
+                name=name[0] # pass through to code below
+                pass
+            
+            if not(isinstance(name,basestring)) and hasattr(name,"text"):
+                name=name.text
+                pass
+            pass
+
+        if not(isinstance(name,basestring)):
+            raise ValueError("etree_paramdb_ext: Evaluation of XPath dc:param() function parameter does not yield a string")
+        
         if not name in self._paramdb:
             raise ValueError("etree_paramdb_ext: unknown parameter \"%s\"." % (name))
         dcv=self._paramdb[name].dcvalue
@@ -158,6 +190,10 @@ class etree_paramdb_ext(object): # etree extension class for paramdb that define
         dcv.xmlrepr(None,paramel) # xml_attribute=self._paramdb[name].xml_attribute)
 
         return [paramel]  # return node-set
+
+    def paramdb(self,context,name):
+        # backward compatibility
+        return self.param(context,name)
 
     def formatintegermindigits(self,context,number,mindigits):
         # Convenience extension that is used in explogwindow.py to format filenames for measurement photographs

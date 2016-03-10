@@ -5,6 +5,7 @@ import subprocess
 import socket
 import urllib
 import traceback
+from pkg_resources import resource_string
 
 from . import checklistdb
 from . import canonicalize_path
@@ -15,13 +16,24 @@ class dummy(object):
     pass
 thisdir=os.path.split(sys.modules[dummy.__module__].__file__)[0]
 
+try: 
+    __install_prefix__=resource_string(__name__, 'install_prefix.txt').decode('utf-8')
+    pass
+except IOError: 
+    sys.stderr.write("canonicalize_path_module: error reading install_prefix.txt. Assuming /usr/local.\n")
+    __install_prefix__="/usr/local"
+    pass
+
 
 def load_config(href,paramdb,iohandlers,createparamserver):
 
     dir_href=href.leafless()
     
     fnamedir="-I%s" % (dir_href.getpath())
-    confdir="-I%s" % (os.path.join(thisdir,"../conf/"))
+
+    #
+    #confdir="-I%s" % (os.path.join(thisdir,"../conf/"))
+    confdir="-I%s" % (os.path.join(__install_prefix__,"share","datacollect2","conf"))
     # sys.stderr.write("confdir=%s\n" % confdir)
     
     config_globals={"paramdb":paramdb,"iohandlers":iohandlers,"createparamserver":createparamserver,"DCCHREF":href,}

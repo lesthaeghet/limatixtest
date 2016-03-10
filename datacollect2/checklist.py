@@ -283,7 +283,7 @@ class checklist(object):
     orighref=None
     filledhref=None  # if not None, href to put filled checklist in (otherwise use dest)
     paramdb=None
-    paramdb_ext=None # dc:paramdb() extension function
+    paramdb_ext=None # dc:param() extension function
     chklistfile=None # in datacollect mode, once the filename has been determined and we are auto-saving, chklistfile is the name of the file we are saving as
 
     datacollectmode=None
@@ -303,7 +303,7 @@ class checklist(object):
     has_save_measurement_step=None # Flag, in datacollect mode, that indicates that the checklist has a save measurement step. It triggers storing checklist file name in "measchecklist" param. Also makes the notes field at the bottom shared between the checklist and the experiment log
     part_of_a_measurement=None # Flag, in datacollect mode that indicates that a checklist is part of a measurement and therefore when saved should be saved using the measnum
     readonly=None   # Checklist is read only out (after done is pressed, before reset)
-    pre_reset_filename=None # last real filename from before a reset
+    pre_reset_href=None # last real href from before a reset
     
     shared_notes=None # flag to indicate whether the notes field is shared or not. Automatically set with done_is_save_measurement
     specimen_disabled=None  # if True, then we don't show a specimen widget and we don't sync the specimen field
@@ -882,7 +882,7 @@ class checklist(object):
         self.xmldoc.shouldbeunlocked()
 
 
-        # sys.stderr.write("Checklist: setting readonly to %s\n" % (str(self.readonly)))
+        #sys.stderr.write("Checklist: setting readonly to %s\n" % (str(self.readonly)))
         self.set_readonly(self.readonly)  # set widgets to fix and do adddoc()'s as needed
         self.gladeobjdict["ReadWriteButton"].connect("clicked",self.handle_readwrite)
         
@@ -1358,7 +1358,7 @@ class checklist(object):
         # cnt=0
         for (resetnotify,rnargs,rnkwargs) in self.resetnotify:
             #sys.stderr.write("cnt=%d\n" % (cnt))
-            resetnotify(self,self.pre_reset_filename,*rnargs,**rnkwargs)
+            resetnotify(self,self.pre_reset_href,*rnargs,**rnkwargs)
             #cnt+=1
             pass
 
@@ -1725,12 +1725,14 @@ class checklist(object):
 
             # unsync measnum
             # gray-out Measnum eentry
-            self.gladeobjdict["MeasnumEntry"].set_fixed(True,measnumvalue)
-            if self.measnum_sync is not None:
-                self.paramdb["measnum"].controller.remdoc(*self.measnum_sync)
+            if "MeasnumEntry" in self.gladeobjdict:
+                self.gladeobjdict["MeasnumEntry"].set_fixed(True,measnumvalue)
+                if self.measnum_sync is not None:
+                    self.paramdb["measnum"].controller.remdoc(*self.measnum_sync)
+                    pass
                 pass
             self.measnum_sync=None
-            
+                
                 
             pass
         else:
@@ -2552,7 +2554,7 @@ class checklist(object):
                 try : 
                     
                     oldreadonly=self.readonly
-                    self.set_readonly(True) # Set readonly to disconnect from file
+                    self.set_readonly(True,dont_switch_xmldoc_mode=True) # Set readonly to disconnect from file
                     oldhref=self.xmldoc.get_filehref()
                     self.xmldoc.set_href(chklisthref)
                     self.set_readonly(oldreadonly) # reconnect to file if applicable
