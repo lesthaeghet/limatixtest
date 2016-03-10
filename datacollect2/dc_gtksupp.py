@@ -4,6 +4,7 @@ import glob
 import copy
 import sys
 import pkg_resources
+import traceback
 
 if "gi" in sys.modules:  # gtk3
     import gi
@@ -140,7 +141,14 @@ def import_widgets():
     # that uses one of these widgets, it will load. 
 
     for entrypoint in pkg_resources.iter_entry_points("datacollect2.widget"):
-        entrypoint.load()
+        try:
+            entrypoint.load()
+            pass
+        except: 
+            (exctype,excvalue)=sys.exc_info()[:2]
+            sys.stderr.write("Exception loading datacollect2 widget: %s: %s; widget will not be available." % (exctype.__name__,str(excvalue)))
+            traceback.print_exc()
+            pass
         pass
 
 

@@ -75,6 +75,7 @@ try:
     from .canonicalize_path import canonical_etxpath_join
     from .canonicalize_path import canonical_etxpath_absjoin
     from .canonicalize_path import etxpath_isabs
+    from .canonicalize_path import etxpath2human
     pass
 except ImportError:
     canonicalize_etxpath=None
@@ -3582,7 +3583,7 @@ class synced(object):
 
         humanpath=xmlpath
         if xmlpath is None:
-            humanpath=canonicalize_path.etxpath2human(ETxmlpath,xmldocobj.nsmap)
+            humanpath=etxpath2human(ETxmlpath,xmldocobj.nsmap)
             pass
         
         try: 
@@ -3653,7 +3654,7 @@ class synced(object):
                 if humanpath is None:
                     humanpath=xmlpath
                     if xmlpath is None:
-                        humanpath=canonicalize_path.etxpath2human(ETxmlpath,xmldocobj.nsmap)
+                        humanpath=etxpath2human(ETxmlpath,xmldocobj.nsmap)
                         pass
                     pass
                 

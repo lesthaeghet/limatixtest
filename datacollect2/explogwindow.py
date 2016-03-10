@@ -1439,7 +1439,7 @@ class explogwindow(gtk.Window):
         
         win=chklist.getwindow()
         win.connect("delete-event",self.handle_checklist_close,chklist)
-        win.show_all()
+        win.show()
         
         pass
 

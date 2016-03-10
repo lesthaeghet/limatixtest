@@ -1071,11 +1071,11 @@ def checklist_handle_reset(checklist,oldhref):
     #    pass
         
     # perform requested notifications
-def resetnotify(checklist,oldfilename):
+def resetnotify(checklist,oldhref):
     if checklist.closed:
         return
 
-    checklist_handle_reset(checklist,oldfilename)
+    checklist_handle_reset(checklist,oldhref)
 
     for (notify,args,kwargs) in resetnotifies:
         notify(checklist,*args,**kwargs)
