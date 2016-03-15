@@ -170,7 +170,7 @@
                     <property name="position">3</property>
                   </packing>
                 </child>
-                <child>
+                <!-- <child>
                   <object class="GtkVBox" id="DestBox">
                     <property name="visible">True</property>
                     <property name="orientation">vertical</property>
@@ -199,7 +199,7 @@
                   <packing>
                     <property name="position">4</property>
                   </packing>
-                </child>
+                </child> -->
               </object>
               <packing>
                 <property name="expand">False</property>

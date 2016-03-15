@@ -186,7 +186,7 @@ def _xlinkcontextfixuptree(ETree,oldcontexthref,newcontexthref,force_abs_href=Fa
     for element in xmlellist: 
         URL=element.attrib["{http://www.w3.org/1999/xlink}href"]
         href=dc_value.hrefvalue(URL,contexthref=oldcontexthref)
-        if force_abs_href:
+        if force_abs_href or (newcontexthref is None) or newcontexthref.isblank():
             newurl=href.absurl()
             pass
         else:
@@ -928,6 +928,9 @@ class xmldoc(object):
 
         #sys.stderr.write("setfilename %s\n" % (filename))
  
+        #import pdb as pythondb
+        #pythondb.set_trace()
+
         oldhref=self.filehref
 
         if self.filehref is None:

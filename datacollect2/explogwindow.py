@@ -303,6 +303,8 @@ class explogwindow(gtk.Window):
         self.paramdb["expphotos"].controller.adddoc(self.explog,"dc:summary/dc:expphotos")
         self.paramdb["hostname"].controller.adddoc(self.explog,"dc:summary/dc:hostname")
         self.paramdb["measnum"].controller.adddoc(self.explog,"dc:summary/dc:measnum")
+        #import pdb as pythondb
+        #pythondb.set_trace()
         self.paramdb["checklists"].controller.adddoc(self.explog,"dc:summary/dc:checklists")
         self.paramdb["plans"].controller.adddoc(self.explog,"dc:summary/dc:plans")
 
@@ -710,8 +712,12 @@ class explogwindow(gtk.Window):
                     
                     dc_configfiles=self.explog.xpath("dc:config[last()]/dc:configfile")
                     for dc_configfile in dc_configfiles:
+                        
                         configfhref=dcv.hrefvalue.fromxml(self.explog,dc_configfile)
-                        self.load_config(configfhref)
+                        if not configfhref.isblank():
+                            self.load_config(configfhref)
+                            pass
+
                         pass
 
                     has_measelements = len(self.explog.xpath("dc:measurement[last()]")) > 0
@@ -1285,7 +1291,7 @@ class explogwindow(gtk.Window):
 
         #sys.stderr.write("open_checklist_parent: parent=%s\n" % (parent))
 
-        if parent is not None and parent.getpath("/") is not None:
+        if parent is not None and parent.getpath() is not None:
             # parentcontextdir=chklist.xmldoc.getcontextdir()
             # if parentcontextdir is None:
             #    # assume it is in dest..

@@ -63,9 +63,9 @@ def handle_openplans(event,paramdb,iohandlers):
     pass
 
 
-def popupchecklist(canonicalpath,paramdb,iohandlers):
+def popupchecklist(href,paramdb,iohandlers):
     # like explogwindow.popupchecklist
-    (chklistobj,canonfname)=dc2_misc.searchforchecklist(canonicalpath)
+    (chklistobj,canonfname)=dc2_misc.searchforchecklist(href)
 
     if chklistobj is None:
         checklistobj=open_checklist(canonfname,paramdb,iohandlers)
@@ -77,8 +77,8 @@ def popupchecklist(canonicalpath,paramdb,iohandlers):
     return chklistobj
     
 
-def checklistmenu_realtime(event,canonicalpath,paramdb,iohandlers):
-    popupchecklist(canonicalpath,paramdb,iohandlers)
+def checklistmenu_realtime(event,href,paramdb,iohandlers):
+    popupchecklist(href,paramdb,iohandlers)
     pass
 
 
@@ -103,12 +103,8 @@ def rebuildchecklistrealtimemenu(event,AllChecklists,AllPlans,MenuObject,MenuOri
     newitem.show()
     
     for cnt in range(len(openchecklists)):
-        if openchecklists[cnt].filename is None: # use mem:// url
-            newitem=gtk.MenuItem(label=openchecklists[cnt].canonicalpath,use_underline=False)
-        else:
-            newitem=gtk.MenuItem(label=openchecklists[cnt].filename,use_underline=False)
-            pass
-        newitem.connect("activate",checklistmenu_realtime,openchecklists[cnt].canonicalpath,paramdb,iohandlers)
+        newitem=gtk.MenuItem(label=openchecklists[cnt].filehref.absurl(),use_underline=False)
+        newitem.connect("activate",checklistmenu_realtime,openchecklists[cnt].filehref,paramdb,iohandlers)
         MenuObject.append(newitem)
         newitem.show()
         # sys.stderr.write("adding checklist menu item: %s\n" % (openchecklists[cnt].filename))
@@ -197,7 +193,7 @@ def open_checklist(href,paramdb,iohandlers):
     open_checklist_parent(chklist,paramdb,iohandlers) # open our parent, if necessary
 
     
-    if href.get_bare_unquoted_filename.endswith(".plx") or href.get_bare_unquoted_filename.endswith(".plf"):
+    if href.get_bare_unquoted_filename().endswith(".plx") or href.get_bare_unquoted_filename().endswith(".plf"):
         checklistdb.newchecklistnotify(chklist,True)
         pass
     else:
