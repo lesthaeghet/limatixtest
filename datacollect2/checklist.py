@@ -12,6 +12,7 @@ from lxml import etree
 import sys
 import os
 import os.path
+import posixpath
 import string
 import numbers
 import math
@@ -423,7 +424,8 @@ class checklist(object):
             if self.datacollect_explog is not None:
                 #import pdb as pythondb
                 #pythondb.set_trace()
-                self.xmldoc.setcontexthref(self.datacollect_explog.getcontexthref())
+                #self.xmldoc.setcontexthref(self.datacollect_explog.getcontexthref())
+                self.xmldoc.setcontexthref(self.paramdb["dest"].dcvalue.leafless())           
                 pass
             else:
                 destl=self.xmldoc.xpath("chx:dest")
@@ -519,13 +521,13 @@ class checklist(object):
         # explicitly save
         if self.datacollectmode:
             #self.gladeobjdict["ChecklistEntry"].set_editable(False)
-            self.gladeobjdict["DestEntry"].set_editable(False)
-            self.gladeobjdict["DestBox"].hide()
-            self.gladeobjdict["DestBox"].set_no_show_all(True)
-            self.gladeobjdict["ParamBox"].remove(self.gladeobjdict["DestBox"])
-            del self.gladeobjdict["DestEntry"]
-            del self.gladeobjdict["DestLabel"]
-            del self.gladeobjdict["DestBox"]
+            #self.gladeobjdict["DestEntry"].set_editable(False)
+            #self.gladeobjdict["DestBox"].hide()
+            #self.gladeobjdict["DestBox"].set_no_show_all(True)
+            #self.gladeobjdict["ParamBox"].remove(self.gladeobjdict["DestBox"])
+            #del self.gladeobjdict["DestEntry"]
+            #del self.gladeobjdict["DestLabel"]
+            #del self.gladeobjdict["DestBox"]
 
             self.gladeobjdict["SaveButton"].connect("clicked",self.handle_done)
             if self.xmldoc.filehref is not None:
@@ -800,7 +802,14 @@ class checklist(object):
                 self.specimen_disabled=True
                 # sys.stderr.write("specimen is disabled!\n")
                 pass            
-            
+
+            #if not datacollect mode, hide the "dest" entry
+            #if not self.datacollectmode:
+            #    del self.gladeobjdict["DestEntry"]
+            #    del self.gladeobjdict["DestLabel"]
+            #    del self.gladeobjdict["DestBox"]
+            #    pass
+
         except: 
             raise
         finally:
@@ -975,7 +984,11 @@ class checklist(object):
                 parenttag=self.xmldoc.insertelement(root,0,"chx:parent")
                 pass
 
+            #import pdb as pythondb
+            #pythondb.set_trace()
+
             parenthref.xmlrepr(self.xmldoc,parenttag)
+            sys.stderr.write("checklist.set_parent(): parenthref=%s; xlink:href=%s\n" % (parenthref.absurl(),self.xmldoc.getattr(parenttag,"xlink:href")))
             self.xmldoc.setattr(parenttag,"xlink:arcrole","http://thermal.cnde.iastate.edu/linktoparent")
 
             pass
@@ -2534,14 +2547,17 @@ class checklist(object):
                 # not datacollectmode or datacollectmode but not part_of_a_measurement, done_is_save_measurement, etc. 
                 
                 # add a numeric suffix if this file already exists.
-                (filebasename,fileext)=os.path.splitext(filename)
+                (filebasename,fileext)=posixpath.splitext(filename)
                 cnt=0
 
                 oldhref=self.xmldoc.get_filehref()
             
                 chklistfile=filename
                 chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
-            
+
+                #import pdb as pythondb
+                #pythondb.set_trace()
+
                 while href_exists(chklisthref):
                     cnt+=1
                     

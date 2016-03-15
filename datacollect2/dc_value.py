@@ -687,8 +687,12 @@ class hrefvalue(value):
         contextlist=[]
         gotURL=False
         
+
+        #import pdb as pythondb
+        #pythondb.set_trace()
+
         if URL is None and contexthref is None:
-            self.contextlist=()
+            self.contextlist=None
             # blank
             return
 
@@ -700,23 +704,25 @@ class hrefvalue(value):
             pass
         
         # include context, if present
-        if contexthref is not None:            
+        if contexthref is not None and contexthref.contextlist is not None:            
             contextlist.extend(contexthref.contextlist)
             pass
         
         if hasattr(URL,"contextlist"):
             # URL is actually an hrefvalue
-            contextlist.extend(URL.contextlist)
-            if len(URL.contextlist) > 0:
-                gotURL=True
+            if URL.contextlist is not None:
+                contextlist.extend(URL.contextlist)
+                if len(URL.contextlist) > 0:
+                    gotURL=True
+                    pass
                 pass
             pass
         elif isinstance(URL,tuple):
             # Treat tuple as contextlist
             contextlist.extend(URL)
-            if len(URL) > 0:
-                gotURL=True
-                pass
+            #if len(URL) > 0:
+            gotURL=True
+            #    pass
         else:
             # URL presumed to be a string
             assert(isinstance(URL,basestring))
@@ -724,12 +730,15 @@ class hrefvalue(value):
                 contextlist.append(URL)
                 gotURL=True
                 pass
+            else:
+                self.contextlist=None
+                return
             pass
 
         if not gotURL:
             # if no URL provided at all (just blank) then context means nothing.
             # Just return completely blank
-            self.contextlist=()
+            self.contextlist=None
             return
         
         # go through context list from end to start
@@ -758,17 +767,17 @@ class hrefvalue(value):
         pass
 
     def isblank(self):
-        return len(self.contextlist)==0
+        return self.contextlist is None
         
     def ismem(self):
-        if len(self.contextlist)==0:
+        if self.contextlist is None or len(self.contextlist)==0:
             return False
         # since unnecessary context is culled on creation, the
         # scheme comes from the scheme of the first element
         return urlparse(self.contextlist[0]).scheme=='mem'
 
     def ishttp(self):
-        if len(self.contextlist)==0:
+        if self.contextlist is None or len(self.contextlist)==0:
             return False
         # since unnecessary context is culled on creation, the
         # scheme comes from the scheme of the first element
@@ -776,7 +785,10 @@ class hrefvalue(value):
 
     def isfile(self):
         if len(self.contextlist)==0:
+            return True
+        if self.contextlist is None:
             return False
+
         # since unnecessary context is culled on creation, the
         # scheme comes from the scheme of the first element
         scheme=urlparse(self.contextlist[0]).scheme
@@ -785,12 +797,17 @@ class hrefvalue(value):
     
 
     def __str__(self):
+        if self.contextlist is None:
+            return ""
         return self.absurl()
     
     def absurl(self) :
         # returns full escaped URL with complete context
         if len(self.contextlist)==0:
+            return "."
+        if self.contextlist is None:
             return ""
+        
 
         URL=""
         for pos in range(len(self.contextlist)-1,-1,-1):
@@ -912,10 +929,21 @@ class hrefvalue(value):
         # turn normalize_context_path entries into leading '..' entries in resultpath 
         resultpath=""
         (dirpart,filepart)=posixpath.split(normalized_context_path)
+
         while len(dirpart) > 0:
-            resultpath=posixpath.join(resultpath,'..')
+            assert(filepart != '..') # can't deal with pulling off a '..'
+            if filepart != '.':
+                resultpath=posixpath.join(resultpath,'..')
+                pass
+            
             (dirpart,filepart)=posixpath.split(dirpart)
             pass
+
+        # Above loop doesn't count filepart
+        if len(filepart) > 0 and filepart != ".":
+            resultpath=posixpath.join(resultpath,'..')
+            pass
+
 
         # append our_URL to resultpath
         resultpath=posixpath.join(resultpath,our_URL)
@@ -957,7 +985,18 @@ class hrefvalue(value):
                 pass
             pass
 
-        if not force_abs_href:
+        if self.isblank():
+            # Blank entry: clear out the xlink:href attribute
+            if xml_attribute in element.attrib:
+                xmldocu.remattr(element,xml_attribute)
+                pass
+            xmldocu.modified=True
+            provenance.elementgenerated(xmldocu.doc,element)
+            return
+
+        contexthref=xmldocu.getcontexthref()
+
+        if not force_abs_href and (contexthref is not None) and (not contexthref.isblank()) and (not self.isblank):
             url=self.attempt_relative_url(xmldocu.getcontexthref())
             pass
         else:
@@ -1089,6 +1128,13 @@ class hrefvalue(value):
         if other is None:
             return False
         
+        if self.contextlist is None and other.contextlist is None:
+            return True
+
+        if (self.contextlist is None) ^ (other.contextlist is None):  # ^ is XOR operator
+            return False
+
+
         return self.absurl()==other.absurl()
     
     pass

@@ -253,8 +253,14 @@ class checklistentry(object):
                     pass
                 
                 self.clinfo=xmldoc.xpathsinglestr("string(chx:clinfo)")
-                origelement=xmldoc.xpathsingle("chx:origunfilled")
-                self.orighref=dc_value.hrefvalue.fromxml(xmldoc,origelement)
+                origelement=xmldoc.xpathsingle("chx:origunfilled",default=None)
+                if origelement is None:
+                    sys.stderr.write("Warning:  Original Filename Not Set in Filled Checklist %s\n" % (filehref.absurl()))
+                    pass
+                else: 
+                    self.orighref=dc_value.hrefvalue.fromxml(xmldoc,origelement)
+                    pass
+                
                 self.cltype=xmldoc.xpathsinglestr("string(chx:clinfo/@type)")
                 self.starttimestamp=xmldoc.xpathsinglestr("string(chx:log/@starttimestamp)")
                 pass
@@ -393,6 +399,8 @@ def getchecklists(contexthref,paramdb,clparamname,clparamname2=None,allchecklist
     checklists1=[]
     checklistsdoc=None
     if clparamname is not None:
+        #import pdb as pythondb
+        #pythondb.set_trace()
         checklistsdoc=paramdb[clparamname].dcvalue.get_xmldoc(nsmap=cdb_nsmap,contexthref=contexthref)  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
 
         # Go through xml parameter contents
@@ -404,6 +412,9 @@ def getchecklists(contexthref,paramdb,clparamname,clparamname2=None,allchecklist
                 # the distinction
 
                 # Now we do
+                #import pdb as pythondb
+                #pythondb.set_trace()
+                
                 checklisthref=dc_value.hrefvalue.fromxml(checklistsdoc,checklist)
                 checklistset.add(checklisthref)
                 checklists1.append(checklisthref)

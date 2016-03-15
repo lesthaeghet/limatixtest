@@ -143,6 +143,10 @@ class runcheckliststep(gtk.HBox):
 
 
         self.private_paramdb=pdb.paramdb(None) # private paramdb to store checklists that are started by this step
+
+        #import pdb as pythondb
+        #pythondb.set_trace()
+        
         self.private_paramdb.addparam("subchecklists",dc_value.xmltreevalue,build=lambda param: xmldoc.synced(param,tag_index_paths_override={"{http://thermal.cnde.iastate.edu/datacollect}checklist":"@{http://www.w3.org/1999/xlink}href"}),hide_from_meas=True)
 
             
@@ -256,6 +260,8 @@ class runcheckliststep(gtk.HBox):
             pass
         else :
             if not(self.subchecklists_registered) and self.checklist.xmldoc.filehref is not None:
+                #import pdb as pythondb
+                #pythondb.set_trace()
                 self.private_paramdb["subchecklists"].controller.adddoc(self.checklist.xmldoc,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
                 self.subchecklists_registered=True
                 pass
@@ -537,8 +543,48 @@ class runcheckliststep(gtk.HBox):
 
         contexthref=self.checklist.xmldoc.getcontexthref()
 
-        checklists=checklistdb.getchecklists(contexthref,self.private_paramdb,"subchecklists",None)
-        # sys.stderr.write("checklists=%s\n" % (str(checklists)))
+        #import pdb as pythondb 
+        #pythondb.set_trace()
+
+        if self.subchecklists_registered:  # subchecklists is registered with adddoc()... (we are read/write) just pull out its value
+            checklists=checklistdb.getchecklists(contexthref,self.private_paramdb,"subchecklists",None)
+            pass
+        else: 
+            # subchecklists not registered with adddoc()... we are read only. Need to extract value directly from XML data
+            # ***!!! Should have xmldoc method to do ETXPath expansion... or better yet should drop down to canonicalized regular XPath once we have that available
+            self.checklist.xmldoc.lock_ro()
+            try:
+                
+                ETXobj=etree.ETXPath(self.checklists_element_etxpath)
+                elements=ETXobj(self.checklist.xmldoc.doc)
+                if len(elements) < 1:
+                    checkliststree=dc_value.xmltreevalue(None) # blank
+                    pass
+                elif len(elements)==1:
+                    checkliststree=dc_value.xmltreevalue(elements[0],contexthref=self.checklist.xmldoc.getcontexthref())
+                    pass
+                else:
+                    raise ValueError("runcheckliststep: Multiple sub-checklists elements!!!")
+                pass
+
+
+                pass
+            finally:
+                self.checklist.xmldoc.unlock_ro()
+                pass
+
+            
+        
+            self.private_paramdb["subchecklists"].requestval_sync(checkliststree)
+            sys.stdout.write("subchecklists=%s\n" % ( str(self.private_paramdb["subchecklists"].dcvalue)))
+            checklists=checklistdb.getchecklists(contexthref,self.private_paramdb,"subchecklists",None)
+
+            pass
+
+
+        #sys.stderr.write("runcheckliststep: checklists=%s subchecklists=%s\n" % (str(checklists),str(self.private_paramdb["subchecklists"].dcvalue)))
+        
+
         #except:
         #    pythondb.post_mortem()
 
@@ -562,7 +608,7 @@ class runcheckliststep(gtk.HBox):
         for checklistentry in checklists:
             name=checklistentry.filename
             if name is None:
-                name=checklistentry.canonicalpath
+                name=checklistentry.filehref.absurl()
                 pass
             if checklistentry.is_done: 
                 self.liststore.append([name, ' (Complete)', 'green'])
@@ -610,16 +656,16 @@ class runcheckliststep(gtk.HBox):
 
     def changedcallback(self,*args):
         
-        checklistfile = self.childntry.get_text()
+        checklist_selectedtext = self.childntry.get_text()
         #print checklistfile
         # dest = ""
-        if checklistfile == self.status:
+        if checklist_selectedtext == self.status:
             # Not Actually Changed
             pass
         else:
             # self.checklist.xmldoc.lock_ro()
             # try:
-            subchecklist=[ entry for entry in checklistdb.getchecklists(self.checklist.xmldoc.getcontexthref(),self.private_paramdb,"subchecklists",None) if entry.filename ==checklistfile or entry.canonicalpath==checklistfile]
+            subchecklist=[ entry for entry in checklistdb.getchecklists(self.checklist.xmldoc.getcontexthref(),self.private_paramdb,"subchecklists",None) if entry.filename ==checklist_selectedtext or entry.filehref.absurl()==checklist_selectedtext]
 
 
             #    xmltag = self.checklist.xmldoc.restorepath(self.xmlpath)
@@ -630,7 +676,7 @@ class runcheckliststep(gtk.HBox):
                 raise Exception("Multiple Sub Checklists Exist With The Same Filename")
 
             if len(subchecklist) > 1:
-                raise Exception("Sub Checklists Filename %s not found" % (checklistfile))
+                raise Exception("Sub Checklists Filename %s not found" % (checklist_selectedtext))
             subchecklist = subchecklist[0]
             # except:
             #    raise
@@ -640,11 +686,13 @@ class runcheckliststep(gtk.HBox):
             # dest=str(self.paramdb["dest"].dcvalue)
             # subchecklist=self.checklist.datacollect_explogwin.popupchecklist(os.path.join(dest,checklistfile))
             if self.checklist.datacollect_explogwin is not None:
+                #import pdb as pythondb
+                #pythondb.set_trace()
                 # datacollect mode
-                subchecklistobj=self.checklist.datacollect_explogwin.popupchecklist(subchecklist.canonicalpath)
+                subchecklistobj=self.checklist.datacollect_explogwin.popupchecklist(subchecklist.filehref)
                 pass
             else:
-                standalone_checklist.popupchecklist(subchecklist.canonicalpath,self.paramdb,self.dc_gui_iohandlers)
+                standalone_checklist.popupchecklist(subchecklist.filehref,self.paramdb,self.dc_gui_iohandlers)
                 pass
             ## notify checklist with our private paramdb
             #contextdir=os.path.split(self.checklist.xmldoc.filename)[0]
