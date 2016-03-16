@@ -125,8 +125,7 @@ cmdline_configfiles=[]
 dpdfiles=[]
 explogfile=None
 newlog=False
-parentchecklistpath=None
-autoloadconfig=True
+parentchecklisturl=None
 
 argc=1
 
@@ -142,7 +141,6 @@ while argc < len(sys.argv):
     elif arg=="-f":
         argc+=1
         cmdline_configfiles.append(sys.argv[argc])
-        autoloadconfig=False
         pass
     elif arg=="-g":
         argc+=1
@@ -158,20 +156,18 @@ while argc < len(sys.argv):
         pass
     elif arg=='-n':
         newlog=True
-        autoloadconfig=False
         pass
     elif arg=="-d":
         argc+=1
         dpdfiles.append(sys.argv[argc])
-        autoloadconfig=False
         pass
     elif arg=='--gtk3':
         # handled at imports, above
         pass
     elif arg=='--parent':
-        # get relative path from xlg file to parent checklist
+        # get relative url from xlg file to parent checklist
         argc+=1
-        parentchecklistpath=sys.argv[argc]
+        parentchecklisturl=sys.argv[argc]
         pass
     elif arg=='-h' or arg=="--help":
         print ("""Usage: %s [-s|-m] [-f <config.dcc>]  [-a] <explog.xlg> [-g gui.glade] [-c checklist.chx] [-p plan.plx] ...
@@ -336,22 +332,28 @@ guistate=create_guistate(iohandlers,paramdb) # can add search directories as add
 
 explogwin.dc_gui_init(guistate)
 
+confighrefs=[ hrefv(pathname2url(configfile)) for configfile in configfiles ]
+
+if len(confighrefs)==0:
+    confighrefs=None
+    pass
 
 if explogfile is not None and newlog:
     #sys.stderr.write("new_explog(%s)\n" % (explogfile))
-    explogwin.new_explog(hrefv(pathname2url(explogfile)),parentchecklistpath=parentchecklistpath)
+    explogwin.new_explog(hrefv(pathname2url(explogfile)),parentchecklisturl=parentchecklisturl,confighrefs=confighrefs)
     pass
 elif explogfile is not None and not newlog:
     #sys.stderr.write("open_explog(%s)\n" % (explogfile))
-    explogwin.open_explog(hrefv(pathname2url(explogfile)),autoloadconfig=autoloadconfig)
+    explogwin.open_explog(hrefv(pathname2url(explogfile)),confighrefs=confighrefs)
     pass
 
 
-# load config files
-for configfile in configfiles: 
-    #sys.stderr.write("datacollect2: Loading config file %s\n" % (configfile))
-    explogwin.load_config(configfile)
-    pass
+## load config files
+#for configfile in configfiles: 
+#    #sys.stderr.write("datacollect2: Loading config file %s\n" % (configfile))
+#    confighref=hrefv(pathname2url(configfile))
+#    explogwin.load_config(confighref)
+#    pass
 
 
 # update paramdb entries specified in .dpd file
@@ -381,16 +383,20 @@ for (paramname,status,val1,val2) in dpdlog:
 
 if len(explogwin.configfhrefs) > 0 and explogwin.explog.filehref is not None:
     for gui in guis:
-        explogwin.open_gui(gui)
+        guihref=hrefv(pathname2url(gui))
+        explogwin.open_gui(guihref)
         pass
     
     for checklist in checklists:
-        explogwin.addtochecklistmenu(checklist)
-        explogwin.open_checklist(checklist)
+        checklisthref=hrefv(pathname2url(checklist))
+
+        explogwin.addtochecklistmenu(checklisthref)
+        explogwin.open_checklist(checklisthref)
         pass
 
     for plan in plans:
-        explogwin.open_plan(plan)
+        planhref=hrefv(pathname2url(plan))
+        explogwin.open_plan(planhref)
         pass
     pass
 elif len(guis) > 0 or len(checklists) > 0 or len(plans) > 0:

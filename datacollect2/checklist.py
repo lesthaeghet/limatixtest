@@ -69,7 +69,7 @@ else :
 from . import xmldoc
 from . import canonicalize_path
 from . import checklistdb
-
+from . import dc2_misc
 
 
 import dg_timestamp
@@ -282,7 +282,7 @@ class checklist(object):
     steps=None
     xmldoc=None
     orighref=None
-    filledhref=None  # if not None, href to put filled checklist in (otherwise use dest)
+    desthref=None  # if not None, href to put filled checklist in (otherwise use dest)
     paramdb=None
     paramdb_ext=None # dc:param() extension function
     chklistfile=None # in datacollect mode, once the filename has been determined and we are auto-saving, chklistfile is the name of the file we are saving as
@@ -326,12 +326,12 @@ class checklist(object):
     closenotify=None
 
     
-    def __init__(self,orighref,paramdb,datacollect_explog=None,datacollect_explogwin=None,filledhref=None):
+    def __init__(self,orighref,paramdb,datacollect_explog=None,datacollect_explogwin=None,desthref=None):
 
 
         self.closed=False
         self.paramdb=paramdb
-        self.filledhref=filledhref
+        self.desthref=desthref
         self.private_paramdb=pdb.paramdb(None) # could pass dgio as parameter to allow private parameters to interact with dataguzzler
         #self.private_paramdb.addparam("notes",stringv,build=lambda param: xmldoc.synced(param))
         # use syncedparambuilder (above) because of incompatibility of lambda with exec statement below in python 2.6
@@ -420,26 +420,9 @@ class checklist(object):
 
             self.xmldoc.setattr(".","filled","true")
 
-            # put checklist in likely destination context
-            if self.datacollect_explog is not None:
-                #import pdb as pythondb
-                #pythondb.set_trace()
-                #self.xmldoc.setcontexthref(self.datacollect_explog.getcontexthref())
-                self.xmldoc.setcontexthref(self.paramdb["dest"].dcvalue.leafless())           
-                pass
-            else:
-                destl=self.xmldoc.xpath("chx:dest")
-                if  len(destl) > 0:
-                    dest=destl[0]
-                    if self.xmldoc.hasattr(dest,"xlink:href"):
-                        desthref=hrefv.fromxml(self.xmldoc,dest)
-                        self.xmldoc.setcontexthref(desthref)
-                        pass
-                    
-                    pass
-                pass
-                
-            #self.xmldoc.setfilename(None)  # prevent auto-flushing, etc. unless this is a "filled" file
+            # put in-memory checklist in likely destination context
+            self.xmldoc.setcontexthref(self.requesteddest())
+
             pass
         else :
 
@@ -551,7 +534,8 @@ class checklist(object):
                 # self.xmldoc.filename is None
                 try:
                     # Put this in a "try...except" because requestedfilename() does not seem to have much in terms of error handling
-                    self.private_paramdb["defaultfilename"].requestvalstr_sync(self.requestedfilename())
+                    reqfilename=self.requestedfilename()
+                    self.private_paramdb["defaultfilename"].requestvalstr_sync(reqfilename)
                     pass
                 except:
                     (exctype, excvalue) = sys.exc_info()[:2] 
@@ -562,10 +546,10 @@ class checklist(object):
                 # still blank...
                 # Create default filename from original name, ".chx" -> ".chf"
                 if origbasename.endswith(".chx"):
-                    self.private_paramdb["defaultfilename"].requestvalstr_sync(sys.path.splitext(origbasename)[0]+".chf")
+                    self.private_paramdb["defaultfilename"].requestvalstr_sync(posixpath.splitext(origbasename)[0]+".chf")
                     pass
                 elif origbasename.endswith(".plx"):
-                    self.private_paramdb["defaultfilename"].requestvalstr_sync(sys.path.splitext(origbasename)[0]+".plf")
+                    self.private_paramdb["defaultfilename"].requestvalstr_sync(posixpath.splitext(origbasename)[0]+".plf")
                     pass
                 pass
 
@@ -701,12 +685,24 @@ class checklist(object):
                                 params[paramname]=etree.tostring(child,encoding='utf-8').decode('utf-8')
                                 pass
                             elif paramname in stephrefprops:
-                                paramval=hrefv.fromxml(self.xmldoc,child)
+                                if self.xmldoc.hasattr(child,"xlink:href"):
+                                    params[paramname]=self.xmldoc.getattr(child,"xlink:href")
+                                    pass
+                                else:
+                                    params[paramname]=""
+                                    pass
+                                
+                                #paramval=hrefv.fromxml(self.xmldoc,child)
 
                                 #import pdb as pythondb
                                 #pythondb.set_trace()
+                                #if paramval is None:
+                                #    params[paramname]=""
+                                #    pass
+                                #else:
+                                #    params[paramname]=paramval.attempt_relative_url(self.xmldoc.getcontexthref())
+                                #    pass
                                 
-                                params[paramname]=paramval.attempt_relative_url(self.xmldoc.getcontexthref())
                                 pass
                             else:
                                 # Regular old string parameter
@@ -891,7 +887,7 @@ class checklist(object):
         self.xmldoc.shouldbeunlocked()
 
 
-        #sys.stderr.write("Checklist: setting readonly to %s\n" % (str(self.readonly)))
+        # sys.stderr.write("Checklist: setting readonly to %s\n" % (str(self.readonly)))
         self.set_readonly(self.readonly)  # set widgets to fix and do adddoc()'s as needed
         self.gladeobjdict["ReadWriteButton"].connect("clicked",self.handle_readwrite)
         
@@ -928,6 +924,20 @@ class checklist(object):
             self.xmldoc.unlock_ro()
             pass
         return is_done
+
+    def get_children(self):
+        # Return list of all hrefs pointed to by dc:checklist tags within chx:subchecklists tags
+        self.xmldoc.lock_ro()
+        try:
+            checklisttags=self.xmldoc.xpath("//chx:subchecklists/dc:checklist")
+            children = [ hrefv.fromxml(self.xmldoc,checklisttag) for checklisttag in checklisttags ]
+            
+            pass
+        finally: 
+            self.xmldoc.unlock_ro()
+            pass
+
+        return children
     
     def get_parent(self):
         # returns hrefvalue object or None
@@ -984,17 +994,18 @@ class checklist(object):
                 parenttag=self.xmldoc.insertelement(root,0,"chx:parent")
                 pass
 
-            #import pdb as pythondb
-            #pythondb.set_trace()
 
             parenthref.xmlrepr(self.xmldoc,parenttag)
-            sys.stderr.write("checklist.set_parent(): parenthref=%s; xlink:href=%s\n" % (parenthref.absurl(),self.xmldoc.getattr(parenttag,"xlink:href")))
+            # sys.stderr.write("checklist.set_parent(): parenthref=%s; xlink:href=%s\n" % (parenthref.absurl(),self.xmldoc.getattr(parenttag,"xlink:href")))
             self.xmldoc.setattr(parenttag,"xlink:arcrole","http://thermal.cnde.iastate.edu/linktoparent")
 
             pass
         finally: 
             self.xmldoc.unlock_rw()
             pass
+        #import pdb as pythondb
+        #pythondb.set_trace()
+
         pass
 
     def addfilenamenotify(self,notify,*args,**kwargs):
@@ -1567,6 +1578,8 @@ class checklist(object):
         if self.xmldoc.filehref is None: 
             raise ValueError("Checklist save_measurement() called on checklist that does not have a filename set.... Need to check at least one box prior to saving measurement")
 
+        self.paramdb["measchecklist"].requestval_sync(self.xmldoc.get_filehref())
+
         self.xmldoc.lock_rw()
         try:
             clinfo_ns=self.xmldoc.xpath("chx:clinfo")
@@ -1591,7 +1604,6 @@ class checklist(object):
             #    pass
             #else : 
 
-            self.paramdb["measchecklist"].requestval_sync(self.xmldoc.get_filehref())
             
             autoexps=[]
             for autoexp in self.xmldoc.xpath("chx:checkitem/dc:autoexp"):
@@ -1614,7 +1626,6 @@ class checklist(object):
             # main paramdb measnum should be one of the measnums in the set 
             # that is our private_paramdb measnum
             #assert(self.paramdb["measnum"].dcvalue.value() in self.private_paramdb["measnum"].dcvalue.value())
-            self.datacollect_explog.recordmeasurement(self.paramdb["measnum"].dcvalue.value(),clinfo=clinfo,cltitle=cltitle,extrataglist=autoexps)
             # add in any <dc:autoexp>s with their <dc:automeas>s from the checklist 
             # sys.stderr.write("\n\ngot meastag: %s\n" % (etree.tostring(meastag)))
             pass
@@ -1624,6 +1635,10 @@ class checklist(object):
             self.xmldoc.unlock_rw()
             pass
 
+        #sys.stderr.write("checklist save_measurement(): calling recordmeasurement()\n")
+        self.datacollect_explog.recordmeasurement(self.paramdb["measnum"].dcvalue.value(),clinfo=clinfo,cltitle=cltitle,extrataglist=autoexps)
+
+        
         pass
 
     # dont_switch_xmldoc_mode=False is used as a flag from setfilename
@@ -1634,9 +1649,20 @@ class checklist(object):
         if (readonly): 
             self.readonly=True
 
-            # update xmldoc readonly flag
+            # update xmldoc readonly flag -- used to indicate we're just disconnecting syncrhonization, not really setting readony
             if not dont_switch_xmldoc_mode:
                 self.xmldoc.set_readonly(True)
+
+                # Set all child checklists
+                # that are open to read-only too. 
+                for childhref in self.get_children():
+                    (childclobj,childhref2)=dc2_misc.searchforchecklist(childhref)
+                    if childclobj is not None:
+                        childclobj.set_readonly(True)
+                        pass
+                    
+                    pass
+                
                 pass
             # extract values for notes, date, perfby,  specimen, and measnum fields
             self.xmldoc.lock_ro()
@@ -1684,6 +1710,7 @@ class checklist(object):
 
 
             # Show "read only" warning and button
+            #sys.stderr.write("showing readonlyhbox\n")
             self.gladeobjdict["ReadonlyHBox"].show_all()
 
             # gray out all of the steps
@@ -1745,8 +1772,8 @@ class checklist(object):
                     pass
                 pass
             self.measnum_sync=None
-                
-                
+
+            
             pass
         else:
             # not readonly
@@ -1826,7 +1853,7 @@ class checklist(object):
 
 
                 # Hide "read only" warning and button
-                # sys.stderr.write("hiding ReadonlyHBox\n")
+                #sys.stderr.write("hiding ReadonlyHBox\n")
                 self.gladeobjdict["ReadonlyHBox"].hide()
                 
                 # un-gray out notes entry
@@ -1842,6 +1869,22 @@ class checklist(object):
                     pass
                 else:
                     self.gladeobjdict["SaveButton"].set_sensitive(True)
+                    pass
+
+                # for checklist to be read-write, parent must also
+                # be read-write
+                parentclobj=None
+                parent=self.get_parent() # returns hrefv
+
+                if parent is not None:
+                    (parentclobj,parenthref)=dc2_misc.searchforchecklist(parent)
+                    pass
+                
+                if parentclobj is not None:
+                    parentclobj.set_readonly(False)
+                    pass
+                elif parent is not None:
+                    sys.stderr.write("checklist.set_readonly(%s,False): Cannot find parent %s to set it in read/write mode.\n"  % (self.xmldoc.get_filehref(),parent.absurl()))
                     pass
                 
                 
@@ -1905,12 +1948,17 @@ class checklist(object):
                 pass
             pass
         
+        #import pdb as pythondb
+        #pythondb.set_trace()
 
+        # gray out done button so user doesn't accidentally re-click
+        self.gladeobjdict["SaveButton"].set_sensitive(False)
 
         try : 
 
             # sys.stderr.write("handle_done() try block. done_is_save_measurement=%s\n" % (str(self.done_is_save_measurement)))
 
+            #sys.stderr.write("checklist done: setting done attribute\n")
             self.xmldoc.lock_rw()
             try : 
                 # set done attribute of <checklist> tag
@@ -1925,7 +1973,7 @@ class checklist(object):
             self.set_window_title()  # update window title now that we are done
                 
             if self.done_is_save_measurement:
-                # sys.stderr.write("handle_done() saving measurement\n")
+                #sys.stderr.write("handle_done() saving measurement\n")
                 self.save_measurement()
                 pass
             # All lockcounts should be zero now!
@@ -1935,8 +1983,8 @@ class checklist(object):
 
 
             # self.xmldoc.flush() # Make sure everything written
-
-
+            #sys.stderr.write("checklist done: doing notifies\n")
+            
             for (donenotify,dnargs,dnkwargs) in self.donenotify: 
                 donenotify(self,self.xmldoc.filehref,*dnargs,**dnkwargs)
                 pass
@@ -2053,13 +2101,12 @@ class checklist(object):
 
             # print "Saving..."
             
-            self.xmldoc.shouldbeunlocked()
 
             
             oldhref=self.xmldoc.get_filehref()
 
             old_readonly=self.readonly
-            self.set_readonly(True) # force disconnection from file
+            self.set_readonly(True,dont_switch_xmldoc_mode=True) # force disconnection from file
             self.xmldoc.set_href(namehref)  #,force_abs_href=True)
             self.set_readonly(old_readonly) # reconnect to file, if applicable
             
@@ -2365,25 +2412,91 @@ class checklist(object):
         return OK
 
 
+    def requesteddest(self):
+
+        #import pdb as pythondb
+        #pythondb.set_trace()
+        
+        self.xmldoc.lock_ro()
+        try :
+
+            # Obtain dest tag
+            desttag=self.xmldoc.xpathsingle("chx:dest",default=None)
+
+            
+            # obtain dest from desthref constructor parameter by preference
+            desthref=None
+            if self.desthref is not None:
+                desthref=self.desthref
+                pass
+            else:
+                # In datacollect mode use paramdb
+                if self.datacollectmode:
+                    desthref=self.paramdb["dest"].dcvalue
+                    pass
+                else:
+                    # Grab dest from the xlink:href in the desttag, if present
+                    if desttag is not None:
+                        desthref=hrefv.fromxml(self.xmldoc,desttag)
+                        pass
+                    pass
+                pass
+
+            # if all of the above fails, strip file part off of context
+            # of our current file.
+            
+            if desthref is None or desthref.isblank():
+                desthref=self.xmldoc.getcontexthref().leafless()
+                pass
+            pass
+        finally:
+            self.xmldoc.unlock_ro()
+            pass
+
+        
+        return desthref
+    
     def requestedfilename(self):
 
         self.xmldoc.lock_ro()
-        try : 
-            dest=self.xmldoc.xpathsingle("chx:dest")
+        try :
 
 
+            # Obtain dest tag
+            desttag=self.xmldoc.xpathsingle("chx:dest",default=None)
+
+            
+            # Now determine the desired filename, if possible
             contextnode=self.xmldoc.find(".")
-        
+
+            # Use "autofilename" attribute, but override with
+            # "autodcfilename" attribute if it is present and we
+            # are in datacollectmode
             autofilename_attrib="autofilename"
-            if self.datacollectmode and "autodcfilename" in dest.attrib:
+            if self.datacollectmode and self.xmldoc.hasattr(desttag,"autodcfilename"):
                 autofilename_attrib="autodcfilename"
                 pass
 
-            # filename can use POSIX path separators if desired
-            filename=self.xmldoc.xpath(self.xmldoc.getattr(dest,autofilename_attrib),contextnode=contextnode,extensions=self.paramdb_ext.extensions) # extension allows use of dc:paramdb(string) to extract xml representation of paramdb entry
+
+            # use autofilename attribute if present
+            if self.xmldoc.hasattr(desttag,autofilename_attrib):
+                
+                # filename can use POSIX path separators if desired
+                filename=self.xmldoc.xpath(self.xmldoc.getattr(desttag,autofilename_attrib),contextnode=contextnode,extensions=self.paramdb_ext.extensions) # extension allows use of dc:paramdb(string) to extract xml representation of paramdb entry
+                pass
+            else:
+                # build requestedfilename from orighref
+                origbasename=self.orighref.get_bare_unquoted_filename()
+                (origbase,origext)=posixpath.splitext(origbasename)
+                assert(origext != ".chf" and origext != "plf")
+                if origext==".plx":
+                    filename=origbase+".plf"
+                    pass
+                else:
+                    filename=origbase+".chf"
+                    pass
+                pass
             pass
-        except: 
-            raise
         finally:
             self.xmldoc.unlock_ro()
             pass
@@ -2399,232 +2512,192 @@ class checklist(object):
 
         if self.readonly:
             return 
+
+        self.xmldoc.shouldbeunlocked()
         
-
-        self.xmldoc.lock_rw()
+        desthref=self.requesteddest()
+        filename=self.requestedfilename()
         
-        try : 
-            #destl=self.xmldoc.xpath("chx:dest")
-            #assert(len(destl) == 1)
-            #dest=destl[0]
+        if self.datacollectmode and (self.done_is_save_measurement or self.has_save_measurement_step or self.part_of_a_measurement): 
+            # automatically set the filename
 
-            if self.filledhref is not None:
-                desthref=self.filledhref
-                pass
-            else:
-                desthref=self.paramdb["dest"].dcvalue
-                pass
-            
-            filename=self.requestedfilename()
-        
-            # sys.stderr.write("filename=%s\n" % (filename))
-            
-            # if self.datacollectmode: 
-            if self.datacollectmode and (self.done_is_save_measurement or self.has_save_measurement_step or self.part_of_a_measurement): 
-                # automatically set the filename
+            # assert("measnum" in self.private_paramdb)
+            # Make sure current experiment log measnum is in the checklist measnum set
 
-                # assert("measnum" in self.private_paramdb)
-                # Make sure current experiment log measnum is in the checklist measnum set
+            # assert(self.paramdb["measnum"].dcvalue.value() in self.private_paramdb["measnum"].dcvalue.value())
+            
+            (filebasename,fileext)=os.path.splitext(filename)
+            # cnt=1
+            
+            if self.done_is_save_measurement or self.has_save_measurement_step: 
+                chklistfile="%s-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),fileext)
+                chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
+                #chklistpath=os.path.join(destdir,chklistfile)
+                    
+                cnt=1
+                while (href_exists(chklisthref)) :
 
-                # assert(self.paramdb["measnum"].dcvalue.value() in self.private_paramdb["measnum"].dcvalue.value())
-            
-                (filebasename,fileext)=os.path.splitext(filename)
-                # cnt=1
-            
-                if self.done_is_save_measurement or self.has_save_measurement_step: 
-                    chklistfile="%s-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),fileext)
+                    chklistfile="%s-%.4d-%d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),cnt,fileext)
                     chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
                     #chklistpath=os.path.join(destdir,chklistfile)
                     
-                    cnt=1
-                    while (href_exists(chklisthref)) :
+                    cnt+=1
 
-                        chklistfile="%s-%.4d-%d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),cnt,fileext)
-                        chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
-                        #chklistpath=os.path.join(destdir,chklistfile)
-                        
-                        cnt+=1
-
-                        #if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
-                        #    # gtk3
-                        #    existsdialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.NONE)
-                        #    pass
-                        #else : 
-                        #    existsdialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_NONE)
-                        #    pass
+                    #if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
+                    #    # gtk3
+                    #    existsdialog=gtk.MessageDialog(type=gtk.MessageType.ERROR,buttons=gtk.ButtonsType.NONE)
+                    #    pass
+                    #else : 
+                    #    existsdialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_NONE)
+                    #    pass
                             
-                        #existsdialog.set_markup("Error: File %s exists.\nWill not overwrite, but you can manually delete and click Retry" % (chklistpath))
-                        #existsdialog.add_button("Retry",1)
-                        #existsdialog.add_button("Cancel operation",0)
+                    #existsdialog.set_markup("Error: File %s exists.\nWill not overwrite, but you can manually delete and click Retry" % (chklistpath))
+                    #existsdialog.add_button("Retry",1)
+                    #existsdialog.add_button("Cancel operation",0)
                 
-                        #existsdialogval=existsdialog.run()
+                    #existsdialogval=existsdialog.run()
                 
-                        #existsdialog.destroy()
-                        
-                        #if existsdialogval==0:
-                        #    # cancel
-                        #    return   # calls unlock via finally block
-                        pass
-                        
+                    #existsdialog.destroy()
+                    
+                    #if existsdialogval==0:
+                    #    # cancel
+                    #    return   # calls unlock via finally block
                     pass
-                else : 
-                    # this checklist must be part_of_a_measurement
-                    assert(self.part_of_a_measurement)
-                    chklistfile="%s-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),fileext)
-                    chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
-                    cnt=0
-                    
-                    while href_exists(chklisthref):
-                        cnt+=1
-                    
-                        chklistfile="%s-%.4d-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),cnt,fileext)
-                        chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
-                        pass
-
-                    
-                    
-                    
-                    pass
-
-                #sys.stderr.write("before rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
-                oldreadonly=self.readonly
-                self.set_readonly(True,dont_switch_xmldoc_mode=True) # Set readonly to disconnect from file
-                #sys.stderr.write("intermed rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
-                oldhref=self.xmldoc.get_filehref()
-                self.xmldoc.set_href(chklisthref)
-                #sys.stderr.write("after rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
-                self.set_readonly(oldreadonly) # reconnect to file if applicable
-                #sys.stderr.write("wayafter rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
                 
-                self.gladeobjdict["SaveButton"].set_sensitive(True)
-
-
-                # xlink:href updates now automatic!
-                # if self.xmldoc.hasattr(None,"parent"):
-                #    # if we have a parent attribute, update it relative to the new filename
-                # if oldfilename is None:
-                #        reffilename=self.pre_reset_filename
-                #        pass
-                #    else: 
-                #        reffilename=oldfilename
-                #        pass
-                #    
-                #    if reffilename is not None:
-                #        self.set_parent(self.xmldoc.getcontextdir(),canonicalize_path.canonicalize_relpath(os.path.split(reffilename)[0],self.xmldoc.getattr(None,"parent")))
-                #        pass
-                #    else: 
-                #        self.set_parent(self.xmldoc.getcontextdir(),self.xmldoc.getattr(None,"parent"))
-                #pass
-                #    pass
-
-                #self.xmldoc.autoflush=True
-                
-                # WARNING: filenamenotify may call requestval_sync which runs sub-mainloop
-                # ***!!! Possible bug because shouldn't do this with stuff locked
-                for (filenamenotify,fnargs,fnkwargs) in  self.filenamenotify: 
-                    filenamenotify(self,self.orighref,chklisthref,oldhref,*fnargs,**fnkwargs)
-                    pass
-            
-                # enable save button
-                self.gladeobjdict["SaveButton"].set_sensitive(True)
-                
-                #if self.done_is_save_measurement or self.has_save_measurement_step:
-                    ## store name of this checklist file in paramdb
-                    #self.paramdb["measchecklist"].requestval_sync(hrefv.frompath(self.xmldoc.getcontextdir(),chklistfile))
-                #    pass
-                self.chklistfile=chklistfile  # store for convenience
-                
-                # set window title 
-            
-                # set filename field at bottom of window
-                self.private_paramdb["defaultfilename"].requestvalstr_sync(chklisthref.get_bare_unquoted_filename()) 
-            
-                #self.gladeobjdict["CheckListWindow"].set_title(chklisthref.get_bare_unquoted_filename())
-                self.set_window_title()
-
                 pass
-            else :
-                # not datacollectmode or datacollectmode but not part_of_a_measurement, done_is_save_measurement, etc. 
-                
-                # add a numeric suffix if this file already exists.
-                (filebasename,fileext)=posixpath.splitext(filename)
-                cnt=0
-
-                oldhref=self.xmldoc.get_filehref()
-            
-                chklistfile=filename
+            else : 
+                # this checklist must be part_of_a_measurement
+                assert(self.part_of_a_measurement)
+                chklistfile="%s-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),fileext)
                 chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
-
-                #import pdb as pythondb
-                #pythondb.set_trace()
-
+                cnt=0
+                    
                 while href_exists(chklisthref):
                     cnt+=1
                     
-                    chklistfile="%s-%.4d%s" % (filebasename,cnt,fileext)
+                    chklistfile="%s-%.4d-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),cnt,fileext)
                     chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
                     pass
-
-                #sys.stderr.write("newfilename=%s\n" % (newfilename))
                 
-                try : 
-                    
-                    oldreadonly=self.readonly
-                    self.set_readonly(True,dont_switch_xmldoc_mode=True) # Set readonly to disconnect from file
-                    oldhref=self.xmldoc.get_filehref()
-                    self.xmldoc.set_href(chklisthref)
-                    self.set_readonly(oldreadonly) # reconnect to file if applicable
-                    pass
-                except: 
-                    (exctype, excvalue) = sys.exc_info()[:2] 
-                    tback=traceback.format_exc()
-                    ErrorDialog("Exception assigning filename %s to checklist; output may not be saved" % (str(chklisthref)),exctype,excvalue,tback)
-                    chklisthref=None
-                    # self.xmldoc.setfilename(None)
-                    
-                    pass
-
-                self.gladeobjdict["SaveButton"].set_sensitive(True)
-
-                # if self.xmldoc.hasattr(None,"parent"):
-                #    # if we have a parent attribute, update it relative to the new filename
-                # xlink:href updates now automatic
-                #self.set_parent(self.xmldoc.getcontextdir(),self.xmldoc.getattr(None,"parent"))
-                #    pass
-
-                #self.xmldoc.autoflush=True
+                
+                
+                
+                pass
             
-                # WARNING: filenamenotify may call requestval_sync which runs sub-mainloop
-                # ***!!! Possible bug because shouldn't do this with stuff locked
-                for (filenamenotify,fnargs,fnkwargs) in self.filenamenotify: 
-                    #import pdb as pythondb
-                    #try: 
-                    filenamenotify(self,self.orighref,chklisthref,oldhref,*fnargs,**fnkwargs)
-                    #except:
-                    #    pythondb.post_mortem()
-                    pass
-                self.chklistfile=chklistfile  # store for convenience
+            #sys.stderr.write("before rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
+            oldreadonly=self.readonly
+            self.set_readonly(True,dont_switch_xmldoc_mode=True) # Set readonly to disconnect from file
+            #sys.stderr.write("intermed rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
+            oldhref=self.xmldoc.get_filehref()
+            self.xmldoc.set_href(chklisthref)
+            #sys.stderr.write("after rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
+            self.set_readonly(oldreadonly) # reconnect to file if applicable
+            #sys.stderr.write("wayafter rw_lc=%d\n" % (self.xmldoc.rw_lockcount))
+            
+            self.gladeobjdict["SaveButton"].set_sensitive(True)
 
-                # self.xmldoc.setfilename(os.path.join(destdir,chklistfile))
 
-                # set filename field at bottom of window
-                self.private_paramdb["defaultfilename"].requestvalstr_sync(chklistfile) 
+            # xlink:href updates now automatic!
+            # if self.xmldoc.hasattr(None,"parent"):
+            #    # if we have a parent attribute, update it relative to the new filename
+            # if oldfilename is None:
+            #        reffilename=self.pre_reset_filename
+            #        pass
+            #    else: 
+            #        reffilename=oldfilename
+            #        pass
+            #    
+            #    if reffilename is not None:
+            #        self.set_parent(self.xmldoc.getcontextdir(),canonicalize_path.canonicalize_relpath(os.path.split(reffilename)[0],self.xmldoc.getattr(None,"parent")))
+            #        pass
+            #    else: 
+            #        self.set_parent(self.xmldoc.getcontextdir(),self.xmldoc.getattr(None,"parent"))
+            #pass
+            #    pass
+            
+            #self.xmldoc.autoflush=True
+            
+            # WARNING: filenamenotify may call requestval_sync which runs sub-mainloop
+            for (filenamenotify,fnargs,fnkwargs) in  self.filenamenotify: 
+                filenamenotify(self,self.orighref,chklisthref,oldhref,*fnargs,**fnkwargs)
+                pass
+            
+            # enable save button
+            self.gladeobjdict["SaveButton"].set_sensitive(True)
+                
+            self.chklistfile=chklistfile  # store for convenience
+                
+            # set filename field at bottom of window
+            self.private_paramdb["defaultfilename"].requestvalstr_sync(chklisthref.get_bare_unquoted_filename()) 
+            
+            self.set_window_title()
 
-                if chklisthref is not None:
-                    # unless the filename assignment failed
-                    # self.gladeobjdict["SaveButton"].set_property("label","Auto-save mode")
-                    self.gladeobjdict["SaveButton"].set_property("label","Done")
-                    pass
+            pass
+        else :
+            # not datacollectmode or datacollectmode but not part_of_a_measurement, done_is_save_measurement, etc. 
+                
+            # add a numeric suffix if this file already exists.
+            (filebasename,fileext)=posixpath.splitext(filename)
+            cnt=0
+            
+            oldhref=self.xmldoc.get_filehref()
+            
+            chklistfile=filename
+            chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
+            
+            #import pdb as pythondb
+            #pythondb.set_trace()
+
+            while href_exists(chklisthref):
+                cnt+=1
+                
+                chklistfile="%s-%.4d%s" % (filebasename,cnt,fileext)
+                chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
+                pass
+            
+            #sys.stderr.write("newfilename=%s\n" % (newfilename))
+                
+            try : 
+                
+                oldreadonly=self.readonly
+                self.set_readonly(True,dont_switch_xmldoc_mode=True) # Set readonly to disconnect from file
+                oldhref=self.xmldoc.get_filehref()
+                self.xmldoc.set_href(chklisthref)
+                self.set_readonly(oldreadonly) # reconnect to file if applicable
+                pass
+            except: 
+                (exctype, excvalue) = sys.exc_info()[:2] 
+                tback=traceback.format_exc()
+                ErrorDialog("Exception assigning filename %s to checklist; output may not be saved" % (str(chklisthref)),exctype,excvalue,tback)
+                chklisthref=None
+                # self.xmldoc.setfilename(None)
+                
+                pass
+            
+            self.gladeobjdict["SaveButton"].set_sensitive(True)
+            
+            # if self.xmldoc.hasattr(None,"parent"):
+            #    # if we have a parent attribute, update it relative to the new filename
+            # xlink:href updates now automatic
+            #self.set_parent(self.xmldoc.getcontextdir(),self.xmldoc.getattr(None,"parent"))
+            #    pass
+
+            #self.xmldoc.autoflush=True
+            
+            # WARNING: filenamenotify may call requestval_sync which runs sub-mainloop
+            for (filenamenotify,fnargs,fnkwargs) in self.filenamenotify: 
+                filenamenotify(self,self.orighref,chklisthref,oldhref,*fnargs,**fnkwargs)
+                pass
+            self.chklistfile=chklistfile  # store for convenience
+            
+            # set filename field at bottom of window
+            self.private_paramdb["defaultfilename"].requestvalstr_sync(chklistfile) 
+
+            if chklisthref is not None:
+                # unless the filename assignment failed
+                self.gladeobjdict["SaveButton"].set_property("label","Done")
                 pass
             pass
-        except:
-            raise
-
-        finally:
-            self.xmldoc.unlock_rw()
-            pass
-
-        # self.xmldoc.flush() # only actually flushes if an output name has been set
 
         
         pass
