@@ -58,7 +58,7 @@ if hasattr(gtk,"gtk_version") and (gtk.gtk_version[0] < 2 or (gtk.gtk_version[0]
     pass
 else: 
     # higher versions of gtk2, plus gtk3 (gtk3 uses gtk.MAJOR_VERSION and gtk.MINOR_VERSION instead of gtk.gtk_version)
-    GtkComboBoxEntry=getattr(gtk,"ComboBoxText")
+    GtkComboBoxEntry=gtk.ComboBoxText.new_with_entry
     old_style_comboboxentry=False
     pass
 
