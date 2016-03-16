@@ -391,9 +391,15 @@ class xmltreevalue(value):
             sourcecontext=self.__xmldoc.getcontexthref()
             targetcontext=xmldocu.getcontexthref()
 
+            if self.__xmldoc.getroot().tag=="http://thermal.cnde.iastate.edu/checklist}subchecklists":
+                sys.stderr.write("xmltreevalue.xmlrepr: tag=%s; sourcecontext=%s; targetcontext=%s\n" % (self.__xmldoc.getroot().tag,sourcecontext.absurl(),targetcontext.absurl()))
+                sys.stderr.write("xmltreevalue=%s\n" % (str(self)))
+                pass
+            
             if sourcecontext is None or targetcontext is None:
                 import pdb as pythondb
                 pythondb.set_trace()
+                pass
             
             # if canonicalize_path.canonicalize_path(sourcecontext) != canonicalize_path.canonicalize_path(targetcontext):
             if sourcecontext != targetcontext: 
@@ -784,10 +790,10 @@ class hrefvalue(value):
         return urlparse(self.contextlist[0]).scheme=='http'
 
     def isfile(self):
-        if len(self.contextlist)==0:
-            return True
         if self.contextlist is None:
             return False
+        if len(self.contextlist)==0:
+            return True
 
         # since unnecessary context is culled on creation, the
         # scheme comes from the scheme of the first element
@@ -920,6 +926,8 @@ class hrefvalue(value):
 
                 return joined_self.attempt_relative_url(joined_new_context)
             else:
+                sys.stderr.write("dc_value.hrefvalue.attempt_relative_url(): Trying to form a relative URL from %s with leading '..' on context %s... this is not possible. Dropping down to absolute URL\n" % (self.absurl(),new_context.absurl()))
+                
                 # Bail and drop down to absolute path
                 return self.absurl()
             pass
@@ -955,6 +963,27 @@ class hrefvalue(value):
             normalized_result_path += "/"
             pass
 
+        # Eliminate unnecessary '..'s' in resultpath based on
+        # context
+
+        #***!!!FIXME... this handles a resulting
+        # url of ../foo/bar.xml on a context of foo/
+        # but not multiple layers, e.g. resulting url
+        # of ../../fubar/foo/bar.xml on a context of fubar/foo/
+        if normalized_result_path.startswith("../"):
+            remaining_result_path=normalized_result_path[3:]
+            context_path_fragment=posixpath.split(normalized_context_path)[1]+"/"
+
+            if remaining_result_path.startswith("../"):
+                sys.stderr.write("dc_value.hrefvalue.attempt_relative_url: FIXME: Need better algorithm for matching leading ..'s on URL result path with context path fragments\n")
+            # Does the remaining path after the "../" match the last fragment of our context path?
+            if not remaining_result_path.startswith("../") and remaining_result_path.startswith(context_path_fragment):
+                # If so, remove both
+                normalized_result_path=remaining_result_path[len(context_path_fragment):]
+                pass
+            
+            pass
+        
         return normalized_result_path
 
     def attempt_relative_href(self,new_context):
@@ -996,7 +1025,7 @@ class hrefvalue(value):
 
         contexthref=xmldocu.getcontexthref()
 
-        if not force_abs_href and (contexthref is not None) and (not contexthref.isblank()) and (not self.isblank):
+        if (not force_abs_href) and (contexthref is not None) and (not contexthref.isblank()) and (not self.isblank()):
             url=self.attempt_relative_url(xmldocu.getcontexthref())
             pass
         else:
@@ -1009,7 +1038,7 @@ class hrefvalue(value):
         pass
 
     def get_bare_quoted_filename(self):
-        if len(self.contextlist) < 1:
+        if self.contextlist is None or len(self.contextlist) < 1:
             return ""
         
         parsed=urlparse(self.contextlist[-1])

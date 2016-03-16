@@ -443,10 +443,12 @@ class explogwindow(gtk.Window):
         
         pass
 
-    def new_explog(self,href,parentchecklistpath=None):
-        # parentchecklistpath, if given, should be 
-        # relative to the directory fname is in. 
-
+    def new_explog(self,href,parentchecklisturl=None,confighrefs=None):
+        # parentchecklisturl, if given, should be 
+        # relative to the directory href is in. 
+        # confighrefs is a list of hrefs of config files
+        # that we should open if specified
+        
         if (checklist.href_exists(href)) :
             if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
                 # gtk3
@@ -522,7 +524,7 @@ class explogwindow(gtk.Window):
         self.assign_title()
         
         # define parent, if given
-        if parentchecklistpath is not None:
+        if parentchecklisturl is not None:
             self.explog.lock_rw()
             try:
                 # for a new experiment log there should be no
@@ -532,7 +534,8 @@ class explogwindow(gtk.Window):
                 # create new dc:parent tag in root of explog
                 parentel=self.explog.addelement(None,"dc:parent")
                 # add xlink:href attribute
-                self.explog.setattr(parentel,"xlink:href",urllib.pathname2url(parentchecklistpath))
+                #self.explog.setattr(parentel,"xlink:href",urllib.pathname2url(parentchecklistpath))
+                self.explog.setattr(parentel,"xlink:href",parentchecklisturl)
                 self.explog.setattr(parentel,"xlink:arcrole","http://thermal.cnde.iastate.edu/linktoparent")
                 pass
             finally: 
@@ -540,7 +543,13 @@ class explogwindow(gtk.Window):
                 pass
             pass
         
-        
+        # load configs, if specified
+        if confighrefs is not None:
+            for confighref in confighrefs:
+                self.load_config(confighref)
+                pass
+
+            pass
 
         pass
 
@@ -651,16 +660,22 @@ class explogwindow(gtk.Window):
         
         if result==RESPONSE_OK:
 
-            # if no config files loaded, then autoloadconfig
-            autoloadconfig=len(self.configfhrefs)==0
+            confighrefs=[]
+
+            # if no config files loaded, then pass None for
+            # configfhrefs and it will auto load config
+            if len(self.configfhrefs)==0:
+                confighrefs=None
+                pass
             
             
-            self.open_explog(dcv.hrefvalue(pathname2url(fname)),autoloadconfig=autoloadconfig)
+            self.open_explog(dcv.hrefvalue(pathname2url(fname)),confighrefs=confighrefs)
             pass
         pass
 
-    def open_explog(self,href,autoloadconfig=False):
-        
+    def open_explog(self,href,confighrefs=None):
+        # confighrefs is None (meaning auto-load configuration)
+        # or a list of hrefs of config files to load
         if (not checklist.href_exists(href)) :
             if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
                 # gtk3
@@ -674,7 +689,7 @@ class explogwindow(gtk.Window):
             existsdialog.destroy()
             return
 
-        if self.SingleSpecimen is None and not autoloadconfig:
+        if self.SingleSpecimen is None and confighrefs is not None:
             # Need to choose Single Specimen/Multi-Specimen mode
             self.ChooseSingleSpecimen()
             pass
@@ -701,7 +716,7 @@ class explogwindow(gtk.Window):
                 self.explog.set_iohandlers(self.dc_gui_iohandlers)
 
                 # attempt to auto-load config, if applicable
-                if autoloadconfig:
+                if confighrefs is None:
                     if self.SingleSpecimen is None:
                         # identify Single specimen mode based on file
                         summaryspecimens=self.explog.xpath("dc:summary/dc:specimen")
@@ -723,7 +738,12 @@ class explogwindow(gtk.Window):
                     has_measelements = len(self.explog.xpath("dc:measurement[last()]")) > 0
 
                     pass
-
+                else:
+                    # got a list of config files in confighrefs. Load them.
+                    for confighref in confighrefs:
+                        self.load_config(confighref)
+                        pass
+                    pass
                 self.syncexplog()
                 pass
             finally:
@@ -759,7 +779,9 @@ class explogwindow(gtk.Window):
                 
                 
 
-            if autoloadconfig and has_measelements:
+            if confighrefs is None and has_measelements:
+                # we are auto-loading the config and there is an
+                # experiment log entry
                 # offer to load parameters from most recent experiment log entry
                 if hasattr(gtk,"MessageType") and hasattr(gtk.MessageType,"WARNING"):
                     # gtk3
@@ -1283,12 +1305,42 @@ class explogwindow(gtk.Window):
         
         return True
 
+    def get_parent(self):
 
+        parenthref=None
+        self.explog.lock_ro()
+        
+        try:
+            parenttag=self.explog.xpathsingle("dc:parent",default=None)
+            if parenttag is not None:
+                parenthref=dcv.hrefvalue.fromxml(self.explog,parenttag)
+                pass
+            
+            pass
+        finally:
+            self.explog.unlock_ro()
+            pass
+        
+        return parenthref
+    
     def open_checklist_parent(self,chklist):
         
         # does this checklist have a parent that we should open too? 
         parent=chklist.get_parent() # returns hrefv
 
+        # ... check to make sure this isn't our experiment log's parent
+        # (if so, inhibit opening it because it is run from
+        # a separate dc_checklist process)
+        explogparent=self.get_parent()
+
+        #sys.stderr.write("open_checklist_parent: chklist=%s; parent=%s; explogparent=%s\n" % (str(chklist.xmldoc.get_filehref()),str(parent),str(explogparent)))
+        
+        if parent is not None and explogparent is not None and parent==explogparent:
+            # checklist parent matchex experiment log parent... inhibit opening
+            return
+        
+        
+        
         #sys.stderr.write("open_checklist_parent: parent=%s\n" % (parent))
 
         if parent is not None and parent.getpath() is not None:
@@ -1328,9 +1380,13 @@ class explogwindow(gtk.Window):
     def open_checklist(self,href,inplace=False):
 
         
+        # check if checklist is already open in-memory
+        (clobj,clobj_href)=dc2_misc.searchforchecklist(href)
+        if clobj is not None:
+            return clobj
         
         if inplace:
-            chklist=checklist.checklist(href,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self,filledhref=href.leafless())
+            chklist=checklist.checklist(href,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self,desthref=href.leafless())
             pass
         else:
             chklist=checklist.checklist(href,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self)
@@ -1429,6 +1485,11 @@ class explogwindow(gtk.Window):
 
     def open_plan(self,href):
 
+        # check if checklist is already open in-memory
+        (clobj,clobj_href)=dc2_misc.searchforchecklist(href)
+        if clobj is not None:
+            return clobj
+
         
         chklist=checklist.checklist(href,self.paramdb,datacollect_explog=self.explog,datacollect_explogwin=self)
             
@@ -1446,7 +1507,8 @@ class explogwindow(gtk.Window):
         win=chklist.getwindow()
         win.connect("delete-event",self.handle_checklist_close,chklist)
         win.show()
-        
+
+
         pass
 
     

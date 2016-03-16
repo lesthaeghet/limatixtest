@@ -21,6 +21,20 @@ else :
     import gobject
     pass
 
+if hasattr(gtk,"MESSAGE_ERROR"):
+    MessageType_ERROR=gtk.MESSAGE_ERROR
+    pass
+else:
+    MessageType_ERROR=gtk.MessageType.ERROR
+    pass
+
+if hasattr(gtk,"BUTTONS_OK"):
+    ButtonsType_OK=gtk.BUTTONS_OK
+    pass
+else:
+    ButtonsType_OK=gtk.ButtonsType.OK
+    pass
+
 import __main__
 
 #sys.path.append("/home/sdh4/research/datacollect")
@@ -77,17 +91,17 @@ class runcheckliststep(gtk.HBox):
         #               "checklist path; use default path if blank",
         #               #"", # default value 
         #               gobject.PARAM_READWRITE), # flags
-        "standardchecklist": (gobject.TYPE_STRING,
-                       "Standard checklist",
-                       "Checklist will be copied into place",
-                       "", # default value 
-                       gobject.PARAM_READWRITE), # flags
-
-        "customchecklist": (gobject.TYPE_STRING,
-                       "Custom checklist",
-                       "Checklist will be run in-place",
-                       "", # default value 
-                       gobject.PARAM_READWRITE), # flags
+        "copychecklist": (gobject.TYPE_STRING,
+                      "Standard checklist",
+                      "Checklist will be copied into place",
+                      "", # default value 
+                      gobject.PARAM_READWRITE), # flags
+        
+        "inplacechecklist": (gobject.TYPE_STRING,
+                             "Custom checklist",
+                             "Checklist will be run in-place",
+                             "", # default value 
+                            gobject.PARAM_READWRITE), # flags
         
 
 
@@ -98,11 +112,11 @@ class runcheckliststep(gtk.HBox):
                      gobject.PARAM_READWRITE), # flags
         }
     #__proplist = ["checklistname","checklistpath","description"]
-    __proplist = ["standardchecklist","customchecklist","description"]
+    __proplist = ["copychecklist","inplacechecklist","description"]
 
     # set of properties to be transmitted as an hrefvalue with the checklist context as contexthref
-    __dcvalue_href_properties=frozenset([ "standardchecklist",
-                                          "customchecklist"])
+    __dcvalue_href_properties=frozenset([ "copychecklist",
+                                          "inplacechecklist"])
     __nonparameter_elements=frozenset([ "subchecklists" ]) # don't treat the chx:subchecklists tag as a parameter
 
     myprops=None
@@ -182,8 +196,8 @@ class runcheckliststep(gtk.HBox):
         self.set_property("description","")
         #self.set_property("checklistname","")
         #self.set_property("checklistpath","")
-        self.set_property("standardchecklist","")
-        self.set_property("customchecklist","")
+        self.set_property("copychecklist","")
+        self.set_property("inplacechecklist","")
 
         self.pack_start(self.gladeobjdict["runcheckliststep"],True,True,0)
 
@@ -257,6 +271,12 @@ class runcheckliststep(gtk.HBox):
                 self.private_paramdb["subchecklists"].controller.remdoc(self.checklist.xmldoc,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
                 self.subchecklists_registered=False
                 pass
+
+            self.gladeobjdict["pushbutton"].set_sensitive(False)
+            self.gladeobjdict["printbutton"].set_sensitive(False)
+            
+            
+            
             pass
         else :
             if not(self.subchecklists_registered) and self.checklist.xmldoc.filehref is not None:
@@ -265,6 +285,10 @@ class runcheckliststep(gtk.HBox):
                 self.private_paramdb["subchecklists"].controller.adddoc(self.checklist.xmldoc,xmlpath=None,ETxmlpath=self.checklists_element_etxpath)
                 self.subchecklists_registered=True
                 pass
+
+            self.gladeobjdict["pushbutton"].set_sensitive(True)
+            self.gladeobjdict["printbutton"].set_sensitive(True)
+
             pass
         pass
     
@@ -306,18 +330,22 @@ class runcheckliststep(gtk.HBox):
         elif property.name=="checklistpath":
             #self.myprops[property.name]=value
             pass
-        elif property.name=="standardchecklist":
-            self.myprops[property.name]=value
-            if len(value) > 0:
-                self.gladeobjdict["pushbutton"].set_property("label","Open %s" % (os.path.split(value)[1]))
-                self.gladeobjdict["printbutton"].set_property("label","Print %s" % (os.path.split(value)[1]))
+        elif property.name=="copychecklist":
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.myprops[property.name]=hrefval
+            valname=hrefval.get_bare_unquoted_filename()
+            if len(valname) > 0:
+                self.gladeobjdict["pushbutton"].set_property("label","Open %s" % (valname))
+                self.gladeobjdict["printbutton"].set_property("label","Print %s" % (valname))
                 pass
             pass
-        elif property.name=="customchecklist":
-            self.myprops[property.name]=value
-            if len(value) > 0:
-                self.gladeobjdict["pushbutton"].set_property("label","Open %s" % (os.path.split(value)[1]))
-                self.gladeobjdict["printbutton"].set_property("label","Print %s" % (os.path.split(value)[1]))
+        elif property.name=="inplacechecklist":
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.myprops[property.name]=hrefval
+            valname=hrefval.get_bare_unquoted_filename()
+            if len(valname) > 0:
+                self.gladeobjdict["pushbutton"].set_property("label","Open %s" % (valname))
+                self.gladeobjdict["printbutton"].set_property("label","Print %s" % (valname))
                 pass
             
             pass
@@ -332,7 +360,27 @@ class runcheckliststep(gtk.HBox):
         pass
 
     def do_get_property(self,property,value):
+        if property.name=="copychecklist":
+            return self.myprops["copychecklist"].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
+
+        if property.name=="inplacechecklist":
+            return self.myprops["inplacechecklist"].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
+        
         return self.myprops[property.name]
+
+    def getchildntry(self):
+        if hasattr(self.statusreadout,"child"):
+            childntry=self.statusreadout.child
+            pass
+        elif self.statusreadout.get_property("has-entry"):
+            childntry=self.statusreadout.get_child()
+            # print "self.get_children()=",self.get_children()
+            pass
+        else:
+            childntry=None
+            pass
+        return childntry
+        
     
     def dc_gui_init(self,guistate):
         # need next line if subclassing a dc_gui class
@@ -346,15 +394,18 @@ class runcheckliststep(gtk.HBox):
 
         if self.statusreadout is not None:
 
-            if hasattr(self.statusreadout,"child"):
-                self.childntry=self.statusreadout.child
-                pass
-            else :
-                self.childntry=self.statusreadout.get_child()
-                # print "self.get_children()=",self.get_children()
-                pass
+            #if hasattr(self.statusreadout,"child"):
+            #    self.childntry=self.statusreadout.child
+            #    pass
+            #else :
+            #    self.childntry=self.statusreadout.get_child()
+            #    # print "self.get_children()=",self.get_children()
+            #    pass
 
-            self.childntry.set_editable(False)
+            childntry=self.getchildntry()
+            if childntry is not None:
+                childntry.set_editable(False)
+                pass
             pass
 
         self.update_status()
@@ -576,7 +627,17 @@ class runcheckliststep(gtk.HBox):
             
         
             self.private_paramdb["subchecklists"].requestval_sync(checkliststree)
-            sys.stdout.write("subchecklists=%s\n" % ( str(self.private_paramdb["subchecklists"].dcvalue)))
+            #sys.stdout.write("subchecklists=%s\n" % ( str(self.private_paramdb["subchecklists"].dcvalue)))
+            #if self.private_paramdb["subchecklists"].dcvalue._xmltreevalue__xmldoc is not None:
+                #sys.stdout.write("subchecklist context =%s\n" % ( str(self.private_paramdb["subchecklists"].dcvalue._xmltreevalue__xmldoc.getcontexthref().absurl())))
+                #pass
+            
+            #if self.checklist.datacollectmode:
+            #    import pdb as pythondb
+            #    pythondb.set_trace()
+            #    pass
+            
+
             checklists=checklistdb.getchecklists(contexthref,self.private_paramdb,"subchecklists",None)
 
             pass
@@ -623,9 +684,10 @@ class runcheckliststep(gtk.HBox):
         #    self.checklist.xmldoc.unlock_ro()
         self.status="%d start/%d done" % (numstarted,numcompleted)
         
-        if self.childntry is not None:
-            self.childntry.set_text(self.status)
-
+        childntry=self.getchildntry()
+        if childntry is not None:
+            childntry.set_text(self.status)
+            pass
         pass
 
 
@@ -656,7 +718,8 @@ class runcheckliststep(gtk.HBox):
 
     def changedcallback(self,*args):
         
-        checklist_selectedtext = self.childntry.get_text()
+        childntry=self.getchildntry()
+        checklist_selectedtext = childntry.get_text()
         #print checklistfile
         # dest = ""
         if checklist_selectedtext == self.status:
@@ -711,22 +774,24 @@ class runcheckliststep(gtk.HBox):
         inplace=False
 
         if self.checklist.xmldoc.filehref is None:
-            nofiledialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
-            nofiledialog.set_markup("Error: This checklist needs a filename before a subchecklist can be opened. Please use \"Save\" button to give it a filename (if applicable).")
+            nofiledialog=gtk.MessageDialog(type=MessageType_ERROR,buttons=ButtonsType_OK)
+            nofiledialog.set_markup("Error: This checklist needs a filename before a subchecklist can be opened. Please check a box or use the \"Save\" button to give it a filename (if applicable).")
             nofiledialog.run()
             nofiledialog.destroy()
             return
 
-        if self.myprops["customchecklist"] != "":
+        if not self.myprops["inplacechecklist"].isblank():
             # use a custom checklist... destdir is the same 
             # location as the custom checklist
-            checklisthref=dc_value.hrefvalue(self.myprops["customchecklist"],self.checklist.xmldoc.getcontexthref())
+            #checklisthref=dc_value.hrefvalue(self.myprops["customchecklist"],self.checklist.xmldoc.getcontexthref())
+            checklisthref=self.myprops["inplacechecklist"]
             inplace=True
             pass
-        elif self.myprops["standardchecklist"] != "":
+        elif not self.myprops["copychecklist"].isblank():
             # use a standard checklist... destdir is the same 
             # location as our checklist
-            checklisthref=dc_value.hrefvalue(self.myprops["standardchecklist"],self.checklist.xmldoc.getcontexthref())
+            checklisthref=self.myprops["copychecklist"]
+            #checklisthref=dc_value.hrefvalue(self.myprops["standardchecklist"],self.checklist.xmldoc.getcontexthref())
 
             ## search path for checklistfile
             #if not os.path.isabs(checklistfile):
@@ -763,8 +828,10 @@ class runcheckliststep(gtk.HBox):
         #    checklistfile=os.path.join(self.myprops["checklistpath"],self.myprops["checklistname"])
         #    pass
         
-        if checklisthref is None or not href_exists(checklisthref):
-            nofiledialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
+        if checklisthref is None or checklisthref.isblank() or not href_exists(checklisthref):
+            #import pdb as pythondb
+            #pythondb.set_trace()
+            nofiledialog=gtk.MessageDialog(type=MessageType_ERROR,buttons=ButtonsType_OK)
             nofiledialog.set_markup("Error: Requested checklist file %s not found" % (str(checklisthref)))
             nofiledialog.run()
             nofiledialog.destroy()
@@ -812,7 +879,12 @@ class runcheckliststep(gtk.HBox):
 
 
 
-            subchecklist=standalone_checklist.open_checklist(checklisthref,self.paramdb,self.dc_gui_iohandlers)
+            if inplace:
+                subchecklist=standalone_checklist.open_checklist(checklisthref,self.paramdb,self.dc_gui_iohandlers)
+                pass
+            else:
+                subchecklist=standalone_checklist.open_checklist(checklisthref,self.paramdb,self.dc_gui_iohandlers,desthref=self.checklist.xmldoc.getcontexthref().leafless())
+                pass
             # set parent attribute
 
             subchecklist.set_parent(self.checklist.xmldoc.get_filehref())
@@ -859,7 +931,7 @@ class runcheckliststep(gtk.HBox):
             pass
 
         if checklistfile is None or not os.path.exists(checklistfile):
-            nofiledialog=gtk.MessageDialog(type=gtk.MESSAGE_ERROR,buttons=gtk.BUTTONS_OK)
+            nofiledialog=gtk.MessageDialog(type=MessageType_ERROR,buttons=ButtonsType_OK)
             nofiledialog.set_markup("Error: Requested checklist file %s not found" % (checklistfile))
             nofiledialog.run()
             nofiledialog.destroy()

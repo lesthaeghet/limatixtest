@@ -388,7 +388,7 @@ def getchecklists(contexthref,paramdb,clparamname,clparamname2=None,allchecklist
 
     if allplans:
         # unnamed plans in-memory -- indexed by their id
-        all_pl_unnamed_inmem=[ checklist.xmldoc_get_filehref() for checklist in openplans if checklist.xmldoc.filehref is None and not checklist.closed ]
+        all_pl_unnamed_inmem=[ checklist.xmldoc.get_filehref() for checklist in openplans if checklist.xmldoc.filehref is None and not checklist.closed ]
         checklistset|=set(all_pl_unnamed_inmem)
         # add in named checklists in-memory -- indexed by their canonicalized path
         all_pl_named_inmem=[ checklist.xmldoc.get_filehref() for checklist in openplans if checklist.xmldoc.filehref is not None and not checklist.closed ]
@@ -664,6 +664,7 @@ def addchecklisttoparamdb(checklist,paramdb,clparamname):
         href.xmlrepr(checklistsdoc,newelement)
         #from lxml import etree
         #sys.stderr.write("Adding new dc:checklist element: %s\n" % (etree.tostring(newelement)))
+        #sys.stderr.write("contexthref=%s\n" % (checklistsdoc.getcontexthref().absurl()))
 
         
         #if canonname.startswith("mem://"):
@@ -975,11 +976,17 @@ def filenamenotify(checklist,orighref,newhref,oldhref): #paramdb,clparamname):
                     #sys.stderr.write("checklistdb.filenamenotify: matched %s...\n" % (oldcanonname))
                     # update the url
 
+                    #sys.stderr.write("checklistdb: oldhref=%s\n" % (oldhref.absurl()))
+
+                    #if checklistsdoc.getcontexthref().absurl()=="AFBendSpecimen_TRI15-AFBEND-7511-003P_files/":
+                    #    import pdb as pythondb
+                    #    pythondb.set_trace()
+                    #    pass
+                    
                     newhref.xmlrepr(checklistsdoc,checklisttag)
-                    from lxml import etree
-                    #sys.stderr.write("Updating new dc:checklist element: %s\n" % (etree.tostring(checklisttag)))
-                    #import pdb as pythondb
-                    #pythondb.set_trace()
+                    #sys.stderr.write("checklistdb: newhref=%s\n" % (newhref.absurl()))
+                    #from lxml import etree
+                    #sys.stderr.write("Updating new dc:checklist element: %s; context=%s\n" % (etree.tostring(checklisttag),checklistsdoc.getcontexthref().absurl()))
 
                     # update paramdb entry
                     entry.paramdb[entry.clparamname].requestval_sync(dc_value.xmltreevalue(checklistsdoc,contexthref=entry.contexthref))
@@ -1044,9 +1051,9 @@ def checklist_handle_reset(checklist,oldhref):
         # we add new entry to same place as old entry
         entryupdated=False
         for index in paramdbentries: 
-            entry=paramdbentries[index]
+            paramdbentry=paramdbentries[index]
         
-            checklistsdoc=entry.paramdb[entry.clparamname].dcvalue.get_xmldoc(cdb_nsmap,contextdir=entry.contextdir)  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
+            checklistsdoc=paramdbentry.paramdb[paramdbentry.clparamname].dcvalue.get_xmldoc(cdb_nsmap,contexthref=paramdbentry.contexthref)  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
             
             if checklistsdoc is not None:
                 for checklisttag in checklistsdoc.xpath("dc:checklist"):
@@ -1062,9 +1069,9 @@ def checklist_handle_reset(checklist,oldhref):
                         href.xmlrepr(checklistsdoc,newelement)
                         
                         # update paramdb entry
-                        entry.paramdb[entry.clparamname].requestval_sync(dc_value.xmltreevalue(checklistsdoc,contexthref=entry.contexthref))
+                        paramdbentry.paramdb[paramdbentry.clparamname].requestval_sync(dc_value.xmltreevalue(checklistsdoc,contexthref=paramdbentry.contexthref))
                         entryupdated=True
-                        
+                         
                         pass
                     pass
                 pass

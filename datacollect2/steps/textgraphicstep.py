@@ -63,7 +63,7 @@ class textgraphicstep(gtk.HBox):
     __proplist = ["image","width","description"]
     
     myprops=None
-
+    checklist=None
     
     
     #searchdirs=None
@@ -73,6 +73,7 @@ class textgraphicstep(gtk.HBox):
         # paramhandler.__init__(self,super(adjustparamstep,self),self.__proplist)# .__gproperties__)
         # gtk.HBox.__init__(self) # Not supposed to call superclass __init__ method, just gobject __init__ according to    http://www.pygtk.org/articles/subclassing-gobject/sub-classing-gobject-in-python.htm  
         gobject.GObject.__init__(self)
+        self.checklist=checklist
 
         self.myprops={"image": None, "width": None, "description": None}
         #self.resize(1,1)
@@ -96,13 +97,13 @@ class textgraphicstep(gtk.HBox):
 
         pass
 
-    def set_image(self,value):
-        self.myprops["image"]=value
-        if value=="" or value is None: #  or len(self.searchdirs)==0:
+    def set_image(self,hrefval):
+        self.myprops["image"]=hrefval
+        if hrefval is None or hrefval.isblank(): #  or len(self.searchdirs)==0:
             return
         
 
-        path=value # absolute path or relative to our current directory
+        path=hrefval.getpath() # absolute path or relative to our current directory
         
         if "gi" in sys.modules:  # gtk3
             rawpixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
@@ -132,7 +133,8 @@ class textgraphicstep(gtk.HBox):
     def do_set_property(self,property,value):
         # print "set_property(%s,%s)" % (property.name,str(value))
         if property.name=="image":
-            self.set_image(value)
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.set_image(hrefval)
             pass
         elif property.name=="width":
             self.myprops[property.name]=value
@@ -148,6 +150,9 @@ class textgraphicstep(gtk.HBox):
         pass
 
     def do_get_property(self,property,value):
+        if property.name=="image":
+            return self.myprops["image"].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
+        
         return self.myprops[property.name]
     
     def dc_gui_init(self,guistate):

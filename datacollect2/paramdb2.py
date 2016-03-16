@@ -868,7 +868,7 @@ class dgcontroller(object):
 
 
     def performsavecallback(self,reqid,fullquery,retcode,fullresponse,result,cbargs):
-        # sys.stderr.write("requestvalcallback. fullresponse=%s\n" % (fullresponse))
+        # sys.stderr.write("performsavecallback. fullresponse=%s\n" % (fullresponse))
         self.numpending -= 1
         if (self.numpending==0):
             self.state=param.CONTROLLER_STATE_QUIESCENT
@@ -991,13 +991,29 @@ class dgcontroller(object):
         self.numpending+=1
         self.stopquery()
 
+
+        if self.dgparam is None:
+            # attempt to write a param with NULL dgparam
+            # only case of this is dgsfile or setfile or similar
+            # perform_save command
+            # Only legitimate value to write is blank
+            assert(newvalue.isblank())
+            reqid=id(newvalue)
+            fullcommand=""
+            retcode=200
+            fullresponse=""
+            result=newvalue
+            
+            gobject.timeout_add(0,self.performsavecallback,reqid,fullcommand,retcode,fullresponse,result,cbargs)
+            return reqid
+
         if not self.controlparam.iohandlers["dgio"].commstarted:
             sys.stderr.write("dgcontroller: attempting to write dataguzzler parameter %s (%s) even though communication link not started!\n" % (self.controlparam.xmlname,self.dgparam))
             pass
         elif len(self.controlparam.iohandlers["dgio"].connfailindicator) > 0:
             sys.stderr.write("dgcontroller: attempting to write dataguzzler parameter %s (%s) even though dataguzzler communication link has failed!\n" % (self.controlparam.xmlname,self.dgparam))
             pass
-        
+
 
 
         try:
@@ -1011,7 +1027,7 @@ class dgcontroller(object):
         except ValueError as e:
             sys.stderr.write("Exception issuing command... Should get requestvalerrorcallback\n")
             gobject.timeout_add(0,self.requestvalerrorcallback,e,*cbargs)
-            return None  # BUG: Should probably return valid request id in this case. Otherwise we use dgio idents, which are the id() of the pendingcommand structure
+            return None  # BUG: Should probably return valid request id in this case. Otherwise we use dgio idents, which are the id() of the pendingcommand structure1
             pass
         
             

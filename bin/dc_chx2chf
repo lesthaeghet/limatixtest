@@ -8,7 +8,7 @@ import os.path
 from lxml import etree
 
 #class dummy(object):
-    pass
+#    pass
 
 # trace symbolic link to find installed directory
 #thisfile=sys.modules[dummy.__module__].__file__
@@ -40,6 +40,7 @@ from datacollect2 import dc2_misc
 
 positionals=[]
 
+argc=1
 while argc < len(sys.argv):
     arg=sys.argv[argc]
 

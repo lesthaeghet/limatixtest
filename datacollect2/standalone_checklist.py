@@ -21,14 +21,14 @@ else :
     DELETE=gdk.DELETE
     pass
 
-import dc2_misc
-import canonicalize_path
-import checklist
-import xmldoc
-import checklistdb
-import checklistdbwin
+from datacollect2 import dc2_misc
+from datacollect2 import canonicalize_path
+from datacollect2 import checklist
+from datacollect2 import xmldoc
+from datacollect2 import checklistdb
+from datacollect2 import checklistdbwin
 
-from dc_gtksupp import guistate as create_guistate
+from datacollect2.dc_gtksupp import guistate as create_guistate
 
 
 # global pointers to the checklistdbwindow and plandbwindow
@@ -112,6 +112,11 @@ def rebuildchecklistrealtimemenu(event,AllChecklists,AllPlans,MenuObject,MenuOri
     pass
 
 
+def handle_debug(event):
+    import pdb as pythondb
+    pythondb.pm() # run debugger on most recent unhandled exception
+    pass
+
 
 def insert_menu(chklist,paramdb,iohandlers):
 
@@ -134,8 +139,22 @@ def insert_menu(chklist,paramdb,iohandlers):
     PlanMenu.append(PlansMenuItem)
 
 
-    chklist.gladeobjdict["UpperVBox"].pack_start(MenuBar,expand=False,fill=True)
+    HelpMenuItem=gtk.MenuItem("Help")
+    MenuBar.append(HelpMenuItem)
+    HelpMenu=gtk.Menu()
+    HelpMenuItem.set_submenu(HelpMenu)
+    #AboutMenuItem=gtk.MenuItem("About")
+    #AboutMenuItem.connect("activate",handle_about)
+    #HelpMenu.append(AboutMenuItem)
+    DebugMenuItem=gtk.MenuItem("Debug most recent exception")
+    DebugMenuItem.connect("activate",handle_debug)
+    HelpMenu.append(DebugMenuItem)
+    
+    
+    chklist.gladeobjdict["UpperVBox"].pack_start(MenuBar,expand=False,fill=True,padding=0)
     chklist.gladeobjdict["UpperVBox"].reorder_child(MenuBar,0) # move it to the top
+
+    MenuBar.show_all()
 
     # add rebuild requests... for ChecklistMenu
     checklistdb.requestopennotify(rebuildchecklistrealtimemenu,True,False,ChecklistMenu,1,paramdb,iohandlers)
@@ -176,8 +195,8 @@ def handle_checklist_close(param1,param2,chklist):
         pass
     return False
 
-def open_checklist(href,paramdb,iohandlers):
-    chklist=checklist.checklist(href,paramdb)
+def open_checklist(href,paramdb,iohandlers,desthref=None):
+    chklist=checklist.checklist(href,paramdb,desthref=desthref)
 
     # insert menu
     insert_menu(chklist,paramdb,iohandlers)
@@ -203,6 +222,6 @@ def open_checklist(href,paramdb,iohandlers):
         
     win=chklist.getwindow()
     win.connect("delete-event",handle_checklist_close,chklist)    
-    win.show_all()
+    win.show()
 
     return chklist

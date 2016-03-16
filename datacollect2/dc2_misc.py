@@ -124,39 +124,17 @@ def searchforchecklist(href):
         return (matching[0].checklist,href)
     pass
 
-def chx2chf(parentcontextdir,parent,infilecontextdir,infile,outfilecontextdir,outfile):
-    # parameters are filenames
-    # if parent is a relative path it is relative to parentcontextdir, etc. 
-
-    if os.path.isabs(parent):
-        parentabs=parent
-        pass
-    else: 
-        parentabs=os.path.join(parentcontextdir,parent)
-        pass
+def chx2chf(parenthref,infilehref,outfilehref):
+    # parameters are hrefs
 
 
-    if os.path.isabs(infile):
-        infileabs=infile
-        pass
-    else: 
-        infileabs=os.path.join(infilecontextdir,infile)
-        pass
+    inxml=xmldoc.xmldoc.loadhref(infilehref)
 
-    if os.path.isabs(outfile):
-        outfileabs=outfile
-        pass
-    else: 
-        outfileabs=os.path.join(outfilecontextdir,outfile)
-        pass
-
-    inxml=xmldoc.xmldoc.loadfile(infileabs)
-
-    inxml.setfilename(None)
+    inxml.set_href(None)
 
     # set context to output file directory
-    inxml.setcontextdir(canonicalize_path.canonicalize_path(os.path.split(outfileabs)[0]))
-
+    inxml.setcontexthref(outfilehref)
+    
     root=inxml.getroot()
     parenttags=inxml.xpath("chx:parent")
     assert(len(parenttags) < 2) # multiple parents does not make sense
@@ -172,33 +150,13 @@ def chx2chf(parentcontextdir,parent,infilecontextdir,infile,outfilecontextdir,ou
         # no parent tag
         parenttag=inxml.addelement(root,"chx:parent")
         pass
-                
-    if os.path.isabs(parent):
-    # absolute path
-        inxml.setattr(parenttag,"xlink:href",urllib.pathname2url(parent))
-        
-        pass
-    else :
-    
-        # relative path for our parent
-        parentpath=canonicalize_path.relative_path_to(inxml.getcontextdir(),parentabs)
-        inxml.setattr(parenttag,"xlink:href",urllib.pathname2url(parentpath))
-        pass
-    pass
-    
 
-    # write origfilename attribute
-    if os.path.isabs(infile):
-        origfilename=infile
-        pass
-    else: 
-        origfilename=canonicalize_path.relative_path_to(inxml.getcontextdir(),infileabs)
-        pass
-        
-    inxml.setattr(root,"origfilename",origfilename)
+    parenthref.xmlrepr(inxml,parenttag)
+
+    #inxml.setattr(root,"origfilename",origfilename)
 
     # write output file
-    inxml.setfilename(outfile)
+    inxml.set_href(outfilehref)
     pass
 
 def stepwidget_update_xml(stepwidget,paramname,newvalue):

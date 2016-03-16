@@ -19,13 +19,21 @@ except ImportError:
     pass
 
 try: 
-    from shlex import quote # new (python 3) location
+    from shlex import quote as quoteshell # new (python 3) location
     pass
 except ImportError:
-    from pipes import quote # deprecated location
+    from pipes import quote as quoteshell# deprecated location
     pass
 
-if not hasattr(sys.modules["__builtin__"],"basestring"):
+try: 
+    import builtins  # python3
+    pass
+except ImportError: 
+    import __builtin__ as builtins # python2
+    pass
+
+
+if not hasattr(builtins,"basestring"):
     basestring=str  # python3
     pass
 
@@ -43,6 +51,52 @@ else :
     import gtk.gdk as gdk
     import gobject
     pass
+
+
+if hasattr(gdk,"BUTTON_PRESS"):  # gtk2
+    EventType_BUTTON_PRESS=gdk.BUTTON_PRESS
+    pass
+else: # gtk3
+    EventType_BUTTON_PRESS=gdk.EventType.BUTTON_PRESS
+    pass
+
+
+if hasattr(gtk,"MESSAGE_ERROR"):
+    MessageType_ERROR=gtk.MESSAGE_ERROR
+    pass
+else:
+    MessageType_ERROR=gtk.MessageType.ERROR
+    pass
+
+if hasattr(gtk,"BUTTONS_OK"):
+    ButtonsType_OK=gtk.BUTTONS_OK
+    pass
+else:
+    ButtonsType_OK=gtk.ButtonsType.OK
+    pass
+
+
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote as quoteurl
+    from urllib import unquote as unquoteurl
+    from urlparse import urlparse
+    from urlparse import urlunparse
+    from urlparse import urljoin    
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote as quoteurl
+    from urllib.parse import unquote as unquoteurl
+    from urllib.parse import urlparse
+    from urllib.parse import urlunparse
+    from urllib.parse import urljoin
+    pass
+
 
 from .. import canonicalize_path
 from ..dc_gtksupp import build_from_file
@@ -105,8 +159,8 @@ class rundatacollectstep(gtk.HBox):
                      "", # default value 
                      gobject.PARAM_READWRITE), # flags
         "planfile": (gobject.TYPE_STRING,
-                     "Plan (.plx) file to run... maybe path relative to this filled checklist",
-                     "Plan (.plx) file to run... maybe path relative to this filled checklist",
+                     "Plan (.plx) file to run... relative paths OK, but must be relative to THIS file",
+                     "Plan (.plx) file to run... relative paths OK, but must be relative to THIS file",
                      "", # default value 
                      gobject.PARAM_READWRITE), # flags
         "suffix": (gobject.TYPE_STRING,
@@ -188,23 +242,23 @@ class rundatacollectstep(gtk.HBox):
             pass
 
         if self.datacollectconfig is None:
-            self.datacollectconfig=""
+            self.datacollectconfig=dc_value.hrefvalue("")
             pass
 
         if self.datacollectconfig2 is None:
-            self.datacollectconfig2=""
+            self.datacollectconfig2=dc_value.hrefvalue("")
             pass
 
         if self.datacollectconfig3 is None:
-            self.datacollectconfig3=""
+            self.datacollectconfig3=dc_value.hrefvalue("")
             pass
         
         if self.dcparamdb is None:
-            self.dcparamdb=""
+            self.dcparamdb=dc_value.hrefvalue("")
             pass
 
         if self.planfile is None:
-            self.planfile=""
+            self.planfile=dc_value.hrefvalue("")
             pass
 
         if self.suffix is None:
@@ -212,15 +266,15 @@ class rundatacollectstep(gtk.HBox):
             pass
 
         if self.gui is None:
-            self.gui=""
+            self.gui=dc_value.hrefvalue("")
             pass
 
         if self.gui2 is None:
-            self.gui2=""
+            self.gui2=dc_value.hrefvalue("")
             pass
 
         if self.gui3 is None:
-            self.gui3=""
+            self.gui3=dc_value.hrefvalue("")
             pass
 
         if self.multispecimen is None:
@@ -251,18 +305,17 @@ class rundatacollectstep(gtk.HBox):
             return False
 
 
-        if len(self.planfile)==0:
+        if self.planfile.isblank():
             status="No planfile"
             pass
-        elif (self.checklist.xmldoc.href is None):
-            status="Planfile relative to undetermined checklist location"
-        
+        #elif (self.checklist.xmldoc.filehref is None):
+        #    status="Planfile relative to undetermined checklist location"
         else :
             
-            planhref=dc_value.hrefvalue(self.planfile,self.checklist.getcontexthref())
-            planhrefcontext=planhref.leafless()
-            planhrefbarefilename=planhref.get_bare_unquoted_filename()
-            basename=posixpath.splitext(planhrefbarefilename)[0]
+            #planhref=dc_value.hrefvalue(self.planfile,self.checklist.xmldoc.getcontexthref())
+            planhrefcontext=self.planfile.leafless()
+            planfilebarefilename=self.planfile.get_bare_unquoted_filename()
+            basename=posixpath.splitext(planfilebarefilename)[0]
             
             if self.suffix=="":
                 suffix=""
@@ -271,11 +324,11 @@ class rundatacollectstep(gtk.HBox):
                 suffix="_%s" % (self.suffix)
                 pass
             
-            xlghref=dc_value.hrefvalue(quote(basename+suffix+".xlg"),planhrefcontext)
-            xlgdir=dc_value.hrefvalue(quote(basename+suffix+"_files/"),planhrefcontext)
+            xlghref=dc_value.hrefvalue(quoteurl(basename+suffix+".xlg"),planhrefcontext)
+            xlgdir=dc_value.hrefvalue(quoteurl(basename+suffix+"_files/"),planhrefcontext)
             
             
-            filledplanhref=dc_value.hrefvalue(quote(basename+suffix+".plf"),xlgdir)
+            filledplanhref=dc_value.hrefvalue(quoteurl(basename+suffix+".plf"),xlgdir)
             
             if not href_exists(xlghref) or not href_exists(filledplanhref):
                 status="No output files"
@@ -385,31 +438,39 @@ class rundatacollectstep(gtk.HBox):
             self.gladeobjdict["pushbutton"].set_label(self.buttonlabel)
             pass
         elif property.name=="datacollectconfig":
-            self.datacollectconfig=value
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.datacollectconfig=hrefval
             pass
         elif property.name=="datacollectconfig2":
-            self.datacollectconfig2=value
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.datacollectconfig2=hrefval
             pass
         elif property.name=="datacollectconfig3":
-            self.datacollectconfig3=value
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.datacollectconfig3=hrefval
             pass
         elif property.name=="dcparamdb":
-            self.dcparamdb=value
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.dcparamdb=hrefval
             pass
         elif property.name=="planfile":
-            self.planfile=value
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.planfile=hrefval
             pass
         elif property.name=="suffix":
             self.suffix=value
             pass
         elif property.name=="gui":
-            self.gui=value
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.gui=hrefval
             pass
         elif property.name=="gui2":
-            self.gui2=value
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.gui2=hrefval
             pass
         elif property.name=="gui3":
-            self.gui3=value
+            hrefval=dc_value.hrefvalue(value,contexthref=self.checklist.xmldoc.getcontexthref())
+            self.gui3=hrefval
             pass
         elif property.name=="multispecimen":
             # sys.stderr.write("set multispecimen property to %s!\n" % (str(value)))
@@ -427,23 +488,23 @@ class rundatacollectstep(gtk.HBox):
         elif property.name=="buttonlabel":
             return self.buttonlabel
         elif property.name=="datacollectconfig":
-            return self.datacollectconfig
+            return self.myprops[property.name].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
         elif property.name=="datacollectconfig2":
-            return self.datacollectconfig2
+            return self.myprops[property.name].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
         elif property.name=="datacollectconfig3":
-            return self.datacollectconfig3
+            return self.myprops[property.name].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
         elif property.name=="dcparamdb":
-            return self.dcparamdb
+            return self.myprops[property.name].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
         elif property.name=="planfile":
-            return self.planfile
+            return self.myprops[property.name].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
         elif property.name=="suffix":
             return self.suffix
         elif property.name=="gui":
-            return self.gui
+            return self.myprops[property.name].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
         elif property.name=="gui2":
-            return self.gui2
+            return self.myprops[property.name].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
         elif property.name=="gui3":
-            return self.gui3
+            return self.myprops[property.name].attempt_relative_url(self.checklist.xmldoc.getcontexthref())
         elif property.name=="multispecimen":
             return self.multispecimen
         else :
@@ -473,44 +534,46 @@ class rundatacollectstep(gtk.HBox):
         cpdest=None
         cpparent=None
 
-        if self.checklist.xmldoc.filehref is None or len(self.planfile)==0:
+        if self.checklist.xmldoc.filehref is None or self.planfile.isblank():
 
             #if len(self.planfile)==0 or (not os.path.isabs(self.planfile) and self.checklist.xmldoc.filename is None):
             return (None,None,None,None,['datacollect2'],'datacollect2')
 
         planfile=self.planfile
         # sys.stderr.write("self.planfile=%s\n" % (self.planfile))
-        if not os.path.isabs(planfile):
-            planfile=os.path.join(os.path.split(self.checklist.xmldoc.filename)[0],planfile)
-            pass
-        # sys.stderr.write("planfile=%s\n" % (planfile))
 
-        basename=os.path.splitext(planfile)[0]
+        basename=posixpath.splitext(planfile.get_bare_unquoted_filename())[0]
         basefilename=os.path.split(basename)[1]
-
+        basecontext=planfile.leafless()
+        
         if self.suffix=="":
             suffix=""
             pass
         else :
             suffix="_%s" % (self.suffix)
             pass
-        xlgfile=basename+suffix+".xlg"
-        xlgdir=basename+suffix+"_files"
+        xlgfilename=basename+suffix+".xlg"
+        xlgdirname=basename+suffix+"_files/"
+        filledplanname=basename+suffix+".plf"
 
+        xlgfilehref=dc_value.hrefvalue(quoteurl(xlgfilename),contexthref=basecontext)
+        xlgdirhref=dc_value.hrefvalue(quoteurl(xlgdirname),contexthref=basecontext)
+        filledplanhref=dc_value.hrefvalue(quoteurl(filledplanname),contexthref=xlgdirhref)
+        
+        
         # sys.stderr.write("xlgdir=%s\n" % (xlgdir))
         # sys.stderr.write("xlgfile=%s\n" % (xlgfile))
 
-        filledplan=os.path.join(xlgdir,basefilename+suffix+".plf")
-
-        if not os.path.exists(xlgdir):
-            mkdir=xlgdir
+        
+        if not href_exists(xlgdirhref):
+            mkdir=xlgdirhref.getpath()
             pass
         
         
-        if not os.path.exists(filledplan):
-            cpparent=canonicalize_path.relative_path_to(".",self.checklist.xmldoc.filename)
-            cpsrc=canonicalize_path.relative_path_to(".",planfile)
-            cpdest=canonicalize_path.relative_path_to(".",filledplan)
+        if not href_exists(filledplanhref):
+            cpparent=self.checklist.xmldoc.filehref # canonicalize_path.relative_path_to(".",self.checklist.xmldoc.filename)
+            cpsrc=planfile # canonicalize_path.relative_path_to(".",planfile)
+            cpdest=filledplanhref #canonicalize_path.relative_path_to(".",filledplan)
             pass
         
 
@@ -523,65 +586,66 @@ class rundatacollectstep(gtk.HBox):
             commandlist.append('-s')
             pass
 
-        if len(self.dcparamdb) > 0:
+        if not self.dcparamdb.isblank():
             commandlist.append('-d')
-            commandlist.append(dc_value.hrefvalue(self.dcparamdb,self.checklist.getcontexthref()).getpath())
+            commandlist.append(self.dcparamdb.getpath())
             pass
 
-        if len(self.datacollectconfig) > 0:
+        if not self.datacollectconfig.isblank():
             commandlist.append('-f')
-            commandlist.append(dc_value.hrefvalue(self.datacollectconfig,self.checklist.getcontexthref()).getpath())
+            commandlist.append(self.datacollectconfig.getpath())
             pass 
 
-        if len(self.datacollectconfig2) > 0:
+        if not self.datacollectconfig2.isblank():
             commandlist.append('-f')
-            commandlist.append(dc_value.hrefvalue(self.datacollectconfig2,self.checklist.getcontexthref()).getpath())
+            commandlist.append(self.datacollectconfig2.getpath())
             pass 
 
-        if len(self.datacollectconfig3) > 0:
+        if not self.datacollectconfig3.isblank():
             commandlist.append('-f')
-            commandlist.append(dc_value.hrefvalue(self.datacollectconfig3,self.checklist.getcontexthref()).getpath())
+            commandlist.append(self.datacollectconfig3.getpath())
             pass 
 
-        if not os.path.exists(xlgfile):
+        if not href_exists(xlgfilehref):
             commandlist.append('-n')
             pass
             
-        commandlist.append(xlgfile)
+        commandlist.append(xlgfilehref.getpath())
 
         commandlist.append('--parent')
-        xlgfilecontextdir=os.path.split(xlgfile)[0]
-        commandlist.append(canonicalize_path.relative_path_to(xlgfilecontextdir,self.checklist.xmldoc.filename))
+        #xlgfilecontextdir=os.path.split(xlgfile)[0]
+        commandlist.append(self.checklist.xmldoc.filehref.attempt_relative_url(xlgfilehref.leafless()))  #canonicalize_path.relative_path_to(xlgfilecontextdir,self.checklist.xmldoc.filename))
         
         commandlist.append('-p')
-        commandlist.append(filledplan)
+        commandlist.append(filledplanhref.getpath())
 
-        if len(self.gui) > 0:
+        if not self.gui.isblank():
             commandlist.append('-g')
-            commandlist.append(dc_value.hrefvalue(self.gui,self.checklist.getcontexthref()).getpath())
+            commandlist.append(self.gui.getpath())
             pass
 
-        if len(self.gui2) > 0:
+        if not self.gui2.isblank():
             commandlist.append('-g')
-            commandlist.append(dc_value.hrefvalue(self.gui2,self.checklist.getcontexthref()).getpath())
+            commandlist.append(self.gui2.getpath())
             pass
 
-        if len(self.gui3) > 0:
+        if not self.gui3.isblank():
             commandlist.append('-g')
-            commandlist.append(dc_value.hrefvalue(self.gui3,self.checklist.getcontexthref()).getpath())
+            commandlist.append(self.gui3.getpath())
             pass
+
 
         # create full shell-compatible command
         fullcmd=""
         if mkdir is not None:
-            fullcmd+="mkdir %s ; " % (quote(mkdir))
+            fullcmd+="mkdir %s ; " % (quoteshell(mkdir))
             pass
 
         if cpsrc is not None:
-            fullcmd+="dc_chx2chf %s %s %s ; " % (quote(cpparent),quote(cpsrc),quote(cpdest))
+            fullcmd+="dc_chx2chf %s %s %s ; " % (quoteshell(cpparent.getpath()),quoteshell(cpsrc.getpath()),quoteshell(cpdest.getpath()))
             pass
 
-        fullcmd+=" ".join([quote(term) for term in commandlist])
+        fullcmd+=" ".join([quoteshell(term) for term in commandlist])
 
         return (mkdir,cpparent,cpsrc,cpdest,commandlist,fullcmd)
 
@@ -593,7 +657,7 @@ class rundatacollectstep(gtk.HBox):
     def button_mousepress(self,obj,event):
         # sys.stderr.write("event.type=0x%x event.button=0x%x\n" % (event.type,event.button))
 
-        if event.type==gdk.BUTTON_PRESS and event.button==3:
+        if event.type==EventType_BUTTON_PRESS and event.button==3:
             clipstring=self.determine_command()[5]
 
             clipboard=gtk.Clipboard(gdk.display_get_default(),"PRIMARY")
@@ -617,6 +681,12 @@ class rundatacollectstep(gtk.HBox):
         # note: current directoy will be the destination location and files
         # should be output there. 
         # sys.stderr.write("Got buttoncallback... forking suprocess and starting thread\n");
+        if self.checklist.xmldoc.filehref is None:
+            nofiledialog=gtk.MessageDialog(type=MessageType_ERROR,buttons=ButtonsType_OK)
+            nofiledialog.set_markup("Error: This checklist needs a filename before a subchecklist can be opened. Please check a box or use the \"Save\" button to give it a filename (if applicable).")
+            nofiledialog.run()
+            nofiledialog.destroy()
+            return
 
         (mkdir,cpparent,cpsrc,cpdest,commandlist,fullcmd)=self.determine_command()
 
@@ -628,7 +698,7 @@ class rundatacollectstep(gtk.HBox):
         #    shutil.copyfile(cpsrc,cpdest)
         #    pass
         if cpparent is not None:
-            dc2_misc.chx2chf(".",cpparent,".",cpsrc,".",cpdest)
+            dc2_misc.chx2chf(cpparent,cpsrc,cpdest)
             pass
         
 

@@ -109,7 +109,8 @@ class explog(xmldoc.xmldoc):
                 # meastag.append(cltitletag)
 
                 pass
-        
+            
+            #sys.stderr.write("xmlexplog.record_measurement: recording params\n")
             for paramname in paramlist:
                 if paramname in self.paramdb:
                     if not self.paramdb[paramname].hide_from_meas:
@@ -143,13 +144,16 @@ class explog(xmldoc.xmldoc):
             pass
         # sys.stderr.write("self.doc=%s\n" % (str(self.doc)))
 
+        #sys.stderr.write("xmlexplog.record_measurement: shouldbeunlocked()\n")
         self.shouldbeunlocked()
 
         # reset any parameters that must be cleared with measurement record
-
+        #sys.stderr.write("xmlexplog.record_measurement: clearing params\n")
+        
         for paramname in paramlist:
             if paramname in self.paramdb:
                 if self.paramdb[paramname].reset_with_meas_record:
+                    #sys.stderr.write("xmlexplog.record_measurement: clearing param %s\n" % (paramname))
                     self.paramdb[paramname].requestvalstr_sync(None)
                     pass
                 pass
