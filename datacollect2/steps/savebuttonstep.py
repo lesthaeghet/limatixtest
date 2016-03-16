@@ -43,7 +43,7 @@ from .. import paramdb2 as pdb
 from .. import dc_value
 from .. import dc2_misc
 
-from buttonreadoutstep import buttonreadoutstep
+from .buttonreadoutstep import buttonreadoutstep
 from .. import canonicalize_path
 
 class simpleobj:
