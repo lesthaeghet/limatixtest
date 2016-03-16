@@ -73,6 +73,7 @@ sys.stderr=stderrhandler
 
 import os
 import os.path
+import posixpath
 import socket
 import copy
 import inspect
