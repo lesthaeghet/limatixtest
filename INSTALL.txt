@@ -8,9 +8,8 @@ Prerequisites:
   python-pillow (required for Ricoh camera support)
   glade-3.6.7 (required for interative gtk2 widget layout; not needed for
                general use)
+  setuptools (often distributed with operating system or Python distribution)
 
-  canonicalize_path
-  dc_lxml_treesync
   dataguzzler-lib
   datacollect2-QAutils (not used directly, but documents checklist
                         format/structure and can render checklists as PDF)

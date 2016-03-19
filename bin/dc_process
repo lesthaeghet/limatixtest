@@ -675,7 +675,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             elif argname=="_inputfilename":  # _inputfilename parameter gets unquoted name (but not path) of input file
                 argkw[argname]=inputfilehref.get_bare_unquoted_filename()
                 pass
-            elif argname=="_tag": # _tag parameter gets current tag we are operating on
+            elif argname=="_element" or argname=="_tag": # _element (formerly _tag) parameter gets current tag we are operating on
                 argkw[argname]=element
                 pass
             else : 
