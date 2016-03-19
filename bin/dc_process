@@ -415,11 +415,28 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
     else:
         # ipython mode
         # in-process kernel, a-la https://raw.githubusercontent.com/ipython/ipython/master/examples/Embedding/inprocess_qtconsole.py
+
+        ## Set PyQt4 API version to 2 and import it -- required for ipython compatibility
+        #import sip
+        #sip.setapi('QVariant', 2)
+        #sip.setapi('QString', 2)
+        #sip.setapi('QDateTime', 2)
+        #sip.setapi('QDate', 2)
+        #sip.setapi('QTextStream', 2)
+        #sip.setapi('QTime', 2)
+        #sip.setapi('QUrl', 2)
+        #from PyQt4 import QtGui   # force IPython to use PyQt4 by importing it first
+        # alternate: Make matplotlib use PySide
+        # http://stackoverflow.com/questions/6723527/getting-pyside-to-work-with-matplotlib
+        import matplotlib
+        matplotlib.use('Qt4Agg')
+        matplotlib.rcParams['backend.qt4']='PySide'
+        
         from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
         from IPython.qt.inprocess import QtInProcessKernelManager
         from IPython.lib import guisupport
 
-        app = guisupport.get_app_qt4()
+        app = guisupport.get_app_qt4() 
         kernel_manager = QtInProcessKernelManager()
         kernel_manager.start_kernel()
         kernel = kernel_manager.kernel
@@ -554,7 +571,8 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
             kernel.shell.push({"runfunc_lines": runfunc_lines,"scripthref": scripthref},interactive=False) # provide processed syntax tree for debugging purposes
             
             # kernel.shell.run_code(compile("kernel.shell.run_ast_nodes(runfunc_lines,scriptpath,interactivity='all')","None","exec"))
-            from PyQt4.QtCore import QTimer
+            from IPython.external.qt import QtCore
+            QTimer=QtCore.QTimer
 
             def showret():
                 control.execute("ret")
@@ -579,7 +597,7 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
 
 
 
-        guisupport.start_event_loop_qt4(app)
+        guisupport.start_event_loop_qt4(app) 
         if abort_requested_list[0]:
             pass
         
