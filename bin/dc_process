@@ -281,7 +281,7 @@ class stepparamvalue(object):
                 del namespaces[None]
                 pass
             # print "evaluate: xpath=%s" % (self.xpath)
-            result=outdoc.xpathsinglecontext(element,self.xpath,namespaces=namespaces,default=AttributeError("stepparam.evaluate: XPath \"%s\" not found." % (self.xpath)),variables={"filepath":outdoc.filename,"filename":outdoc.get_filehref().get_bare_unquoted_filename()})
+            result=outdoc.xpathsinglecontext(element,self.xpath,namespaces=namespaces,default=AttributeError("stepparam.evaluate: XPath \"%s\" not found." % (self.xpath)),variables={"filepath":outdoc.get_filehref().getpath(),"filename":outdoc.get_filehref().get_bare_unquoted_filename()})
             if self.textflag:
                 result=result.text
                 pass
