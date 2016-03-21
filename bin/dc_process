@@ -432,11 +432,10 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
         matplotlib.use('Qt4Agg')
         matplotlib.rcParams['backend.qt4']='PySide'
         
-        from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
-        from IPython.qt.inprocess import QtInProcessKernelManager
         from IPython.lib import guisupport
-
         app = guisupport.get_app_qt4() 
+
+        from IPython.qt.inprocess import QtInProcessKernelManager
         kernel_manager = QtInProcessKernelManager()
         kernel_manager.start_kernel()
         kernel = kernel_manager.kernel
@@ -488,6 +487,7 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
         kernel.shell.write("Set cont=True to disable interactive mode\n")
         # kernel.shell.write("call abort() to exit\n")
 
+        from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
         control = RichIPythonWidget()
         control.kernel_manager = kernel_manager
         control.kernel_client = kernel_client
@@ -581,7 +581,10 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
             
             def runcode():
                 control.execute("kernel.shell.run_ast_nodes(runfunc_lines,scripthref.getpath(),interactivity='none')")
-                QTimer.singleShot(25,showret) # get callback 25ms into main loop
+                # QTimer.singleShot(25,showret) # get callback 25ms into main loop
+                # showret disabled because it prevents you from running the 
+                # debugger in post-mortem mode to troubleshoot an exception:
+                # import pdb; pdb.pm() 
                 pass
             
             QTimer.singleShot(25,runcode) # get callback 25ms into main loop
@@ -620,6 +623,10 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
 
     # Go through results...
     for resultname in resultdict: 
+
+        if not ":" in resultname:
+            sys.stderr.write("dc_process.applyresultdict() WARNING: Results from dc_process\nsteps should always specify the XML namespace of result tags\nOtherwise they get placed in the default namespace, but not replaced on the next run.\n")
+            pass
 
         resultitem=resultdict[resultname]
         attrdict={}
