@@ -60,8 +60,9 @@ class paramdb2_editor(gtk.Window):
     COLUMN_NAME=0
     COLUMN_VALUE=1
     COLUMN_DEFUNITS=2
-    COLUMN_CONTROLLER=3
-    COLUMN_BGCOLOR=4
+    COLUMN_TYPE=3
+    COLUMN_CONTROLLER=4
+    COLUMN_BGCOLOR=5
     STATE_FOLLOW=0
     STATE_WAITING=1
     
@@ -71,8 +72,8 @@ class paramdb2_editor(gtk.Window):
         self.paramdb=paramdb
 
         
-        titles=["Param name","Param value","Default Units","Controller"]
-        types=[gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING]  # last entry is for background color
+        titles=["Param Name","Param Value","Default Units","Value Type","Controller"]
+        types=[gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_STRING]  # last entry is for background color
             
         self.liststore=gtk.ListStore(*types)
 
@@ -97,9 +98,11 @@ class paramdb2_editor(gtk.Window):
                 cols.append(self.paramdb[entry].dcvalue.format(self.paramdb[entry].displayfmt))
                 # 3rd (2) column is  defunits
                 cols.append(str(self.paramdb[entry].defunits))
-                # 4th (3) column is controller
+                # 4th (3) column is type -- what form of dc_value? 
+                cols.append(str(self.paramdb[entry].paramtype.__name__))
+                # 5th (4) column is controller
                 cols.append(self.paramdb[entry].controller.__class__.__name__)
-                # 5th (4) column is background color (hidden)
+                # 6th (5) column is background color (hidden)
                 cols.append(self.COLOR_WHITE)
                 self.liststore.append(cols)
                 

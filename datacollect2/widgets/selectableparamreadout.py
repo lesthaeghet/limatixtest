@@ -217,10 +217,12 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
         # print "param=%s" % (param.xmlname)
         # print "param.dcvalue=%s" % (str(param.dcvalue))
         # print "self.lastvalue=%s" % (str(self.lastvalue))
+
+        
         if self.lastvalue != param.dcvalue:
             self.lastvalue=param.dcvalue
+            self.set_state(self.STATE_FOLLOWDG) # clear a color change resulting from a command
             
-            self.set_state(self.STATE_FOLLOWDG) # clear a color change resulting from a command 
             # print "not equal"
             pass
 
@@ -344,6 +346,19 @@ class selectableparamreadout(GtkComboBoxEntry,paramhandler):
                 pass
             
             pass
+
+        if event.keyval==0xff1b: # GDK_Escape
+            # abort
+        
+            self.changedinhibit=True
+            self.childntry.set_text(param.dcvalue.format(param.displayfmt))
+            self.changedinhibit=False
+            self.lastvalue=self.param.dcvalue
+            self.errorflag=False
+            
+            self.set_state(self.STATE_FOLLOWDG)
+            pass
+        
         return False # returning True would eat the event
 
 

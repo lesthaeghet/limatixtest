@@ -115,9 +115,154 @@
     </p>
     <h2> Getting Started </h2>
     <h3> Installation </h3>
-    
     <p>
-      To start, run the <tt>datacollect2</tt> program. 
+      See the file INSTALL.txt distributed with datacollect2.
+    </p>
+    <h3>Running datacollect2</h3>
+    <p>
+      To start, run the <tt>datacollect2</tt> program:<br>
+      <img src="datacollect2_window.png"/><br/>
+      This is the main experiment log window. It provides a place to view
+      or update various parameters that are synchronized to the experiment log:
+      The current measurement number index (Measnum), the specimen ID (Specimen),
+      who is performing the experiment (Perfby), and the date or dates during which the experiment was performed. It also provides fields to record
+      the goal of your experiment, an automatically populated list
+      of photographs, and a field to record notes.
+    </p>
+    <h3>Creating a new experiment log</h3>
+    <p>
+      Use the File menu: File...New to create a new experiment log
+      in a suitable location. You will be asked whether the experiment
+      will involve a single specimen or multiple specimens. Select
+      "Single specimen" for now. 
+    </p><p>
+      Normally, you would next load a configuration file that
+      tells datacollect2 about the various additional parameters you
+      may want to store. In this case, to keep things simple, we will
+      just use datacollect2's built-in parameters.
+    </p>
+    <h3>Viewing and editing parameters</h3>
+    <p>
+      Start by viewing the built-in parameters: From the "Gui" menu
+      select "Open paramdb editor" to see a table of currently available
+      parameters:<br/>
+      <img src="paramdb_editor.png"/><br/>
+      The table lists each parameter, its current value, the default units for that parameter (for numeric parameters), the value type, and the controller
+      in charge of the parameter. 
+    </p>
+    <p>
+      Try editing the "specimen" parameter by clicking on its
+      value field. Note that once you tab or carriage-return out of
+      editing the text, the "specimen" field of the main experiment log
+      window changes to match. This is because the two fields (in the
+      paramdb editor and in the experiment log window) both refer to the
+      same underlying parameter, and thus they remain synchronized. 
+    </p>
+    <p>
+      Look at the 'Controller' column of the paramdb editor and notice
+      that the "Specimen" parameter uses the 'synced' controller. That
+      means the specimen parameter is (or can be) synchronized with a
+      file. The controller of a parameter mediates (or delegates
+      mediation) of requests to change its value. Some controllers
+      can be used to make parameters that represent the internal
+      settings of connected laboratory instruments. 
+    </p>
+    <h3>Manual editing of the experiment log</h3>
+    <p>
+      Without exiting from datacollect, open your experiment log using
+      a text editor:<br/> <img src="texteditor.png"/><br/> Note that
+      the specimen ID you entered is shown in the &lt;dc:specimen&gt;
+      tag. The experiment log is constantly updated as you change
+      'synced' parameters. Now change the specimen ID using your text
+      editor and save the file (it is a good idea to quit the text
+      editor as well).  Datacollect will not notice the change until
+      it rereads the file, usually because you have done something
+      else, such as changing another 'synced' parameter that requires
+      resyncing with the file.  So type something into the 'notes'
+      field and press 'tab' to confirm your change, and you will see
+      your manual edit to the experiment log file reflected in the
+      "Specimen" field alongside your new update to the 'notes' field!
+    </p>
+    <p>
+      One of the things that is very powerful about datacollect is
+      that you can do manual editing on-the-fly to go back and correct
+      mistakes or make changes to the experiment log that might not be
+      directly possible through the user interface. (Only the
+      experiment log is fully synchronized like this; be sure to close
+      plan files and checklists before editing them with external
+      tools)
+    </p>
+    <h3>Opening a measurement checklist</h3>
+    <p>
+      From the "Checklist" menu, select "Open". The file selector
+      should automatically open to the "checklists" folder of
+      datacollect's data installation directory. Pick the checklist
+      "testlist.chx": <br/>
+      <img src="checklist_window.png"/><br/>
+      This is an example of a "measurement checklist": One that saves
+      a measurement to the experiment log when the
+      "Finish and save measurement" button at the bottom is selected. Go
+      through and check off all the items. You can adjust some of the
+      parameters if you'd like, or enter some notes. 
+    </p>
+    <h3>Saving a measurement</h3>
+    <p>
+      When you press the "Finish and save measurement" button at the
+      bottom of a measurement checklist, datacollect will both mark
+      the checklist as "done" and add a measurement to the experiment
+      log. The measurement will be represented by a
+      &lt;dc:measurement&gt; tag in the experiment log containing the
+      current set of parameter values from the parameter database (except
+      for parameters configured with the hide_from_meas flag set):
+      <pre>
+	&lt;dc:measurement&gt;
+	  &lt;dc:measnum&gt;1&lt;/dc:measnum&gt;
+	  &lt;dc:recordmeastimestamp&gt;2016-03-23T23:27:26-05:00&lt;/dc:recordmeastimestamp&gt;
+	  &lt;chx:clinfo&gt;testlist_V1._3/23/16&lt;/chx:clinfo&gt;
+	  &lt;chx:cltitle&gt;Test checklist&lt;/chx:cltitle&gt;
+	  &lt;dc:specimen&gt;S02-AA-19&lt;/dc:specimen&gt;
+	  &lt;dc:hostname&gt;gavroche&lt;/dc:hostname&gt;
+	  &lt;dc:measphotos/&gt;
+	  &lt;dc:measchecklist xlink:href="2016-03-23_files/testchx-0001.chf"/&gt;
+	  &lt;dc:date&gt;2016-03-23&lt;/dc:date&gt;
+	  &lt;dc:perfby&gt;&lt;/dc:perfby&gt;
+	  &lt;dc:notes&gt;&lt;/dc:notes&gt;
+	&lt;/dc:measurement&gt;
+      </pre>
+      The measurement entry in the experiment log always stores the
+      parameter values <i>from the instant the "Finish and save measurement"
+	button was pressed.</i> The experiment log also gets (in the &lt;dc:measchecklist&gt; tag) a hyperlink to the filled checklist. Individual parameter values from steps marked as &lt;intermediate/&gt; are captured when the step was checked and stored in the filled checklist. The value for the same parameter stored in the experiment log will be different if the parameter changed value between when the step was checked and when the "Finish and save measurement" button was pressed.      
+    </p>
+    <h3>Checklists and Plans</h3>
+    <p>
+      Checklists and plans are generally treated similarly by
+      datacollect and have identical file formats and structures. They
+      are just listed separately because they are conceptually
+      different. A checklist is for a routine process that may well be
+      performed repetitively. A plan is an intended series of tasks and
+      is usually custom written or modified for the particular
+      task at hand.
+    </p><p> When opening checklists you have the option of using the
+      regular "Open" option (for standard or centrally-located
+      checklists) or the "Open custom checklist" option. These options
+      are the same except for how the original checklist is
+      cross-referenced: In the case of the regular "Open" option the
+      cross-reference is an absolute reference. In the case of the
+      custom option, the cross-reference is a relative link to a file
+      that is presumed to be stored relative to your data
+      directory. So with the custom option, if you move the data tree
+      around, since the custom checklist is presumably stored
+      alongside the data the cross reference will still work after the
+      data tree is moved. With the regular "Open" option the
+      assumption is that the standard or centrally located checklist
+      won't move with the data so an absolute reference is necessary.
+      
+    </p><p>
+      Unfilled checklists use the ".chx" filename extension
+      (CHecklistXml). Filled checklists use the ".chf" extension
+      (ChecklistFilled). Similarly, unfilled plans use the ".plx"
+      extension (PLanXml) and filled plans use the ".plf" extension
+      (PLanFilled). 
     </p>
     <h2> Datacollect2 Building Blocks </h2>
     <h3>XML, XPath, and XLink</h3>

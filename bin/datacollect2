@@ -381,7 +381,7 @@ for (paramname,status,val1,val2) in dpdlog:
 
 
 
-if len(explogwin.configfhrefs) > 0 and explogwin.explog.filehref is not None:
+if explogwin.explog.filehref is not None:
     for gui in guis:
         guihref=hrefv(pathname2url(gui))
         explogwin.open_gui(guihref)
@@ -400,7 +400,7 @@ if len(explogwin.configfhrefs) > 0 and explogwin.explog.filehref is not None:
         pass
     pass
 elif len(guis) > 0 or len(checklists) > 0 or len(plans) > 0:
-    print("Cannot auto-open gui, checklist, or plan unless configuration specified and experiment log opened.")
+    print("Cannot auto-open gui, checklist, or plan unless experiment log opened.")
     sys.exit(1)
     pass
 

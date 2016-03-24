@@ -3374,7 +3374,7 @@ class synced(object):
         return None
 
 
-    def domerge(self,humanpath,parent,parentsource,descendentlist,descendentsourcelist,contexthref=None,manualmerge=False,**kwargs):
+    def domerge(self,humanpath,parent,parentsource,descendentlist,descendentsourcelist,contexthref=None,manualmerge=True,**kwargs):
         # this is a separate method so it can be overridden by derived 
         # class for implementing expanding date class
         #print self.controlparam.paramtype
@@ -3820,7 +3820,18 @@ class synced(object):
 
         # print "doclist=%s" % (str(self.doclist))
         
-        self.synchronize(requestedvalue=newvalue)
+        try:
+            self.synchronize(requestedvalue=newvalue)
+            pass
+        except:
+            # Give error client callback, then raise exception
+            if len(cbargs) > 0:
+                (exctype,excvalue)=sys.exc_info()[:2]
+                clientcallback=cbargs[0]
+                clientcallback(self.controlparam,requestid,str(excvalue),None,*cbargs[1:])
+                pass
+
+            raise
         #oldvalue=self.controlparam.dcvalue
 
 

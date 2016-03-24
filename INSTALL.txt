@@ -13,19 +13,23 @@ Recommended:
   python-pillow (required for Ricoh camera support and for representing parameters that are images)
   glade-3.6.7 (required for interative gtk2 widget layout; not needed for
                general use)
-  datacollect2-QAutils (not used directly, but documents checklist
+  datacollect2-qautils (not used directly, but documents checklist
                         format/structure and can render checklists as PDF)
   ipython (with PySide qt4 bindings) for interactive debugging of 
           dcprocess scripts
   matplotlib (with qt4 support) for use with ipython for interactive
              debugging of dcprocess scripts
 
-Datacollect2 can be installed simply by unpacking the archive in a suitable
-location once these prerequisites are installed. You may want to add the
-'bin' directory to your system PATH and/or insert symbolic links to the
-files in the 'bin' directory. You may also want to add the 'lib' directory
-to your system PYTHONPATH. 
+datacollect2 is built with Python setuptools. 
 
-To install into /usr/local/datacollect2 on Linux or Unix/MacOS platforms:
-  "make"
-  "sudo make install"
+To build from source package:
+  python setup.py build
+
+To install into Python site-packages 
+  python setup.py install
+  python setup.py install_data
+
+Note that the install_data step also installs some useful files
+into $(PREFIX)/share/datacollect2 where $(PREFIX) is the Python
+installation prefix. These include sample checklists, configuration
+files, documentation, and dc_process steps.

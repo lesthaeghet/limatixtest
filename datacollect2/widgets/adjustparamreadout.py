@@ -147,10 +147,11 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         # print "param=%s" % (param.xmlname)
         # print "param.dcvalue=%s" % (str(param.dcvalue))
         # print "self.lastvalue=%s" % (str(self.lastvalue))
+        
         if self.lastvalue != param.dcvalue:
             self.lastvalue=param.dcvalue
+            self.set_state(self.STATE_FOLLOWDG) # clear a color change resulting from a command
             
-            self.set_state(self.STATE_FOLLOWDG) # clear a color change resulting from a command 
             # print "not equal"
             pass
 
@@ -242,6 +243,7 @@ class adjustparamreadout(gtk.Entry,paramhandler):
             self.set_text(self.param.dcvalue.format(self.param.displayfmt))
             self.changedinhibit=False
             self.lastvalue=self.param.dcvalue
+            self.errorflag=False
 
             self.set_state(self.STATE_FOLLOWDG)
 
@@ -349,6 +351,7 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         if self.state==self.STATE_FOLLOWDG:
 
             if self.errorflag:
+                #sys.stderr.write("Set to red!\n")
                 self.setbgcolor("red")
                 pass
             elif match:
@@ -358,6 +361,7 @@ class adjustparamreadout(gtk.Entry,paramhandler):
                 self.setbgcolor("orange")
                 pass
             else:
+                #sys.stderr.write("Set to white!\n")
                 self.setbgcolor("white")
                 pass
             
