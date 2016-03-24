@@ -190,10 +190,11 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         self.textview.get_buffer().set_property("text",param.dcvalue.format(param.displayfmt))
         self.changedinhibit=False
 
+        self.set_state(self.STATE_FOLLOWDG) # clear a color change resulting from a command
+        
         if self.lastvalue != param.dcvalue:
             self.lastvalue=param.dcvalue
-            
-            self.set_state(self.STATE_FOLLOWDG) # clear a color change resulting from a command 
+            self.set_state(self.STATE_FOLLOWDG) # clear a color change resulting from a command
             # print "not equal"
             pass
         
@@ -265,6 +266,7 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         self.textview.get_buffer().set_property("text",self.param.dcvalue.format(self.param.displayfmt))
         self.changedinhibit=False
         self.lastvalue=self.param.dcvalue
+        self.errorflag=False
 
         self.set_state(self.STATE_FOLLOWDG)
         pass
@@ -287,7 +289,7 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
             # abort
             self.pp_abort()
 
-
+            
             pass
         
         return False # returning True would eat the event

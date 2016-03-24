@@ -235,15 +235,20 @@ class value(object):
             return value
         else : 
             # parent specified, merge in the change!
-            
+
+            # We are looking to identify two unique values:
+            # 1: Parent
+            # 2: Something else.... stored in newvalue
             newvalue=None
+
             for descendent in descendentlist:
                 if not(parent.equiv(descendent)):
-                    if newvalue != None: 
-                        # two values -- raise exception!
+                    if newvalue is not None and not newvalue.equiv(descendent): 
+                        # two new values -- raise exception!
                         raise MergeError("Cannot merge values: Orig=%s; descendents %s and %s" % (str(parent),str(newvalue),str(descendent)))
-                        
+                    
                     newvalue=descendent
+                    pass
                 pass
             if newvalue is None: # no changes at all
                 newvalue=parent

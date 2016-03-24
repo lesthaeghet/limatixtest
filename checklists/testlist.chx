@@ -1,61 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <checklist xmlns="http://thermal.cnde.iastate.edu/checklist" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" dc:done_is_save_measurement="true" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <clinfo>testlist_V1.0_5/17/13</clinfo>
+  <clinfo>testlist_V1._3/23/16</clinfo>
   <cltitle>Test checklist</cltitle>
-
-  <dest autofilename="concat('testchx',chx:specimen,'.chf')"/>
+  <rationale>This is an example checklist. It has the dc:done_is_save_measurement attribute set to "true" in its root &lt;checklist&gt; tag. That makes it a
+  "measurement checklist", i.e. the button at the bottom is labelled "Finish and save measurement" and when pressed will create a new measurement entry in the experiment log with a snapshot of the current parameter values. Non-"measurement checklists" do not create measurement entries in the experiment log, although the checklists themselves do get listed in the dc:summary/dc:checklists field of the experiment log</rationale>
+  <dest autofilename="concat('testchx',chx:perfby,'.chf')"/>
 
     <checkitem class="text" title="First Step">
-        <description>Step instructions go here
-Unicode 00fe thorn: doesn't work</description>
+        <description>Step instructions for the first step go here</description>
     </checkitem>
 
-    <checkitem class="textgraphic" title="Step 1.5">
+    <checkitem class="textgraphic" title="Step 2">
         <width>160</width>
         <image xlink:href="testlistimg.png"/>
-        <description>Step instructions go here. And an image:</description>
+        <description>This is an example of a step that shows an image</description>
     </checkitem>
 
 
-    <checkitem class="dc_param" title="Second step">
-        <parameter name="description">This is a case
-of a multiline string</parameter>
-        <parameter name="labelmarkup">Value for dc_param</parameter>
-        <parameter name="paramname">specimen</parameter>
+    <checkitem class="dc_param" title="Third step">
+      <description>This is an example of a step
+      with an entry box for editing a datacollect parameter (in this case
+      the specimen ID). This step has an &lt;intermediate/&gt; tag, which
+      causes the entry box to freeze once the box is checked, and the value
+      of the parameter to be stored in the filled checklist. "intermediate"
+      means to store the value in the checklist when the box is checked rather
+      than just waiting for the automatic parameter save with the measurement
+      when "Finish and save measurement" is checked. 
+      </description>
+      <labelmarkup>Specimen</labelmarkup>
+      <paramname>specimen</paramname>
+      <intermediate/>
     </checkitem>
 
-    <!-- 
-    <checkitem class="burstfreq" title="Third step">
-        <parameter name="dg-timestring">0.2 s 0.21 s 1.19 s 1.2 s</parameter>
-        <parameter name="wfmname">Arb</parameter>
-        <parameter name="dc-valuedefunits">Hz</parameter>
-        <parameter name="freqdefault">10000 Hz</parameter>
-        <parameter name="genmodule">GEN</parameter>
-        <parameter name="dc-valuethreshold">0.01</parameter>
-        <parameter name="description">This is the test step for burst generation</parameter>
+    <checkitem class="textentry" title="Fourth step">
+      <width>40</width>
+      <initialtext>Default text</initialtext>
+      <description>This is an example of a textentry step. The entered text does not go into the experiment log, just into the filled checklist. One advantage of this step is it does not require datacollect. This step can be filled out with a regular web browser and either databrowse or the chx2html.xsl checklist stylesheet. </description>
     </checkitem>
 
-    <checkitem class="sweepfreq" title="Fourth step">
-        <parameter name="dg-timestring">0.2 s 0.21 s 1.19 s 1.2 s</parameter>
-        <parameter name="freqdefault2">24000 Hz</parameter>
-        <parameter name="wfmname">Arb</parameter>
-        <parameter name="dc-valuethreshold">0.01</parameter>
-        <parameter name="dc-valuedefunits">Hz</parameter>
-        <parameter name="genmodule">GEN</parameter>
-        <parameter name="freqdefault1">20000 Hz</parameter>
-        <parameter name="description">This is the test step for sweep generation</parameter>
-    </checkitem>
-    -->
-    <checkitem class="textentry" title="Fifth step">
-        <parameter name="width">40</parameter>
-        <parameter name="initialtext">Default text</parameter>
-        <parameter name="description">Step instructions go here. <br/>And <b>discussion</b> of what to type :</parameter>
-    </checkitem>
-
-    <checkitem class="dc_param" title="Step 5.5">
-      <parameter name="paramname">specimen</parameter>
-      <parameter name="description">Enter the specimen ID</parameter>
-      <parameter name="labelmarkup">specimen</parameter>
+    <checkitem class="dc_param" title="Fifth step">
+      <paramname>specimen</paramname>
+      <description>Here is another step for specifying
+      the specimen, but this one does <i>not</i> specify &lt;intermediate/&gt;,
+      so the text entry box will keep working after the step is checked. The
+      value of this parameter is <i>not</i> saved to the checklist. It will,
+      unless otherwise disabled, be saved to the experiment log when
+      "Finish and save measurement" is pressed, but it will continue to
+      update until that time. </description>
+      <parameter name="labelmarkup">Specimen</parameter>
     </checkitem>
     <!-- 
     <checkitem class="savebutton" title="Sixth step">

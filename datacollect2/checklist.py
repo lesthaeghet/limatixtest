@@ -1134,11 +1134,13 @@ class checklist(object):
 
                                     
         dc_initialize_widgets(self.gladeobjdict,newguistate)
-
+        
+        
         for step in self.steps: 
             step.dc_gui_init(newguistate)
             step.show_all()
             pass
+        self.gladeobjdict["MinorBox"].show_all()  # Make sure Rationale box shows up too, among others
 
 
         self.gladeobjdict["LowerVBox"].show_all()
@@ -1261,6 +1263,11 @@ class checklist(object):
                 
                 RationaleText.set_markup(etree.tostring(xml2pango(rationale),encoding='utf-8').decode('utf-8'))
                 self.gladeobjdict["MinorBox"].pack_start(RationaleText,True,True,0)
+
+                # Add HSeparator after rationale
+                RationaleSeparator=gtk.HSeparator()
+                self.gladeobjdict["MinorBox"].pack_start(RationaleSeparator,False,True,0)
+                
                 pass
         
             for item in self.parsedchecklist:
