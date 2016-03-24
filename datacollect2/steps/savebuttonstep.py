@@ -72,7 +72,7 @@ class savebuttonstep(buttonreadoutstep):
                   "third datacollect parameter to show and to use for save. The named parameter should store an hrefvalue with a controller that supports the perform_save method",
                   "", # default value 
                 gobject.PARAM_READWRITE), # flags
-
+        # NOTE: "buttonlabel" parameter handled by buttonreadoutstep superclass
         "intermediate": (gobject.TYPE_BOOLEAN,
                   "intermediate parameter setting",
                   "Intermediate parameter setting: Intermediate step parameters are saved to the XML checklist file when the step is checked, and the widgets freeze when the checklist is read-only or once the checkbox ix checked",
