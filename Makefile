@@ -26,7 +26,7 @@ include defs.mk
 DIST_FILES=.
 
 
-PUBEXCLUDE=--exclude .hg 
+PUBEXCLUDE=--exclude .hg --exclude datacollect2/canonicalize_path/.hg  --exclude datacollect2/dc_lxml_treesync/.hg
 
 
 PYSUBDIRS=widgets steps
