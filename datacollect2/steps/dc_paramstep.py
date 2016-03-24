@@ -115,9 +115,15 @@ class dc_paramstep(gtk.HBox):
         pass
 
     def do_set_property(self,property,value):
-        # print "set_property(%s,%s)" % (property.name,str(value))
+        #print "set_property(%s,%s)" % (property.name,str(value))
         if property.name=="paramname":
             # print "paramname=%s" % value
+            #if value=="":
+            #    import pdb as pythondb
+            #    pythondb.set_trace()
+            #    pass
+
+
             self.myprops[property.name]=value
             self.gladeobjdict["step_adjustparam"].set_property("paramname",value)
             pass
@@ -151,6 +157,8 @@ class dc_paramstep(gtk.HBox):
         self.paramdb=guistate.paramdb
         self.changedcallback(None,None) #  update xml
 
+        if self.myprops["paramname"] is None or self.myprops["paramname"]=="":
+            raise ValueError("dc_paramstep: <paramname> parameter not set or blank")
         self.paramnotify=self.paramdb.addnotify(self.myprops["paramname"],self.changedcallback,pdb.param.NOTIFY_NEWVALUE)
 
         pass
