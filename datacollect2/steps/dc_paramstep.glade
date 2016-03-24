@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<interface>
+  <!-- interface-requires dg_gui_widgets 0.0 -->
+  <requires lib="gtk+" version="2.16"/>
+  <!-- interface-naming-policy project-wide -->
+  <object class="GtkHBox" id="dc_paramstep">
+    <property name="visible">True</property>
+    <child>
+      <object class="dc_wraplabel" id="step_descr_label">
+        <property name="visible">True</property>
+        <property name="xpad">12</property>
+        <property name="label" translatable="yes">STEP DESCRIPTION </property>
+        <property name="max_width_chars">50</property>
+      </object>
+      <packing>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="labelled_adjustparamreadout" id="step_adjustparam">
+        <property name="visible">True</property>
+        <property name="labelmarkup">ParamLabel </property>
+      </object>
+      <packing>
+        <property name="position">1</property>
+      </packing>
+    </child>
+  </object>
+</interface>

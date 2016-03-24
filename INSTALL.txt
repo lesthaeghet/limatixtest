@@ -1,0 +1,25 @@
+
+Prerequisites:
+  python (version 2.7 or 3.x... 3.x is a bit of a work in progress)
+  python-lxml (often distributed with operating system or Python distribution)
+  numpy (often distributed with operating system or Python distribution)
+  gtk2 and pygtk2 (on python2;  required to use GUI components)
+  gtk3 and python bindings (on python3;  required to use GUI components)
+  python-pillow (required for Ricoh camera support)
+  glade-3.6.7 (required for interative gtk2 widget layout; not needed for
+               general use)
+  setuptools (often distributed with operating system or Python distribution)
+
+  dataguzzler-lib
+  datacollect2-QAutils (not used directly, but documents checklist
+                        format/structure and can render checklists as PDF)
+  
+Datacollect2 can be installed simply by unpacking the archive in a suitable
+location once these prerequisites are installed. You may want to add the
+'bin' directory to your system PATH and/or insert symbolic links to the
+files in the 'bin' directory. You may also want to add the 'lib' directory
+to your system PYTHONPATH. 
+
+To install into /usr/local/datacollect2 on Linux or Unix/MacOS platforms:
+  "make"
+  "sudo make install"
