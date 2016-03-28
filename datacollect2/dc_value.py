@@ -1698,6 +1698,9 @@ class numericunitsvalue(value) :
     def numvalue(self,units=None):
         return self.value(units)
     
+    def __float__(self):
+        # allow cast to float
+        return float(self.value())
 
     def value(self,units=None):
         if units is None:

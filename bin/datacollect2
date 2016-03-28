@@ -381,7 +381,7 @@ for (paramname,status,val1,val2) in dpdlog:
 
 
 
-if explogwin.explog.filehref is not None:
+if explogwin.explog is not None and explogwin.explog.filehref is not None:
     for gui in guis:
         guihref=hrefv(pathname2url(gui))
         explogwin.open_gui(guihref)
