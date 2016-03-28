@@ -724,6 +724,11 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             elif argname=="_element" or argname=="_tag": # _element (formerly _tag) parameter gets current tag we are operating on
                 argkw[argname]=element
                 pass
+            # ** TODO ***!!!  add _dest_href support!
+            #elif argname=="_dest_href":
+            #    # Get hrefvalue pointing at destination directory, where
+            #    # files should be written
+            #    argkw[argname]=
             else : 
                 try : 
                     argkw[argname]=findparam(prxnsmap,output,element,argname).evaluate(output,element)
