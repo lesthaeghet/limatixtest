@@ -731,7 +731,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
                 destlist=output.xpath("dc:summary/dc:dest")
                 argkw[argname]=None
                 if len(destlist)==1:
-                    argkw[argname]=dc_value.hrefvalue.fromxml(output,destlist[0])
+                    argkw[argname]=dcv.hrefvalue.fromxml(output,destlist[0])
                     pass
                 pass
             else : 
