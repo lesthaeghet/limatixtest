@@ -79,6 +79,7 @@ import copy
 import inspect
 import numbers
 import traceback
+import collections
 import ast
 from lxml import etree
 
@@ -236,8 +237,9 @@ class stepparamvalue(object):
     hrefflag=None  # return a dc_value.hrefvalue object
     hreffullpathflag=None  # return a complete filesystem path,
     numericvalueflag=None  # return a dc_value.numericunitsvalue object
-    
-    def __init__(self,**kwargs): # supply name and one of numvalue, strvalue, xpath. Also optionally supply xpathnsmap with xpath, textflag,hrefflag
+    listflag=None  # return a list of whatever instead of single object
+
+    def __init__(self,**kwargs): # supply name and one of numvalue, strvalue, xpath. Also optionally supply xpathnsmap with xpath, textflag,hrefflag,hreffullpathflag,numericvalueflag,listflag
 
         for argname in kwargs:
             setattr(self,argname,kwargs[argname])
@@ -266,40 +268,69 @@ class stepparamvalue(object):
         self.condition=condition
         pass
 
-    def evaluate(self,outdoc,element):
+    def evaluatexpathresult(self,outdoc,result):
+
+        if self.textflag:
+            result=result.text
+            pass
+            
+        if self.hrefflag:
+            #result=outdoc.get_href(contextnode=result)
+            result=dcv.hrefvalue.fromxml(outdoc,result)
+            pass
         
-        if self.numvalue is not None:
-            return self.numvalue
-        elif self.strvalue is not None:
-            return self.strvalue
-        elif self.hrefvalue is not None:
-            return self.hrefvalue
-        else : 
-            assert(self.xpath is not None)
-            namespaces=copy.copy(self.xpathnsmap)
-            if None in namespaces: 
-                del namespaces[None]
-                pass
-            # print "evaluate: xpath=%s" % (self.xpath)
-            result=outdoc.xpathsinglecontext(element,self.xpath,namespaces=namespaces,default=AttributeError("stepparam.evaluate: XPath \"%s\" not found." % (self.xpath)),variables={"filepath":outdoc.get_filehref().getpath(),"filename":outdoc.get_filehref().get_bare_unquoted_filename()})
-            if self.textflag:
-                result=result.text
-                pass
-
-            if self.hrefflag:
-                #result=outdoc.get_href(contextnode=result)
-                result=dcv.hrefvalue.fromxml(outdoc,result)
-                pass
+        if self.hreffullpathflag:
+            resulthref=dcv.hrefvalue.fromxml(outdoc,result)
+            result=resulthref.getpath()
+            pass
             
-            if self.hreffullpathflag:
-                resulthref=dcv.hrefvalue.fromxml(outdoc,result)
-                result=resulthref.getpath()
-                pass
+        if self.numericvalueflag:
+            result=dcv.numericunitsvalue.fromxml(outdoc,result)
+            pass
+        return result
 
-            if self.numericvalueflag:
-                result=dcv.numericunitsvalue.fromxml(outdoc,result)
+    def evaluate(self,outdoc,element):
+
+        if self.listflag:
+            if self.numvalue is not None:
+                return [self.numvalue]
+            elif self.strvalue is not None:
+                return [self.strvalue]
+            elif self.hrefvalue is not None:
+                return [self.hrefvalue]
+            else : 
+                assert(self.xpath is not None)
+                namespaces=copy.copy(self.xpathnsmap)
+                if None in namespaces: 
+                    del namespaces[None]
+                    pass
+                results=[]
+                # print "evaluate: xpath=%s" % (self.xpath)
+                xpathresults=outdoc.xpathcontext(element,self.xpath,namespaces=namespaces,variables={"filepath":outdoc.get_filehref().getpath(),"filename":outdoc.get_filehref().get_bare_unquoted_filename()})
+
+                for result in xpathresults:
+                    results.append(self.evaluatexpathresult(outdoc,result))
+                    pass
+                return results
+            pass
+        else: 
+            # not listflag
+            if self.numvalue is not None:
+                return self.numvalue
+            elif self.strvalue is not None:
+                return self.strvalue
+            elif self.hrefvalue is not None:
+                return self.hrefvalue
+            else : 
+                assert(self.xpath is not None)
+                namespaces=copy.copy(self.xpathnsmap)
+                if None in namespaces: 
+                    del namespaces[None]
+                    pass
+                # print "evaluate: xpath=%s" % (self.xpath)
+                xpathresult=outdoc.xpathsinglecontext(element,self.xpath,namespaces=namespaces,default=AttributeError("stepparam.evaluate: XPath \"%s\" not found." % (self.xpath)),variables={"filepath":outdoc.get_filehref().getpath(),"filename":outdoc.get_filehref().get_bare_unquoted_filename()})
+                result=self.evaluatexpathresult(outdoc,xpathresult)
                 pass
-            
             return result
         pass
 
@@ -352,6 +383,12 @@ def findparam(prxnsmap,outdoc,element,argname):
     hrefflag=False
     hreffullpathflag=False
     numericvalueflag=False
+    listflag=False
+
+    if argname.endswith("_list"):
+        listflag=True
+        argname=argname[:-5]
+        pass
     
     if argname.endswith("_text"):
         textflag=True
@@ -373,7 +410,8 @@ def findparam(prxnsmap,outdoc,element,argname):
         pass
     
     if outdoc.child(element,useargname) is not None:
-        return stepparam(name=argname,value=stepparamvalue(xpath=useargname,xpathnsmap=namespaces,textflag=textflag,hrefflag=hrefflag,hreffullpathflag=hreffullpathflag,numericvalueflag=numericvalueflag))
+        return stepparam(name=argname,value=stepparamvalue(xpath=useargname,xpathnsmap=namespaces,textflag=textflag,hrefflag=hrefflag,hreffullpathflag=hreffullpathflag,numericvalueflag=numericvalueflag,listflag=listflag))
+        
     elif "_" in useargname:
 
         underscoreoffset=useargname.find("_")
@@ -384,9 +422,9 @@ def findparam(prxnsmap,outdoc,element,argname):
         fulltagname=namespaceprefix+":"+tagname
         
         if outdoc.child(element,fulltagname) is not None:
-            return stepparam(name=argname,value=stepparamvalue(xpath=fulltagname,xpathnsmap=namespaces,textflag=textflag,hrefflag=hrefflag,hreffullpathflag=hreffullpathflag,numericvalueflag=numericvalueflag))
+            return stepparam(name=argname,value=stepparamvalue(xpath=fulltagname,xpathnsmap=namespaces,textflag=textflag,hrefflag=hrefflag,hreffullpathflag=hreffullpathflag,numericvalueflag=numericvalueflag,listflag=listflag))
         if outdoc.child(element,useargname) is not None:
-            return stepparam(name=argname,value=stepparamvalue(xpath=useargname,xpathnsmap=namespaces,textflag=textflag,hrefflag=hrefflag,hreffullpathflag=hreffullpathflag,numericvalueflag=numericvalueflag))
+            return stepparam(name=argname,value=stepparamvalue(xpath=useargname,xpathnsmap=namespaces,textflag=textflag,hrefflag=hrefflag,hreffullpathflag=hreffullpathflag,numericvalueflag=numericvalueflag,listflag=listflag))
         
         # raise NameError("Tag %s: No %s child element found!" % (outdoc.tostring(element),fulltagname))
         raise NameError("Tag %s: No \"%s\" child element found!" % (etxpath2human(outdoc.get_canonical_etxpath(element),outdoc.nsmap),fulltagname))
@@ -620,16 +658,43 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
 
 
 def applyresultdict(output,prxdoc,steptag,element,resultdict):
+    # resultdict can either be a dict
+    # or a list/tuple of (key,element) pairs. 
+    # tuple use case is so that what would otherwise be a key
+    # can itself contain a dictionary of attributes
+
+    if isinstance(resultdict,collections.Mapping):
+        # dictionary or dictionary-like: 
+        # Convert to list of (key,element) pairs
+        resultlist=[ (key,resultdict[key]) for key in resultdict.keys() ]
+        pass
+    else:
+        # list or tuple
+        resultlist=resultdict
+        pass
 
     # Go through results...
-    for resultname in resultdict: 
+    for (resultname,resultitem) in resultlist: 
 
-        if not ":" in resultname:
+
+        #  resultitem=resultdict[resultname]
+        attrdict={}
+        if isinstance(resultname,tuple):
+            # if result is a tuple, then treat first element 
+            # of tuple as actual name, second element as attribute dictionary, 
+            assert(len(resultname)==2)
+            attrdict.update(resultname[1])
+            name=resultname[0]
+            pass
+        else: 
+            name=resultname
+            pass
+
+        if not ":" in name:
             sys.stderr.write("dc_process.applyresultdict() WARNING: Results from dc_process\nsteps should always specify the XML namespace of result tags\nOtherwise they get placed in the default namespace, but not replaced on the next run.\n")
             pass
 
-        resultitem=resultdict[resultname]
-        attrdict={}
+
         if isinstance(resultitem,tuple):
             # if result is a tuple, then treat first element 
             # of tuple as an attribute dictionary, second
@@ -643,7 +708,7 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
             pass
         
         # Remove preexisting elements if present
-        oldelements=output.children(element,resultname,noprovenanceupdate=True)
+        oldelements=output.children(element,name,noprovenanceupdate=True)
         for oldelement in oldelements:
             # do the requested attributes match?
             attrmatch=True
@@ -663,19 +728,19 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
         # Create new element according to type
         # sys.stderr.write("resultdict=%s\n" % (str(resultdict))) 
         if isinstance(resultvalue,numbers.Number):
-            newel=output.addsimpleelement(element,resultname,(resultvalue,))
+            newel=output.addsimpleelement(element,name,(resultvalue,))
             pass
         elif isinstance(resultvalue,dcv.value):
-            newel=output.addelement(element,resultname)
+            newel=output.addelement(element,name)
             resultvalue.xmlrepr(output,newel)
             pass
         elif isinstance(resultvalue,basestring):
-            newel=output.addelement(element,resultname)
+            newel=output.addelement(element,name)
             output.settext(newel,resultvalue)
             pass
 
         else :
-            raise ValueError("step %s gave unknown result type %s for %s" % (prxdoc.tostring(steptag),unicode(resultvalue.__class__),resultname))
+            raise ValueError("step %s gave unknown result type %s for %s" % (prxdoc.tostring(steptag),unicode(resultvalue.__class__),name))
         
         # add attributes to newel
         for attrname in attrdict:
@@ -704,8 +769,8 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
         
         argkw={}
         
-        # sys.stderr.write("argnames=%s\n" % (str(argnames)))
-        # sys.stderr.write("params.keys()=%s\n" % (str(params.keys())))
+        #sys.stderr.write("argnames=%s\n" % (str(argnames)))
+        #sys.stderr.write("params.keys()=%s\n" % (str(params.keys())))
         
         for argname in argnames:
             if argname in params:
@@ -728,10 +793,10 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             elif argname=="_dest_href":
                 # Get hrefvalue pointing at destination directory, where
                 # files should be written
-                destlist=xmldoc.xpath(output,"dc:summary/dc:dest")
+                destlist=output.xpath("dc:summary/dc:dest")
                 argkw[argname]=None
                 if len(destlist)==1:
-                    argkw[argname]=dc_value.hrefvalue.fromxml(output,destlist[0])
+                    argkw[argname]=dcv.hrefvalue.fromxml(output,destlist[0])
                     pass
                 pass
             else : 
@@ -756,10 +821,15 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             if execfunc.__name__.endswith("unlocked"): 
                 assert(not "_tag" in argnames) # can't supply tag if lock is released
                 output.unlock_rw() # release output lock 
-                resultdict=procsteppython_do_run(stepglobals,execfunc,argkw,ipythonmodelist,action,scripthref,pycode_text,pycode_lineno)
-                
-                output.lock_rw() # secure output lock 
-                
+                try: 
+                    resultdict=procsteppython_do_run(stepglobals,execfunc,argkw,ipythonmodelist,action,scripthref,pycode_text,pycode_lineno)
+                    pass
+                finally: 
+                    output.lock_rw() # secure output lock ... otherwise
+                    # an exception would be handled several levels above
+                    # which assumes we are locked. 
+                    pass
+
                 del rootprocess_el
                 element=output.restorepath(elementpath)
                 
