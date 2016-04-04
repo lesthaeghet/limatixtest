@@ -3,7 +3,7 @@
 import os
 import sys
 import copy
-import fcntl
+#import fcntl
 import pty
 import threading
 import subprocess

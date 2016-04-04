@@ -3,7 +3,6 @@ import os
 import os.path
 import copy
 import sys
-import fcntl
 import traceback
 import numbers
 import signal
@@ -27,6 +26,23 @@ except ImportError:
 
 import urllib
 
+
+if os.name=='nt':
+    # win32 fcntl.flock alternative: 
+    # loosely based on http://code.activestate.com/recipes/65203/
+    import win32con
+    import win32file
+    import pywintypes
+
+    __overlapped = pywintypes.OVERLAPPED()
+    pass
+
+else: 
+    import fcntl    
+    pass
+
+    
+    
 try: 
     from . import dc_provenance as provenance
     pass
@@ -1519,7 +1535,8 @@ class xmldoc(object):
                     if lockfd != -1: 
                         # We left something locked... see also _unlock_ro() and _unlock_rw()
                         assert(lockfd==self.lockfd)
-                        fcntl.flock(lockfd,fcntl.LOCK_UN)
+                        #fcntl.flock(lockfd,fcntl.LOCK_UN)
+                        self.__unlock()
                         os.close(lockfd)
                         self.lockfd=-1
 
@@ -2709,6 +2726,18 @@ class xmldoc(object):
         self.modified=False
         pass
 
+    def __lock_ro(self):
+        # super-low-level file locking
+        if os.name=='nt':
+            hfile=win32file._get_osfhandle(self.lockfd)
+            flags=0
+            win32file.LockFileEx(hfile, flags, 0, -0x10000, __overlapped)
+            pass
+        else:
+            fcntl.flock(self.lockfd,fcntl.LOCK_SH)
+            pass
+        pass
+
     def _lock_ro(self,fd):
         # low-level non recursive file locking
         # NOTE: This takes ownership of fd and will close it on unlock
@@ -2716,31 +2745,59 @@ class xmldoc(object):
         self.lockfd=fd
         # !!!*** bug: Should handle receipt of signal
         # during flock() call...
-        fcntl.flock(self.lockfd,fcntl.LOCK_SH)
+        # fcntl.flock(self.lockfd,fcntl.LOCK_SH)
+        self.__lock_ro()
         pass
         
     def _lock_convert_rw_to_ro(self):
         # !!!*** WARNING ***!!!! non-atomic !!!***
         assert(self.lockfd > 0)
-        fcntl.flock(self.lockfd,fcntl.LOCK_UN)
+        #fcntl.flock(self.lockfd,fcntl.LOCK_UN)
+        self.__unlock()
         # Somebody else could modifiy the file right now!!!
         # (according to man page we don't actually need to unlock it first
         #  .... should probably fix this)
 
         # !!!*** bug: Should handle receipt of signal
         # during flock() call...
-        fcntl.flock(self.lockfd,fcntl.LOCK_SH)
+        #fcntl.flock(self.lockfd,fcntl.LOCK_SH)
+        self.__lock_ro()
         pass
         
 
+    def __unlock(self):
+        # super-low-level file locking
+        if os.name=='nt':
+            hfile=win32file._get_osfhandle(self.lockfd)
+            win32file.UnlockFileEx(hfile,  0, -0x10000, __overlapped)
+            pass
+        else:
+            fcntl.flock(self.lockfd,fcntl.LOCK_UN)
+            pass
+        pass
+    
     def _unlock_ro(self):
         # low-level non recursive file locking
         assert(self.lockfd > 0)
-        fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
+        self.__unlock()
+        #fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
         os.close(self.lockfd)
         self.lockfd=-1
         pass
 
+
+    def __lock_rw(self):
+        # super-low-level file locking
+        if os.name=='nt':
+            hfile=win32file._get_osfhandle(self.lockfd)
+            flags=win32con.LOCKFILE_EXCLUSIVE_LOCK
+            win32file.LockFileEx(hfile, flags, 0, -0x10000, __overlapped)
+            pass
+        else:
+            fcntl.flock(self.lockfd,fcntl.LOCK_EX)
+            pass
+        pass
+    
     def _lock_rw(self,fd):
         # low-level non recursive file locking
         # NOTE: This takes ownership of fd and will close it on unlock
@@ -2748,13 +2805,28 @@ class xmldoc(object):
         self.lockfd=fd
         # !!!*** bug: Should handle receipt of signal
         # during flock() call
-        fcntl.flock(self.lockfd,fcntl.LOCK_EX)
+        #fcntl.flock(self.lockfd,fcntl.LOCK_EX)
+        self.__lock_rw()
         pass
+
+    # no distinction between __unlock_ro() and __unlock_rw()
+    # so we just define __unlock()
+    #def __unlock_rw(self):
+    #    # super-low-level file locking
+    #    if os.name=='nt':
+    #        hfile=win32file._get_osfhandle(self.lockfd)
+    #        win32file.UnlockFileEx(hfile,  0, -0x10000, __overlapped)
+    #        pass
+    #    else:
+    #        fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
+    #        pass
+    #    pass
 
     def _unlock_rw(self):
         # low-level non recursive file locking
         assert(self.lockfd > 0)
-        fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
+        #fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
+        self.__unlock()
         os.close(self.lockfd)
         self.lockfd=-1
         pass
@@ -2899,7 +2971,9 @@ class xmldoc(object):
                 traceback.print_stack()
                 pass
 
-            fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
+            # fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
+            self.__unlock()
+
             os.close(self.lockfd)
             self.lockfd=-1
             
@@ -2934,7 +3008,8 @@ class xmldoc(object):
             traceback.print_stack()
             if self.lockfd >= 0:
                 # mysterious lock... unlock it
-                fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
+                #fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
+                self.__unlock()
                 os.close(self.lockfd)
                 self.lockfd=-1
                 pass
