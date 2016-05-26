@@ -180,6 +180,9 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         pass
 
     def sync_to_paramdb(self):
+        if self.paramdb is None: 
+            return 
+
         if self.myprops["paramname"] not in self.paramdb:
             raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
         self.param=self.paramdb[self.myprops["paramname"]]
@@ -195,6 +198,10 @@ class adjustparamreadout(gtk.Entry,paramhandler):
         pass
 
     def unsync_to_paramdb(self):
+        # Are these next lines necessary? 
+        #if self.paramdb is None: 
+        #    return 
+
         self.param.remnotify(self.changeinprogress_notify)
         self.changeinprogress_notify=None
 

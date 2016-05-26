@@ -81,6 +81,7 @@ import numbers
 import traceback
 import collections
 import ast
+from pkg_resources import resource_string
 from lxml import etree
 
 try:
@@ -199,29 +200,39 @@ outputnsmap={
     }
 
 
-steppath=[".","/usr/local/dataguzzler/gui2/process_steps"]
+try: 
+    __install_prefix__=resource_string(__name__, 'install_prefix.txt').decode('utf-8')
+    pass
+except IOError: 
+    sys.stderr.write("dc_process: error reading install_prefix.txt. Assuming /usr/local.\n")
+    __install_prefix__="/usr/local"
+    pass
+
+
+
+steppath=[".",os.path.join(__install_prefix__,"share","datacollect2","dcp_steps")]
 
 def find_script_in_path(contexthref,scriptname):
     # BUG *** !!!!! We really shouldn't use scriptdir at all,
     # use the scriptpath, but for now we do for backwards compatibility
 
-    if os.path.exists(os.path.join(scriptdir,scriptname)):
+    if os.path.exists(os.path.join(contexthref.getpath(),scriptname)):
         print("WARNING: direct paths to scripts should be specified with <script xlink:href=\"...\"/>. Use the name=\"...\" attribute only for scripts to be found in the script search path")
         pass
     
-    if os.path.isabs(scriptname):
+    if posixpath.isabs(scriptname):
         return dcv.hrefvalue(quote(scriptname))
     
-    if os.path.pathsep in scriptname:
+    if posixpath.pathsep in scriptname:
         return dcv.hrefvalue(quote(scriptname),contexthref=contexthref)
 
     for trypath in steppath:
         if trypath==".":
-            trypath=scriptdir
+            trypath=contexthref.getpath()
             pass
         
         if os.path.exists(os.path.join(trypath,scriptname)):
-            return dcv.hrefvalue(quote(scriptname),contexthref=dcv.hrefvalue(quote(trypath)))
+            return dcv.hrefvalue(quote(scriptname),contexthref=dcv.hrefvalue(pathname2url(trypath)+"/"))
         pass
     
     raise IOError("Could not find script %s in path %s" % (scriptname,unicode(steppath)))
@@ -464,12 +475,21 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
         #sip.setapi('QTime', 2)
         #sip.setapi('QUrl', 2)
         #from PyQt4 import QtGui   # force IPython to use PyQt4 by importing it first
-        # alternate: Make matplotlib use PySide
-        # http://stackoverflow.com/questions/6723527/getting-pyside-to-work-with-matplotlib
-        import matplotlib
-        matplotlib.use('Qt4Agg')
-        matplotlib.rcParams['backend.qt4']='PySide'
-        
+
+        # RHEL6 compatibility  -- if running under Python 2.6, just import IPython, get PyQt4
+        if sys.version_info < (2,7):
+            from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
+            from IPython.qt.inprocess import QtInProcessKernelManager
+            pass
+        else: 
+
+            # Under more recent OS's: Make matplotlib use PySide
+            # http://stackoverflow.com/questions/6723527/getting-pyside-to-work-with-matplotlib
+            import matplotlib
+            matplotlib.use('Qt4Agg')
+            matplotlib.rcParams['backend.qt4']='PySide'
+            pass
+
         from IPython.lib import guisupport
         app = guisupport.get_app_qt4() 
 
