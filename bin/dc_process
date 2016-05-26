@@ -914,7 +914,7 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
 
 
     if len(elements)==0:
-        sys.stderr.write("Warning: step %s: no matching elements for output file %s\n" % (dc_process_common.getstepname(prxdoc,steptag),output.filename))
+        sys.stderr.write("Warning: step %s: no matching elements for output href%s\n" % (dc_process_common.getstepname(prxdoc,steptag),output.get_filehref().absurl()))
         pass
     
 
