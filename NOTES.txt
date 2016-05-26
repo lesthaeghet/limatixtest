@@ -1,0 +1,60 @@
+New GUI theory of operation
+---------------------------
+   * dg_io (from datacollect) is used to communicate with dataguzzler
+   * GTK Widgets (in widgets directory) know about dataguzzler and 
+use dg_io to communiate. Create an IO connection with: iohandler=dg_io.io()
+   * Widgets can be layed out with Glade. Currently only glade-3.6.7 is 
+supported because that is the version with RHEL and it uses gtk2/pygtk2
+   * Glade should be in the PATH as "glade-367". It can be run with the
+dg_glade command
+   * Widgets need to be imported before they can be instantiated. 
+dg_gui_gtksupp.import_widgets() finds them all and imports them. 
+   * Some widgets may handle values/units, so it's a good idea
+to import dg_units and call dg_units.units_config("insert_basic_units")
+
+To instantiate a widget tree, build the tree with glade, then call
+   (gladeobjdict,builder)=build_from_file(gladefile)
+   dg_gui_initialize_widgets(gladeobjdict,iohandler)
+
+To show a window from the widget tree, use: 
+win=gladeobjdict["simpletestwindow"]
+win.show()
+
+You then need to run the main loop:  gtk.main()
+
+See simpletest.py for a complete example
+
+Dataguzzler installs dg_glade in /usr/local/bin that has 
+access to the dataguzzler widgets. 
+
+Checklists
+----------
+Code/gladefiles for potential checklist steps are in the "steps/"
+directory. Possible steps are:
+   * adjustparam:    An adjustable parameter (box on top for adjustment, 
+     		     box on bottom for status)
+   * burstfreq:      GEN:BURST frequency selection
+   * command: 	     A button that issues a command
+   * multiparam:     Two separate adjustable parameters
+   * sweepfreq:      GEN:SWEEP frequency selection
+   * text:           Simple textual instructions
+
+Sample checklists are in the checklists/ directory.
+Sample checklist entry: 
+check "This is a step" text,
+      description="This is the step instruction"
+      . 
+
+The entry starts with the word "check", then the quoted title of the
+step. Then a space and the step type (i.e. text, adjustparam, etc), then
+a comma and the first parameter=value setting. Values may be quoted 
+strings, floating points, or integers followed by the letter 'i' (e.g. 5i).
+Each parameter=value pair should end with a comma, except the last
+which should either end with a period or a colon. If a colon, a Python
+block (indented at least two spaces) may follow, that is to be executed
+
+(this feature -- executing Python code -- is still in development and
+has not been tested. In the future it should be possible to trigger it 
+by various means). 
+
+
