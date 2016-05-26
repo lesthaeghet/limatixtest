@@ -1,0 +1,67 @@
+from lxml import etree
+
+import gtk
+import gobject
+
+import viewautoexp
+
+
+xmldat=r"""<dc:measurement xmlns:dcv="http://thermal.cnde.iastate.edu/dcvalue" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns="http://thermal.cnde.iastate.edu/datacollect" title="Run the python script">
+  <dc:autoexp>
+      <dc:automeas>
+        <dc:XPos dcv:units="mm">23.0</dc:XPos>
+        <dc:GotXPos dcv:units="mm">23.0002</dc:GotXPos>
+        <dc:stepnum_x dcv:units="">0</dc:stepnum_x>
+        <dc:YPos dcv:units="mm">5.0</dc:YPos>
+        <dc:GotYPos dcv:units="mm">5.0</dc:GotYPos>
+        <dc:stepnum_y dcv:units="">0</dc:stepnum_y>
+      </dc:automeas>
+      <dc:automeas>
+        <dc:XPos dcv:units="mm">23.0</dc:XPos>
+        <dc:GotXPos dcv:units="mm">23.0002</dc:GotXPos>
+        <dc:stepnum_x>0</dc:stepnum_x>
+        <dc:YPos dcv:units="mm">7.0</dc:YPos>
+        <dc:GotYPos dcv:units="mm">7.000254001</dc:GotYPos>
+        <dc:stepnum_y>1</dc:stepnum_y>
+      </dc:automeas>
+      <dc:automeas>
+        <dc:XPos dcv:units="mm">23.0</dc:XPos>
+        <dc:GotXPos dcv:units="mm">23.0002</dc:GotXPos>
+        <dc:stepnum_x>0</dc:stepnum_x>
+        <dc:YPos dcv:units="mm">9.0</dc:YPos>
+        <dc:GotYPos dcv:units="mm">8.999873</dc:GotYPos>
+        <dc:stepnum_y>2</dc:stepnum_y>
+      </dc:automeas>
+      <dc:automeas>
+        <dc:XPos dcv:units="mm">33.0</dc:XPos>
+        <dc:GotXPos dcv:units="mm">32.9998</dc:GotXPos>
+        <dc:stepnum_x>1</dc:stepnum_x>
+        <dc:YPos dcv:units="mm">5.0</dc:YPos>
+        <dc:GotYPos dcv:units="mm">5.0</dc:GotYPos>
+        <dc:stepnum_y>0</dc:stepnum_y>
+      </dc:automeas>
+      <dc:automeas>
+        <dc:XPos dcv:units="mm">33.0</dc:XPos>
+        <dc:GotXPos dcv:units="mm">32.9998</dc:GotXPos>
+        <dc:stepnum_x>1</dc:stepnum_x>
+        <dc:YPos dcv:units="mm">7.0</dc:YPos>
+        <dc:GotYPos dcv:units="mm">7.000254001</dc:GotYPos>
+        <dc:stepnum_y>1</dc:stepnum_y>
+      </dc:automeas>
+      <dc:automeas>
+        <dc:XPos dcv:units="mm">33.0</dc:XPos>
+        <dc:GotXPos dcv:units="mm">32.9998</dc:GotXPos>
+        <dc:stepnum_x>1</dc:stepnum_x>
+        <dc:YPos dcv:units="mm">9.0</dc:YPos>
+        <dc:GotYPos dcv:units="mm">8.999873</dc:GotYPos>
+        <dc:stepnum_y>2</dc:stepnum_y>
+      </dc:automeas>
+    </dc:autoexp>
+</dc:measurement>
+"""
+
+xml=etree.XML(xmldat)
+
+view=viewautoexp.viewautoexp(xml)
+view.show_all()
+gtk.main()

@@ -1,0 +1,22 @@
+m4_ifdef(imports_dcc,[[]],[[
+m4_define(imports_dcc,[[]])
+
+import datacollect2.dg_io
+
+from datacollect2.paramdb2 import dgcontroller
+from datacollect2.paramdb2 import autocontroller_specimendb
+from datacollect2.paramdb2 import autocontroller_xducerdb
+from datacollect2.paramdb2 import autocontroller_xmlfile
+from datacollect2.paramdb2 import optionscontroller_xmlfile
+from datacollect2.paramdb2 import dgcontroller_nummathparam
+from datacollect2.paramdb2 import autocontroller_averagedwfm
+from datacollect2.paramdb2 import autocontroller_wfmmetadata
+from datacollect2.paramdb2 import updatedg_notifycallback
+from datacollect2.paramdb2 import updatedg_exitcallback
+from datacollect2.dc_value import numericunitsvalue as numericunitsv
+from datacollect2.dc_value import complexunitsvalue as complexunitsv
+from datacollect2.dc_value import stringvalue as stringv
+from datacollect2.dc_value import hrefvalue as hrefv
+from datacollect2.dc_value import excitationparamsvalue as excitationparamsv
+
+]])
