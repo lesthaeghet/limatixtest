@@ -7,8 +7,8 @@ import copy
 import pty
 import threading
 import subprocess
-import viewautoexp
 
+from .. import viewautoexp
 from .. import dc_value
 
 try:

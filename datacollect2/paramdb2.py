@@ -1389,7 +1389,7 @@ def updatedg_notifycallback(param, condition, module):
     if type(param.dcvalue) is numericunitsv:
         outvalue = param.format()
     elif type(param.dcvalue) is stringv:
-        outvalue = str(param)
+        outvalue = str(param.dcvalue)
     else:
         raise Exception('Parameter %s is type %s - This type is Not Supported For Dataguzzler Assignment Callback (Must be dc_value.stringvalue or dc_value.numericunitsvalue)' % (param.xmlname, repr(type(param.dcvalue))))
     if outvalue.strip() == "":
@@ -1461,7 +1461,7 @@ class autocontroller_xmlfile_class(autocontrollerbase):
                 if type(paramdb[subparam].dcvalue) is numericunitsv:
                     valuelist.append(paramdb[subparam].value(units))
                 elif type(paramdb[subparam].dcvalue) is stringv:
-                    valuelist.append(str(paramdb[subparam]))
+                    valuelist.append(str(paramdb[subparam].dcvalue))
                 else:
                     raise Exception('Parameter %s depends on %s which is type %s - This type is Not Supported (Must be dc_value.stringvalue or dc_value.numericunitsvalue)' % (param.xmlname, subparam, repr(type(paramdb[subparam].dcvalue))))
                 pass
@@ -1485,7 +1485,7 @@ class autocontroller_xmlfile_class(autocontrollerbase):
                 if type(paramdb[subparam].dcvalue) is numericunitsv:
                     valuelist.append(paramdb[subparam].value(units))
                 elif type(paramdb[subparam].dcvalue) is stringv:
-                    valuelist.append(str(paramdb[subparam]))
+                    valuelist.append(str(paramdb[subparam].dcvalue))
                 else:
                     raise Exception('Parameter %s depends on %s which is type %s - This type is Not Supported (Must be dc_value.stringvalue or dc_value.numericunitsvalue)' % (param.xmlname, subparam, repr(type(paramdb[subparam].dcvalue))))
                 pass
