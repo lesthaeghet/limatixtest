@@ -102,7 +102,6 @@ class steptemplate(gtk.HBox):
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
         self.stepobj.dc_gui_init(guistate)
-
         pass
 
     # called by checklist when a box is checked or unchecked

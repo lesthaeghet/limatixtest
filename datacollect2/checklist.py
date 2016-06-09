@@ -1137,7 +1137,13 @@ class checklist(object):
         
         
         for step in self.steps: 
-            step.dc_gui_init(newguistate)
+            try: 
+                step.dc_gui_init(newguistate)
+                pass
+            except:
+                (exctype,excvalue)=sys.exc_info()[:2]
+                
+                raise RuntimeError("Error initializing checklist step \"%s\" in checklist %s->%s:\n%s\n%s" % (step.stepdescr,self.orighref.absurl(),self.xmldoc.get_filehref().absurl(),traceback.format_exc(),str(excvalue)))
             step.show_all()
             pass
         self.gladeobjdict["MinorBox"].show_all()  # Make sure Rationale box shows up too, among others
@@ -1301,8 +1307,15 @@ class checklist(object):
                 ## append terminating "pass" statement to code list
                 #codelist.append("\n pass\n")
             
-                step=steptemplate(cnt,item.title,item.cls+"step",params=item.params,chklist=self,xmlpath=item.xmlpath,paramdb=self.paramdb)
-            
+                try: 
+                    step=steptemplate(cnt,item.title,item.cls+"step",params=item.params,chklist=self,xmlpath=item.xmlpath,paramdb=self.paramdb)
+                    pass
+                except:
+                    (exctype,excvalue)=sys.exc_info()[:2]
+                    
+                    raise RuntimeError("Error initializing checklist step \"%s\" in checklist %s->%s:\n%s\n%s" % (item.title,self.orighref.absurl(),self.xmldoc.get_filehref().absurl(),traceback.format_exc(),str(excvalue)))
+                
+
                 self.gladeobjdict["MinorBox"].pack_start(step,True,True,0)
 
                 if initializefromunfilled:
@@ -1891,7 +1904,7 @@ class checklist(object):
                     parentclobj.set_readonly(False)
                     pass
                 elif parent is not None:
-                    sys.stderr.write("checklist.set_readonly(%s,False): Cannot find parent %s to set it in read/write mode.\n"  % (self.xmldoc.get_filehref(),parent.absurl()))
+                    sys.stderr.write("checklist.set_readonly(%s,False): Cannot find parent %s to set it in read/write mode. This is not a problem if the parent checklist is managed by dc_checklist instead of datacollect2.\n"  % (self.xmldoc.get_filehref(),parent.absurl()))
                     pass
                 
                 
@@ -2325,54 +2338,60 @@ class checklist(object):
         self.xmldoc.lock_ro()
         try: 
             destl=self.xmldoc.xpath("chx:dest")
-            assert(len(destl) == 1)
-            dest=destl[0]
-            
-            use_autodcfilename=False
-            use_autofilename=False
-            
-            if not self.xmldoc.filehref:
-                if self.datacollectmode and self.xmldoc.hasattr(dest,"autodcfilename"):
-                    use_autodcfilename=True
-                    pass
-                elif self.xmldoc.hasattr(dest,"autofilename"):
-                    use_autofilename=True
-                    pass
+
+            if len(destl)==0:
+                OK=True
                 pass
-
-            if not self.xmldoc.filehref and (use_autofilename or use_autodcfilename):
-                #sys.stderr.write("ok_set_filename looking for needed unchecked items\n")
-
-                # if self.datacollect_explog is not None and not self.autosaved and "autofilename" in dest.attrib:
-                # once none of the titles in unchecked checkitems are contained
-                # in the autofilename string, it is OK to set the name and autosave
-                checkitems=self.xmldoc.xpath("chx:checkitem")
-            
-                boxcnt=0
-                while boxcnt < len(checkitems):
-                    if self.xmldoc.getattr(checkitems[boxcnt],"checked","false")=="true":
-                        boxcnt+=1
-                        continue
+            else: 
+                assert(len(destl) == 1)
+                dest=destl[0]
                 
-                    title=self.xmldoc.getattr(checkitems[boxcnt],"title",checkitems[boxcnt].text).strip()
+                use_autodcfilename=False
+                use_autofilename=False
                 
-                    if ((use_autofilename and (title in self.xmldoc.getattr(dest,"autofilename")))
-                        or (use_autodcfilename and title in self.xmldoc.getattr(dest,"autodcfilename"))):
-                        #sys.stderr.write("ok_set_filename found needed unchecked items\n")
-                    
-                        break # prevent autosave at this time
-                
-                    boxcnt+=1
+                if not self.xmldoc.filehref:
+                    if self.datacollectmode and self.xmldoc.hasattr(dest,"autodcfilename"):
+                        use_autodcfilename=True
+                        pass
+                    elif self.xmldoc.hasattr(dest,"autofilename"):
+                        use_autofilename=True
+                        pass
                     pass
+                
+                if not self.xmldoc.filehref and (use_autofilename or use_autodcfilename):
+                    #sys.stderr.write("ok_set_filename looking for needed unchecked items\n")
+                    
+                    # if self.datacollect_explog is not None and not self.autosaved and "autofilename" in dest.attrib:
+                    # once none of the titles in unchecked checkitems are contained
+                    # in the autofilename string, it is OK to set the name and autosave
+                    checkitems=self.xmldoc.xpath("chx:checkitem")
+            
+                    boxcnt=0
+                    while boxcnt < len(checkitems):
+                        if self.xmldoc.getattr(checkitems[boxcnt],"checked","false")=="true":
+                            boxcnt+=1
+                            continue
+                
+                        title=self.xmldoc.getattr(checkitems[boxcnt],"title",checkitems[boxcnt].text).strip()
+                
+                        if ((use_autofilename and (title in self.xmldoc.getattr(dest,"autofilename")))
+                            or (use_autodcfilename and title in self.xmldoc.getattr(dest,"autodcfilename"))):
+                            #sys.stderr.write("ok_set_filename found needed unchecked items\n")
+                    
+                            break # prevent autosave at this time
+                
+                        boxcnt+=1
+                        pass
 
-                if boxcnt==len(checkitems):
-                    # if we went all the way to the end of the previous loop
-                    # then it's OK to set the filename and autosave if 
-                    # in datacollect mode
-                    #  self.xmldoc.unlock_rw()   (now unlocked by finally block)
+                    if boxcnt==len(checkitems):
+                        # if we went all the way to the end of the previous loop
+                        # then it's OK to set the filename and autosave if 
+                        # in datacollect mode
+                        #  self.xmldoc.unlock_rw()   (now unlocked by finally block)
 
-                    OK=True
-
+                        OK=True
+                        
+                        pass
                     pass
                 pass
             pass
