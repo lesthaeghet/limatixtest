@@ -167,7 +167,7 @@ def escapestring(s):
     pass
 
 xml2pangoxslt=r"""<?xml version="1.0"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0" xmlns:exsl="http://exslt.org/common" extension-element-prefixes="exsl" xmlns:chx="http://thermal.cnde.iastate.edu/checklist">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0" xmlns:exsl="http://exslt.org/common" extension-element-prefixes="exsl" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns:html="http://www.w3.org/1999/xhtml">
 <xsl:output method="xml" encoding="utf-8"/>
 
 <!-- normalize spaces in text nodes -->
@@ -189,7 +189,7 @@ xml2pangoxslt=r"""<?xml version="1.0"?>
 </xsl:template>
 
 <!-- convert <br/> tags into line breaks -->
-<xsl:template match="chx:br">
+<xsl:template match="chx:br|br|html:br">
   <xsl:text>&#x0a;</xsl:text>
 </xsl:template>
 
@@ -1617,6 +1617,8 @@ class checklist(object):
             
                 aecopy=copy.deepcopy(autoexp)
                 # sys.stderr.write("\n\ngot aecopy: %s\n" % (etree.tostring(aecopy)))
+                aecopydoc=xmldoc.frometree(aecopy,contexthref=self.xmldoc.getcontexthref())
+                
                 title=self.xmldoc.xpathcontext(autoexp,"string(../@title)")
                 if len(title)==0:
                     title=self.xmldoc.xpathcontext(autoexp,"string(..)")
@@ -1624,9 +1626,9 @@ class checklist(object):
                 title=title.strip() # strip whitespace
             
                 # have to use low-level lxml code here because aecopy is not tied to any xmldoc yet.
-                aecopy.attrib["title"]=title
-            
-                autoexps.append(aecopy)                
+                aecopydoc.setattr(aecopydoc.getroot(),"title",title)
+                
+                autoexps.append(aecopydoc)                
             
                 pass
         
@@ -1643,8 +1645,8 @@ class checklist(object):
             pass
 
         #sys.stderr.write("checklist save_measurement(): calling recordmeasurement()\n")
-        self.datacollect_explog.recordmeasurement(self.paramdb["measnum"].dcvalue.value(),clinfo=clinfo,cltitle=cltitle,extrataglist=autoexps)
-
+        self.datacollect_explog.recordmeasurement(self.paramdb["measnum"].dcvalue.value(),clinfo=clinfo,cltitle=cltitle,extratagdoclist=autoexps)
+        
         
         pass
 

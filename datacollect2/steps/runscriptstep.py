@@ -101,7 +101,7 @@ class runscriptstep(buttontextareastep):
                      gobject.PARAM_READWRITE), # flags
         "command": (gobject.TYPE_STRING,
                        "command to run",
-                       "command should have a \"%(id)s\" where the id should be substituted and a %(basename)s where the base of the output file name should be substituted note: current directoy will be the destination location and files should be output there.",
+                       "command should have a \"%(id)s\" where the id should be substituted and a %(basename)s where the base of the output file name should be substituted note: current directory will be the destination location and files should be output there.",
                      "", # default value 
                      gobject.PARAM_READWRITE), # flags
         "viewautoexp": (gobject.TYPE_BOOLEAN,

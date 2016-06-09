@@ -22,7 +22,7 @@ class runmatlabscriptstep(runscriptstep):
         # inherits properties scriptlog, buttonlabel, viewautoexp, description
         "matlabfuncall": (gobject.TYPE_STRING,
                           "matlab function call to make",
-                          "matlabfuncall should have a \'%(id)s\' where the id should be substituted and a \'%(basename)s\' where the base of the output file name should be substituted note: current directoy will be the destination location and files should be output there.",
+                          "matlabfuncall should have a \'%(id)s\' where the id should be substituted and a \'%(basename)s\' where the base of the output file name should be substituted note: current directory will be the destination location and files should be output there.",
                     "", # default value 
                           gobject.PARAM_READWRITE), # flags
         "matlabfundir": (gobject.TYPE_STRING,
