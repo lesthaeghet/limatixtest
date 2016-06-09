@@ -2863,9 +2863,9 @@ class xmldoc(object):
 
 
     def lock_rw(self):
-      """Lock the file for read-write access. File locking is counted, 
-      so lock calls may be nested"""
-
+        """Lock the file for read-write access. File locking is counted, 
+        so lock calls may be nested"""
+        
         if not self.use_locking:
             return
 
