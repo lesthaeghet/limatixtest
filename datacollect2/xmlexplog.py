@@ -1,6 +1,7 @@
 import os
 import os.path
 import sys
+import copy
 
 import dg_timestamp
 
@@ -63,7 +64,7 @@ class explog(xmldoc.xmldoc):
 
 
 
-    def recordmeasurement(self,measnum,clinfo=None,cltitle=None,extrataglist=None):
+    def recordmeasurement(self,measnum,clinfo=None,cltitle=None,extratagdoclist=None):
 
         self.shouldbeunlocked()
 
@@ -126,9 +127,13 @@ class explog(xmldoc.xmldoc):
                 
                 pass
         
-            if extrataglist is not None:
-                for tag in extrataglist:
-                    meastag.append(tag)
+            if extratagdoclist is not None:
+                for tagdoc in extratagdoclist:
+                    # Make copy in correct context
+                    newtagdoc=xmldoc.xmldoc.inmemorycopy(tagdoc,contexthref=self.doc.getcontexthref())
+                    # Insert copy of copy into experiment log
+                    meastag.append(copy.deepcopy(newtagdoc.getroot()))
+                    
                     pass
                 pass
             

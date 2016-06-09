@@ -2918,7 +2918,12 @@ class arrayvalue(value):
     array=None  # Numpy array
     
     def __init__(self,array,defunits=None):
-        self.array=copy.copy(array)
+        if isinstance(array,arrayvalue):
+            self.array=copy.copy(array.array)
+            pass
+        else:
+            self.array=copy.copy(array)
+            pass
         pass
     
     def __str__(self):
