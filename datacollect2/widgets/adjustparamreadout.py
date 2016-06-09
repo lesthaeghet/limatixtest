@@ -156,6 +156,10 @@ class adjustparamreadout(gtk.Entry,paramhandler):
             pass
 
         pass
+
+    def set_paramdb(self,paramdb):
+        self.paramdb=paramdb
+        pass
     
     def dc_gui_init(self,guistate):
         # need next line if subclassing a dc_gui class

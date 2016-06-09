@@ -58,9 +58,10 @@ class buttontextareastep(gtk.HBox):
     
     myprops=None
 
-                      
+    step=None                 
     paramdb=None
     gladeobjdict=None
+    guistate=None
     
     def __init__(self,checklist,step,xmlpath):
         # paramhandler.__init__(self,super(adjustparamstep,self),self.__proplist)# .__gproperties__)
@@ -71,6 +72,7 @@ class buttontextareastep(gtk.HBox):
 
         (self.gladeobjdict,self.gladebuilder)=build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"buttontextareastep.glade"))   
         
+	self.step=step
         self.set_property("description","")
         self.set_property("buttonlabel","")
         self.set_property("readoutparam","")
@@ -116,6 +118,7 @@ class buttontextareastep(gtk.HBox):
         
         
         self.paramdb=guistate.paramdb
+	self.guistate=guistate
 
         dc_initialize_widgets(self.gladeobjdict,guistate)
 

@@ -221,6 +221,12 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
 
         pass
 
+    
+    def set_paramdb(self,paramdb):
+        self.paramdb=paramdb
+        pass
+
+
     def sync_to_paramdb(self):
         if self.myprops["paramname"] not in self.paramdb:
             raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
@@ -259,7 +265,7 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
 
     def pp_abort(self):
         # set to current value of underlying parameter
-        if self.state==self.STATE_FIXED:
+        if self.state==self.STATE_FIXED or self.param is None:
             return
         
         self.changedinhibit=True
@@ -419,7 +425,8 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
         self.state=state
 
         if self.state!=self.STATE_FIXED:
-            self.set_sensitive(True)
+            # self.set_sensitive(True)
+            self.textview.set_editable(True)
             pass
 
 
@@ -446,7 +453,8 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
             self.setbgcolor("ltblue")
             pass
         elif self.state==self.STATE_FIXED:
-            self.set_sensitive(False)
+            #self.set_sensitive(False)
+            self.textview.set_editable(False)
             pass
         else:
             assert(0)

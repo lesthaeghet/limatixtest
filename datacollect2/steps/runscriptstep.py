@@ -10,6 +10,7 @@ import subprocess
 
 from .. import viewautoexp
 from .. import dc_value
+from .. import paramdb2 as pdb
 
 try:
     from Queue import Queue, Empty
@@ -131,7 +132,8 @@ class runscriptstep(buttontextareastep):
 
     STATE_IDLE=0  # ready to run
     STATE_RUNNING=1 # subprocess is running
-    STATE_DONE=2    # subprocess has run; ready for reset
+    STATE_ASSIGNING=2 # in process of assigning result, still waiting for scriptresultassignedcallback
+    STATE_DONE=3    # subprocess has run; ready for reset
 
     # self.paramdb  defined by buttontextareastep, set by buttontextareastep's dc_gui_init()
 
@@ -147,6 +149,7 @@ class runscriptstep(buttontextareastep):
         if self.scriptlog is None:
             self.scriptlog=""
             pass
+
         if self.command is None:
             self.command=""
             pass
@@ -170,6 +173,11 @@ class runscriptstep(buttontextareastep):
         self.queue=Queue()
         self.state=self.STATE_IDLE
         
+        self.private_paramdb=pdb.paramdb(None)  # private paramdb to store scriptlog if not used as a global parameter.... i.e. if the scriptlog property (above) is blank ("")
+        self.private_paramdb.addparam("scriptlog",dc_value.stringvalue,reset_with_meas_record=True) # reset_with_meas_record won't actually do anything here, but is a reminder when creating script log parameters that we usually want to do that. 
+
+        self.assign_readoutparam()
+
         # We implement custom tooltips on the push button to indicate
         # status. 
         self.gladeobjdict["pushbutton"].set_has_tooltip(True)
@@ -184,6 +192,24 @@ class runscriptstep(buttontextareastep):
 
         pass
 
+    def assign_readoutparam(self):
+
+        # use our private paramdb if scriptlog is blank
+        if self.scriptlog=="":
+            self.gladeobjdict["textarea"].set_paramdb(self.private_paramdb)
+            self.set_property("readoutparam","scriptlog")
+            pass
+        else: 
+            # central paramdb
+	    if self.guistate is not None:
+                self.gladeobjdict["textarea"].set_paramdb(self.guistate.paramdb)
+		pass
+
+            self.set_property("readoutparam",self.scriptlog)
+
+            pass
+        pass
+
 
     def dc_gui_init(self,guistate):
 
@@ -192,6 +218,7 @@ class runscriptstep(buttontextareastep):
         # call superclass (buttontextareastep) dc_gui_init
         super(runscriptstep,self).dc_gui_init(guistate)
 
+	self.assign_readoutparam()
         
         pass
     
@@ -223,11 +250,12 @@ class runscriptstep(buttontextareastep):
 
     def value_from_xml(self):
         value=dc_value.stringvalue("")
+	gotdisplayfmt=None
         self.checklist.xmldoc.lock_ro()
         try: 
             xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
             
-            scriptoutputparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:parameter[@name='scriptlog']")
+            scriptoutputparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:parameter[@name='scriptlog']|chx:scriptlog")
             if len(scriptoutputparamnodes) >= 1:
                 scriptoutputparamnode=scriptoutputparamnodes[0]
                 value=dc_value.stringvalue.fromxml(self.checklist.xmldoc,scriptoutputparamnode)
@@ -239,6 +267,7 @@ class runscriptstep(buttontextareastep):
             self.checklist.xmldoc.unlock_ro()
             pass
         
+        # sys.stderr.write("runscriptsetp.value_from_xml: %s\n" % (str(value)))
         
         return (value,gotdisplayfmt)
     
@@ -286,7 +315,7 @@ class runscriptstep(buttontextareastep):
     def do_set_property(self,property,value):
         if property.name=="scriptlog":
             self.scriptlog=value
-            self.set_property("readoutparam",value)
+            self.assign_readoutparam()
             pass
         elif property.name=="command":
             # command should have a "%(id)s" where the id should be substituted 
@@ -486,6 +515,7 @@ class runscriptstep(buttontextareastep):
             retcode=self.subprocess_pobj.wait()
 
             self.subprocess_pobj=None
+            self.state=self.STATE_ASSIGNING
             
             # Set the button label to "reset"
             self.gladeobjdict["pushbutton"].set_label("Reset")
@@ -512,12 +542,12 @@ class runscriptstep(buttontextareastep):
             try: 
                 xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
 
-                scriptoutputparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:parameter[@name='scriptoutput']")
+                scriptoutputparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:scriptlog")
                 if len(scriptoutputparamnodes) < 1:
                     # need to add a node
-                    scriptoutputparamnode=self.checklist.xmldoc.addelement(xmltag,"chx:parameter")
-                    self.checklist.xmldoc.setattr("name","scriptlog")
-                    self.checklist.xmldoc.setattr("type","str")
+                    scriptoutputparamnode=self.checklist.xmldoc.addelement(xmltag,"chx:scriptlog")
+                    # self.checklist.xmldoc.setattr("name","scriptlog")
+                    # self.checklist.xmldoc.setattr(scriptoutputparamnode,"type","str")
                     pass
                 else:
                     scriptoutputparamnode=scriptoutputparamnodes[0]
@@ -562,8 +592,14 @@ class runscriptstep(buttontextareastep):
             self.checklist.xmldoc.unlock_rw()
             pass
             
-        # Clear the script output
-        self.paramdb[self.scriptlog].requestvalstr_sync("")
+        ## Clear the script output
+        ## No longer do this because we should have the reset_with_meas_record
+        ## flag set on the parameter
+        #self.paramdb[self.scriptlog].requestvalstr_sync("")
+
+        # Reset our private scriptlog parameter in case we are using it
+        self.private_paramdb["scriptlog"].requestvalstr_sync("")
+        
         self.gladeobjdict["textarea"].pp_abort()
 
         # Set the label on the button 
