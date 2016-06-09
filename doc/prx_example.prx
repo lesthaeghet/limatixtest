@@ -8,7 +8,7 @@
 
   <inputfile xlink:href="example_input.xlg"/>
   <outputfile xlink:href="example_input.xlp"/> <!-- if outputfile tag is omitted and input name ends with .xlg, outputfile defaults to original with extension changed to .xlp -->
-  <inputfilter xlink:href="filterscript" param1="-a" param2="-b"> <!-- inputfilter is what is used to make initial conversion of inputfile to outputfile. It is run as a command with the specified parameters followed by the path to the input file and the path to the output file -->
+  <inputfilter xlink:href="filterscript" param1="-a" param2="-b"/> <!-- inputfilter is what is used to make initial conversion of inputfile to outputfile. It is run as a command with the specified parameters followed by the path to the input file and the path to the output file -->
     
   <hostname>pequod</hostname>  <!-- if specified, will only run on this hostname to prevent conflicts when file locking does not operate across hosts -->
   <elementmatch>xpath_condition</elementmatch>

@@ -34,3 +34,10 @@ xmldoc       -- representation of an XML document such as an experiment log,
                 with routines to add and extract data.
 dc_provenance -- Provenance tracking within XML documents
 paramdb2     -- Database of parameters to be written to experiment log
+
+
+Documentation
+-------------
+Primary datacollect2 documentation is in doc/datacollect2.xhtml.
+Some additional documentation on dc_process is in the presentation
+that can be accessed as doc/dc_process.odp or doc/dc_process.pdf
