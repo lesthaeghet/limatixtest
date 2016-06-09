@@ -354,24 +354,17 @@ class xmldoc(object):
         return cls(href,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,debug=debug)
 
     @classmethod
-    def newdoc(cls,maintagname,nsmap=None,num_backups=1,use_locking=False,contextdir=None,contexthref=None,debug=False):
+    def newdoc(cls,maintagname,nsmap=None,num_backups=1,use_locking=False,contexthref=None,debug=False):
         """ xmldoc.newfile(maintagname,...): 
         Create a new in-memory document. See 
         main constructor docs for other parameters"""
 
 
-        if contexthref is None and contextdir is not None:
-            if not contextdir.endswith("/"):
-                contextdir+="/"
-                pass
-
-            contexthref=dc_value.hrefvalue(pathname2url(contextdir))
-            pass
         
         return cls(None,maintagname=maintagname,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,use_locking=use_locking,contexthref=contexthref,debug=debug)
 
     @classmethod
-    def fromstring(cls,xml_string,nsmap=None,num_backups=1,use_locking=False,contextdir=None,contexthref=None,debug=False,force_abs_href=False):
+    def fromstring(cls,xml_string,nsmap=None,num_backups=1,use_locking=False,contexthref=None,debug=False,force_abs_href=False):
         """ xmldoc.fromstring(...): 
         Create a new in-memory document from a string. See 
         main constructor docs for other parameters.
@@ -384,13 +377,6 @@ class xmldoc(object):
         if force_abs_href is set, it will absolutize all references for you
 """
 
-        if contexthref is None and contextdir is not None:
-            if not contextdir.endswith("/"):
-                contextdir+="/"
-                pass
-
-            contexthref=dc_value.hrefvalue(pathname2url(contextdir))
-            pass
         
         SIO=StringIO(xml_string)
         newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,FileObj=SIO,use_locking=use_locking,contexthref=contexthref,debug=debug)
@@ -403,7 +389,7 @@ class xmldoc(object):
         return newdoc
     
     @classmethod
-    def inmemorycopy(cls,xmldoc,nsmap=None,readonly=False,contextdir=None,contexthref=None,debug=False,force_abs_href=False):
+    def inmemorycopy(cls,xmldoc,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False):
         # Create a new in-memory XMLDOC with a copy of the content of an existing xmldoc
         # Does fixups of xlink:href attributes to contexthref or contextdir
         # if contextdir and contexthref are None, it is presumed that context does
@@ -416,12 +402,6 @@ class xmldoc(object):
             newnsmap.update(nsmap)
             pass
 
-        if contexthref is None and contextdir is not None:
-            if not contextdir.endswith("/"):
-                contextdir+="/"
-                pass
-            contexthref=dc_value.hrefvalue(pathname2url(contextdir))
-            pass
 
         if xmldoc.filehref is None:
             doccontexthref=xmldoc.contexthref
@@ -441,7 +421,7 @@ class xmldoc(object):
         return newdoc
 
     @classmethod
-    def frometree(cls,lxmletree,nsmap=None,readonly=False,contextdir=None,contexthref=None,debug=False,force_abs_href=False):
+    def frometree(cls,lxmletree,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False):
         # Create an xmldoc object from an existing lxml ElementTree object
         # NOTE: Steals existing object and keeps using it internally!!!
         
@@ -2112,6 +2092,7 @@ class xmldoc(object):
 
 
     def getroot(self):
+        """Get the root node of the document"""
         root=self.doc.getroot()
         provenance.elementaccessed(self._filename,self.doc,root)
 
@@ -2491,7 +2472,8 @@ class xmldoc(object):
 
 
     def removeelement(self,element):
-
+        # Remove the specified element.
+        
         self.element_in_doc(element)
 
         element.getparent().remove(element)
@@ -2833,6 +2815,8 @@ class xmldoc(object):
 
 
     def lock_ro(self):
+        """Lock the file for read only access. File locking is counted, 
+        so lock calls may be nested"""
         if not self.use_locking:
             return
 
@@ -2849,6 +2833,7 @@ class xmldoc(object):
         pass
     
     def unlock_ro(self):
+        """Unlock the file from read-only-access"""
         if not self.use_locking:
             return
 
@@ -2866,6 +2851,7 @@ class xmldoc(object):
         pass
 
     def is_locked(self):
+        """Return whether the document is locked for access"""
         assert(self.use_locking)
 
         if self.rw_lockcount > 0:
@@ -2877,6 +2863,8 @@ class xmldoc(object):
 
 
     def lock_rw(self):
+      """Lock the file for read-write access. File locking is counted, 
+      so lock calls may be nested"""
 
         if not self.use_locking:
             return
@@ -2897,6 +2885,7 @@ class xmldoc(object):
         pass
 
     def unlock_rw(self):
+        """Unlock the file from read-write access"""
         if not self.use_locking:
             return
 
@@ -2940,6 +2929,7 @@ class xmldoc(object):
 
 
     def shouldbeunlocked(self):
+        """Assert that the document should be unlocked"""
         if not self.use_locking:
             return
 
@@ -2985,6 +2975,8 @@ class xmldoc(object):
         pass
 
     def should_be_rwlocked_once(self):
+        """Assert that the document should be read-write locked exactly once"""
+
         if not self.use_locking:
             return
         
@@ -3156,6 +3148,7 @@ class xmldoc(object):
         pass
 
     def getparent(self,element):
+        """Get the parent of a particular element"""
         parent=element.getparent()
         provenance.elementaccessed(self._filename,self.doc,element)
         return parent
