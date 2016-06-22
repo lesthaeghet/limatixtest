@@ -22,7 +22,6 @@ else :
     pass
 
 from datacollect2 import dc2_misc
-from datacollect2 import canonicalize_path
 from datacollect2 import checklist
 from datacollect2 import xmldoc
 from datacollect2 import checklistdb

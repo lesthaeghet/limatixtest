@@ -98,7 +98,7 @@ except ImportError:
     pass
 
 
-from .. import canonicalize_path
+#from .. import canonicalize_path
 from ..dc_gtksupp import build_from_file
 from ..dc_gtksupp import dc_initialize_widgets
 from .. import dc2_misc

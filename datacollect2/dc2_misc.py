@@ -8,7 +8,7 @@ import traceback
 from pkg_resources import resource_string
 
 from . import checklistdb
-from . import canonicalize_path
+#from . import canonicalize_path
 from . import xmldoc
 from . import dc_value
 

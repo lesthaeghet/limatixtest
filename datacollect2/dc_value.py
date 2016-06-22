@@ -12,26 +12,6 @@ import urllib
 import posixpath
 import base64
 
-try:
-    # py2.x
-    from urllib import pathname2url
-    from urllib import url2pathname
-    from urllib import quote
-    from urllib import unquote
-    from urlparse import urlparse
-    from urlparse import urlunparse
-    from urlparse import urljoin    
-    pass
-except ImportError:
-    # py3.x
-    from urllib.request import pathname2url
-    from urllib.request import url2pathname
-    from urllib.parse import quote
-    from urllib.parse import unquote
-    from urllib.parse import urlparse
-    from urllib.parse import urlunparse
-    from urllib.parse import urljoin
-    pass
 from lxml import etree
 
 treesync=None
@@ -50,8 +30,8 @@ except ImportError:
     pass
 
 
-
-#import canonicalize_path
+#from .canonicalize_path import href_context
+from . import canonicalize_path
 
 from . import dc_provenance as provenance
 # from . import xmldoc
@@ -668,425 +648,103 @@ class stringvalue(value):
 
 
 class hrefvalue(value):
-    # an href is a URL reference with
-    # a context. 
-
-    # Everything has to have a context, unless the
-    # supplied URL is guaranteed to be absolute and
-    # defines a URL scheme. If you just
-    # have a file path, then that context is the
-    # current directory '.'
-    #
-    # The HREF is represented as a list of URL contexts
-    # that when joined represent the desired URL.
-    # If there is no leading context that defines a URL scheme,
-    # then the scheme is assumed to be file://. If there is no
-    # leading context that defines an absolute URL path, then that
-    # path is presumed to be relative to the current directory.
-
-    # Note that contexts may include a file part, WHICH IS STRIPPED.
-    # A context intended to be a directory should include the
-    # trailing slash.
-
-    # Note that URL's and contexts can be generated from
-    # filesystem paths with urllib.[request.]pathname2url()
+    href_context=None  # canonicalize_path.href_context object
     
-
-    contextlist=None  # list (actually tuple, once finalized) of URL's
-
-    def __init__(self,URL,contexthref=None,defunits=None) :
-        contextlist=[]
-        gotURL=False
-        
-
-        #import pdb as pythondb
-        #pythondb.set_trace()
-
-        if URL is None and contexthref is None:
-            self.contextlist=None
-            # blank
-            return
-
-        if contexthref is not None and not hasattr(contexthref,"contextlist"):
-
-            # if a tuple, interpret as a contextlist  otherwise contexthref presumed to be a string...
-            assert(isinstance(contexthref,basestring) or isinstance(contexthref,tuple))
-            contexthref=hrefvalue(contexthref)
+    def __init__(self,URL,contexthref=None,defunits=None):
+        if hasattr(contexthref,"href_context"):
+            contexthref=contexthref.href_context
             pass
         
-        # include context, if present
-        if contexthref is not None and contexthref.contextlist is not None:            
-            contextlist.extend(contexthref.contextlist)
-            pass
-        
-        if hasattr(URL,"contextlist"):
-            # URL is actually an hrefvalue
-            if URL.contextlist is not None:
-                contextlist.extend(URL.contextlist)
-                if len(URL.contextlist) > 0:
-                    gotURL=True
-                    pass
-                pass
-            pass
-        elif isinstance(URL,tuple):
-            # Treat tuple as contextlist
-            contextlist.extend(URL)
-            #if len(URL) > 0:
-            gotURL=True
-            #    pass
-        else:
-            # URL presumed to be a string
-            assert(isinstance(URL,basestring))
-            if URL != "":
-                contextlist.append(URL)
-                gotURL=True
-                pass
-            else:
-                self.contextlist=None
-                return
-            pass
-
-        if not gotURL:
-            # if no URL provided at all (just blank) then context means nothing.
-            # Just return completely blank
-            self.contextlist=None
-            return
-        
-        # go through context list from end to start
-        # and cull out unnecessary leading context
-        culledcontext=[]
-        foundabspath=False
-        for pos in range(len(contextlist)-1,-1,-1):
-            parsed=urlparse(contextlist[pos])
-            if foundabspath and parsed.scheme=='':
-                # already have an absolute path, and no scheme specified...
-                # another absolute or relative path with no scheme is useless
-                continue
-            if parsed.path.startswith('/'):
-                foundabspath=True
-                pass
-            # add on to culled context
-            culledcontext.insert(0,contextlist[pos])
             
-            if len(parsed.scheme) > 0:
-                # got a scheme... nothing else matters
-                break
+        if hasattr(URL,"href_context"):
+            # hrefvalue object
+            self.href_context=canonicalize_path.href_context(URL.href_context,contexthref)
             pass
-        self.contextlist=tuple(culledcontext)
+        else:
+            self.href_context=canonicalize_path.href_context(URL,contexthref)
+            pass
+        
         self.final=True
+        pass
+    
+    pass
+
+
+    def isblank(self):
+        return self.href_context.isblank()
+
+    def ismem(self):
+        return self.href_context.ismem()
+    
+    def ishttp(self):
+        return self.href_context.ishttp()
+    
+    def isfile(self):
+        return self.href_context.isfile()
+        
+
+    def __str__(self):
+        return str(self.href_context)
+
+    def absurl(self):
+        return self.href_context.absurl()
+    
+        
+    def islocalfile(self):
+        return self.href_context.islocalfile()
+
+    def attempt_relative_url(self,new_context):
+        if hasattr(new_context,"href_context"):
+            return self.href_context.attempt_relative_url(new_context.href_context)
+        else:
+            return self.href_context.attempt_relative_url(new_context)
 
         pass
 
-    def isblank(self):
-        return self.contextlist is None
-        
-    def ismem(self):
-        if self.contextlist is None or len(self.contextlist)==0:
-            return False
-        # since unnecessary context is culled on creation, the
-        # scheme comes from the scheme of the first element
-        return urlparse(self.contextlist[0]).scheme=='mem'
 
-    def ishttp(self):
-        if self.contextlist is None or len(self.contextlist)==0:
-            return False
-        # since unnecessary context is culled on creation, the
-        # scheme comes from the scheme of the first element
-        return urlparse(self.contextlist[0]).scheme=='http'
-
-    def isfile(self):
-        if self.contextlist is None:
-            return False
-        if len(self.contextlist)==0:
-            return True
-
-        # since unnecessary context is culled on creation, the
-        # scheme comes from the scheme of the first element
-        scheme=urlparse(self.contextlist[0]).scheme
-
-        return scheme=="" or scheme=="file"
-    
-
-    def __str__(self):
-        if self.contextlist is None:
-            return ""
-        return self.absurl()
-    
-    def absurl(self) :
-        # returns full escaped URL with complete context
-        if len(self.contextlist)==0:
-            return "."
-        if self.contextlist is None:
-            return ""
-        
-
-        URL=""
-        for pos in range(len(self.contextlist)-1,-1,-1):
-            URL=urljoin(self.contextlist[pos],URL)
-            pass
-        return URL
-        
-        # Stored as path, not as URL
-        
-
-    def islocalfile(self):
-        return self.isfile()
-
-    def attempt_relative_url(self,new_context):
-        # return a relative url string (if possible) which,
-        # if it is indeed relative, will be relative to the
-        # new context
-
-        # convert new_context to an href, if it is not
-        if not hasattr(new_context,"contextlist"):
-            new_context=hrefvalue(new_context)
-            pass
-
-        # search for common ancestors of our context.
-        # if we have common ancestors, we can define a
-        # relative URL
-        common_context=0
-        for cnt in range(min(len(new_context.contextlist),len(self.contextlist))):
-            if new_context.contextlist[cnt]==self.contextlist[cnt]:
-                common_context+=1
-                pass
-            else:
-                break
-            pass
-        # Join up remaining new_context
-        new_context_URL=""
-        for pos in range(len(new_context.contextlist)-1,common_context-1,-1):
-            new_context_URL=urljoin(new_context.contextlist[pos],new_context_URL)
-            pass
-
-        # join up remaining pieces of our url
-        our_URL=""
-        for pos in range(len(self.contextlist)-1,common_context-1,-1):
-            our_URL=urljoin(self.contextlist[pos],our_URL)
-            pass
-
-        new_context_parsed=urlparse(new_context_URL)
-        our_parsed=urlparse(our_URL)
-        if new_context_parsed.scheme != "" or our_parsed.scheme != "":
-            # Removing common context ancestors did not remove
-            # all scheme specification....
-            # relative URL of any type not possible...
-            # generate absolute URL with scheme
-            return self.absurl()
-
-        if new_context_parsed.path.startswith("/") or our_parsed.path.startswith("/"):
-            # Removing common context ancestors did not eliminate absolute paths
-
-            if our_parsed.path.startswith("/"):
-                # absolute path within the context... Return it directly
-                return our_parsed.path
-
-            # Remaining case is that unique context of our URL is not absolute
-            # but unique context of desired context IS absolute
-
-            # For example
-            # ours:
-            #  http://localhost/foo/  bar.html
-            # desired:
-            #  http://localhost/foo/ /fubar/bar/
-            #
-            # No straightforward way to do this... just drop down to absolute
-            return self.absurl()
-
-        # now we have two paths:  new_context_URL and our_URL, both of which
-        # are relative...
-        # i.e new_context_URL='foo/bar/fubar.html'
-        #  and  our_url='fubar/foo/bar.html'
-        # The result of this would be ../../fubar/foo/bar.html
-
-        # or new_context_URL='../foo/bar/../fubar.html' 
-        #  and  our_url='fubar/foo/bar.html'
-        # The result of this one would be: Can't do it
-        #  ... leading '..' on new context is a directory we don't
-        #      know the name of
-
-        # or new_context_URL='foo/bar/../fubar.html' 
-        #  and  our_url='../fubar/../foo/bar.html'
-        # result is ../../foo/bar.html
-        #  
-        # note that the file part of context URLs is to be ignored
-        # We use the posixpath module to manipulate these paths
-        # (see http://stackoverflow.com/questions/7894384/python-get-url-path-sections)
-        new_context_path=posixpath.split(new_context_URL)[0]
-
-        
-        # new context path now refers to a directory without trailing '/'
-        # now do path normalization
-        normalized_context_path=posixpath.normpath(new_context_path)  # directory without trailing slash
-        if normalized_context_path.startswith("../"):
-            # leading '..' on context is directory we don't and can't know the name
-            # of...
-
-            if common_context >= 1:
-                # Join with last bit of common context and retry
-
-                joined_self=hrefvalue(urljoin(self.contextlist[common_context-1],our_URL),contexthref=self.contextlist[:(common_context-1)])
-
-                joined_new_context=hrefvalue(urljoin(new_context.contextlist[common_context-1],new_context_URL),contexthref=new_context.contextlist[:(common_context-1)])
-
-                return joined_self.attempt_relative_url(joined_new_context)
-            else:
-                sys.stderr.write("dc_value.hrefvalue.attempt_relative_url(): Trying to form a relative URL from %s with leading '..' on context %s... this is not possible. Dropping down to absolute URL\n" % (self.absurl(),new_context.absurl()))
-                
-                # Bail and drop down to absolute path
-                return self.absurl()
-            pass
-        
-
-
-        # turn normalize_context_path entries into leading '..' entries in resultpath 
-        resultpath=""
-        (dirpart,filepart)=posixpath.split(normalized_context_path)
-
-        while len(dirpart) > 0:
-            assert(filepart != '..') # can't deal with pulling off a '..'
-            if filepart != '.':
-                resultpath=posixpath.join(resultpath,'..')
-                pass
-            
-            (dirpart,filepart)=posixpath.split(dirpart)
-            pass
-
-        # Above loop doesn't count filepart
-        if len(filepart) > 0 and filepart != ".":
-            resultpath=posixpath.join(resultpath,'..')
-            pass
-
-
-        # append our_URL to resultpath
-        resultpath=posixpath.join(resultpath,our_URL)
-
-        # Eliminate unnecessary '..'s' in resultpath
-        normalized_result_path=posixpath.normpath(resultpath)
-        # posixpath.normpath removes trailing slash, but we want to keep that...
-        if our_URL.endswith("/") and not(normalized_result_path.endswith("/")):
-            normalized_result_path += "/"
-            pass
-
-        # Eliminate unnecessary '..'s' in resultpath based on
-        # context
-
-        #***!!!FIXME... this handles a resulting
-        # url of ../foo/bar.xml on a context of foo/
-        # but not multiple layers, e.g. resulting url
-        # of ../../fubar/foo/bar.xml on a context of fubar/foo/
-        if normalized_result_path.startswith("../"):
-            remaining_result_path=normalized_result_path[3:]
-            context_path_fragment=posixpath.split(normalized_context_path)[1]+"/"
-
-            if remaining_result_path.startswith("../"):
-                sys.stderr.write("dc_value.hrefvalue.attempt_relative_url: FIXME: Need better algorithm for matching leading ..'s on URL result path with context path fragments\n")
-            # Does the remaining path after the "../" match the last fragment of our context path?
-            if not remaining_result_path.startswith("../") and remaining_result_path.startswith(context_path_fragment):
-                # If so, remove both
-                normalized_result_path=remaining_result_path[len(context_path_fragment):]
-                pass
-            
-            pass
-        
-        return normalized_result_path
 
     def attempt_relative_href(self,new_context):
-        relative_url=self.attempt_relative_url(new_context)
-
-        return hrefvalue(relative_url,contexthref=new_context)
-    
+        if hasattr(new_context,"href_context"):
+            return self.href_context.attempt_relative_href(new_context.href_context)
+        else:
+            return self.href_context.attempt_relative_href(new_context)
+        
+        pass
 
     def xmlrepr(self,xmldocu,element,defunits=None,force_abs_href=False):
 
-        #import pdb as pythondb
-        #if element.tag=="{http://thermal.cnde.iastate.edu/datacollect}dgsfile":
-        #    pythondb.set_trace()
+        self.href_context.xmlrepr(xmldocu,element,force_abs_href=force_abs_href)
 
-        #if xml_attribute is None:
-        xml_attribute="xlink:href"
-            
-        #assert(xml_attribute=="xlink:href")
-        #assert(not is_file_in_dest) # This derived class uses its internal context specification, not the is_file_in_dest parameter
-        # NOTE: if xml_attribute is provided, xmldocu must be also.
-
-        #print "xmlrepr!" + self.str
-        # clear out any old attributes in the dcvalue namespace
-        oldattrs=element.attrib.keys()
-        for oldattr in oldattrs:
-            if oldattr.startswith(DCV):
-                del element.attrib[oldattr]
-                pass
-            pass
-
-        if self.isblank():
-            # Blank entry: clear out the xlink:href attribute
-            if xml_attribute in element.attrib:
-                xmldocu.remattr(element,xml_attribute)
-                pass
-            xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,element)
-            return
-
-        contexthref=xmldocu.getcontexthref()
-
-        if (not force_abs_href) and (contexthref is not None) and (not contexthref.isblank()) and (not self.isblank()):
-            url=self.attempt_relative_url(xmldocu.getcontexthref())
-            pass
-        else:
-            url=self.absurl()  # Create our best-of-ability absolute url
-            pass
-        xmldocu.setattr(element,xml_attribute,url)
-        xmldocu.modified=True
         provenance.elementgenerated(xmldocu.doc,element)
 
         pass
 
-    def get_bare_quoted_filename(self):
-        if self.contextlist is None or len(self.contextlist) < 1:
-            return ""
-        
-        parsed=urlparse(self.contextlist[-1])
-        return posixpath.split(parsed.path)[1]
+    def has_fragment(self):
+        return self.href_context.has_fragment()
 
+    def getunquotedfragment(self):
+        return self.href_context.getunquotedfragment()
+    
+    def getquotedfragment(self):
+        return self.href_context.getquotedfragment()
+    
+    def get_bare_quoted_filename(self):
+        return self.href_context.get_bare_quoted_filename()
+    
     def get_bare_unquoted_filename(self):
-        quoted_filename=self.get_bare_quoted_filename()
-        return unquote(quoted_filename)
+        return self.href_context.get_bare_unquoted_filename()
 
     
     def getpath(self):
-        assert(self.isfile())
+        return self.href_context.getpath()
 
-        path=url2pathname(self.absurl())
-        return path
 
     def leafless(self):
         # hrefvalues can include path and file. When defining a context, you
         # often want to remove the file part. This routine copies a href and
         # removes the file part, (but leaves the trailing slash)
+        return self.href_context.leafless()
 
-        if len(self.contextlist) < 1:
-            return self
-        
-        parsed=urlparse(self.contextlist[-1])
-        leaflesspath=posixpath.split(parsed.path)[0]
-        if len(leaflesspath) > 0 and not leaflesspath.endswith("/"):
-            leaflesspath+="/"
-            pass
-
-        if len(leaflesspath) > 0:
-            leaflessurl=urlunparse((parsed[0],parsed[1],leaflesspath,parsed[3],parsed[4],parsed[5]))
-            pass
-
-        # Start with all but last element of href context
-        newcontextlist=[]
-        newcontextlist.extend(self.contextlist[:-1])
-        if len(leaflesspath) > 0:
-            newcontextlist.append(leaflessurl)
-            pass
-        
-        return hrefvalue(tuple(newcontextlist))
-    
         
     #@classmethod
     #def from_rel_path(cls,contextdir,path): # was frompath()
@@ -1135,41 +793,31 @@ class hrefvalue(value):
         
         if xmldocu is not None:
             provenance.xmldocelementaccessed(xmldocu,element)
-
-            xmlcontexthref=xmldocu.getcontexthref()
-            pass
-        else:
-            xmlcontexthref=None
             pass
 
-        #if xml_attribute is None:
-        xml_attribute="xlink:href"
+        href_context=canonicalize_path.href_context.fromxml(xmldocu,element)
 
-        # assert(xml_attribute=="xlink:href")
-
-        #assert(not is_file_in_dest) # This derived class uses its internal context specification, not the is_file_in_dest parameter
-
-        text=xmldocu.getattr(element,xml_attribute,"")
-
-        val=hrefvalue(text,contexthref=xmlcontexthref)
-
+        
+        val=hrefvalue(href_context)
+        
         return val
     
     def __hash__(self):
-        return self.absurl().__hash__()
+        return self.href_context.__hash__()
     
     def __eq__(self,other) :
-        if other is None:
-            return False
+        if hasattr(other,"href_context"):
+            other=other.href_context
+            pass
         
-        if self.contextlist is None and other.contextlist is None:
-            return True
+        return self.href_context.__eq__(other)
 
-        if (self.contextlist is None) ^ (other.contextlist is None):  # ^ is XOR operator
-            return False
+    def canonicalize(self):
+        return self.href_context.canonicalize()
 
-
-        return self.absurl()==other.absurl()
+    def value(self):
+        return self.href_context
+    
     
     pass
 

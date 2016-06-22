@@ -277,30 +277,30 @@ class checklistentry(object):
         
 
 
-# xlinkhref2canonpath: no longer used
-def xlinkhref2canonpath(contextdir,doc,element):
-    # Get canonicalized path from a xlink:href attribute in a dc:checklist tag. 
+## xlinkhref2canonpath: no longer used
+#def xlinkhref2canonpath(contextdir,doc,element):
+#    # Get canonicalized path from a xlink:href attribute in a dc:checklist tag. 
 
-    # NOTE: ***!!! Should be able to handle un-escaping URL's !!!
+#    # NOTE: ***!!! Should be able to handle un-escaping URL's !!!
 
-    URL=doc.getattr(element,"xlink:href",namespaces={"xlink": "http://www.w3.org/1999/xlink"})
-    ## sys.stderr.write("xlinkhref2canonpath: URL=%s\n" % (URL))
-    ParsedURL=urlparse(URL)
-    if ParsedURL.scheme == "mem": # in-memory
-        return URL # just return the full unparsed, unescaped url for in-memory.... will be canonical
-    if ParsedURL.scheme != "":
-        raise ValueError("Full URLs not supported in checklist xlink: %s" % (URL))
-    #ParsedURLpath=ParsedURL.path
-    # stop using urlparse for now because we have ';' in some filenames that screws it up
-    
-    if URL.startswith("mem://"):
-        return URL
-
-    if URL.startswith("file://") or URL.startswith("http://"):
-        raise ValueError("Full URLs not supported in checklist xlink: %s" % (URL))
-    
-    # unescape URL and convert path separators
-    Path=urllib.url2pathname(URL)
+#    URL=doc.getattr(element,"xlink:href",namespaces={"xlink": "http://www.w3.org/1999/xlink"})
+#    ## sys.stderr.write("xlinkhref2canonpath: URL=%s\n" % (URL))
+#    ParsedURL=urlparse(URL)
+#    if ParsedURL.scheme == "mem": # in-memory
+#        return URL # just return the full unparsed, unescaped url for in-memory.... will be canonical
+#    if ParsedURL.scheme != "":
+#        raise ValueError("Full URLs not supported in checklist xlink: %s" % (URL))
+#    #ParsedURLpath=ParsedURL.path
+#    # stop using urlparse for now because we have ';' in some filenames that screws it up
+#    
+#    if URL.startswith("mem://"):
+#        return URL
+#
+#    if URL.startswith("file://") or URL.startswith("http://"):
+#        raise ValueError("Full URLs not supported in checklist xlink: %s" % (URL))
+#    
+#    # unescape URL and convert path separators
+#    Path=urllib.url2pathname(URL)
         
     
 
@@ -313,17 +313,17 @@ def xlinkhref2canonpath(contextdir,doc,element):
     #    Path=ParsedURLpath
     #    pass
         
-    if not os.path.isabs(Path):
-        ## Relative path... append to path of containing document
-        #if doc.filename is None: 
-        #    # relative filename, but we have no reference point... return None
-        #    return None
-        #Path=os.path.join(os.path.split(doc.filename)[0],Path)
-        Path=os.path.join(contextdir,Path)
-        
-        pass
-    CanonPath=canonicalize_path.canonicalize_path(Path)
-    return CanonPath
+#    if not os.path.isabs(Path):
+#        ## Relative path... append to path of containing document
+#        #if doc.filename is None: 
+#        #    # relative filename, but we have no reference point... return None
+#        #    return None
+#        #Path=os.path.join(os.path.split(doc.filename)[0],Path)
+#        Path=os.path.join(contextdir,Path)
+#        
+#        pass
+#    CanonPath=canonicalize_path.canonicalize_path(Path)
+#    return CanonPath
 
 
 

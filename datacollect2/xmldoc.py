@@ -1754,20 +1754,7 @@ class xmldoc(object):
 
         return element.text
 
-    def xpath(self,path,namespaces=None,contextnode=None,extensions=None,variables=None,noprovenance=False):
-        """Find the specified path given the option context (or main tag)
-        Additional namespaces or extensions can be provided if desired.
-
-        path:         path to search
-        namespaces:   additional namespaces to merge with the main dictionary
-        contextnode:  Starting point for path, or list of starting points.
-        extensions:   Any additional xpath extensions desired
-        """
-
-        self.element_in_doc(contextnode)
-
-        assert((not self.use_locking) or self.rw_lockcount!=0 or self.ro_lockcount!=0)  # should be locked if we are using locking
-
+    def _xpath_merge_params(self,namespaces,extensions,variables):
         if namespaces is not None:
             # merge namespaces dictionaries
             namespaces=dict(list(self.namespaces.items())+list(namespaces.items()))
@@ -1775,8 +1762,6 @@ class xmldoc(object):
         else : 
             namespaces=self.namespaces
             pass
-
-        # sys.stderr.write("namespaces=%s\n" % (unicode(namespaces)))
         
         useextensions=copy.copy(self.extensions)
         if extensions is not None:
@@ -1791,6 +1776,59 @@ class xmldoc(object):
         if variables is None:
             variables={}
             pass
+
+        return (namespaces,useextensions,variables)
+
+    def _xpath_record_provenance(self,path,resultlist):
+        if isinstance(resultlist,basestring) or isinstance(resultlist,numbers.Number) or isinstance(resultlist,bool):
+            # single result
+            if  hasattr(resultlist,"getparent") and resultlist.getparent() is not None:
+                provenance.elementaccessed(self._filename,self.doc,resultlist.getparent())
+                pass
+            else :
+                provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (str(resultlist),path,self._filename))
+                pass
+            pass
+        else :
+                
+            
+            # notify provenance of our dependence on each node in the resultlist
+            for resultel in resultlist:
+                if isinstance(resultel,basestring) or isinstance(resultel,numbers.Number): #  or isinstance(resultel,bool): (always satisfied by number criterion)
+                    if hasattr(resultel,"getparent") and resultel.getparent() is not None:
+                        provenance.elementaccessed(self._filename,self.doc,resultel.getparent())
+                        pass
+                    else :
+                        provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (unicode(resultel),path,self._filename))
+                        pass
+                    pass
+                else : 
+                    # Should be an element of somesort
+                    provenance.elementaccessed(self._filename,self.doc,resultel)
+                    pass
+                pass
+            pass
+        pass
+
+    def xpath(self,path,namespaces=None,contextnode=None,extensions=None,variables=None,noprovenance=False):
+        """Find the specified path given the option context (or main tag)
+        Additional namespaces or extensions can be provided if desired.
+
+        path:         path to search
+        namespaces:   additional namespaces to merge with the main dictionary
+        contextnode:  Starting point for path, or list of starting points.
+        extensions:   Any additional xpath extensions desired
+        """
+
+        self.element_in_doc(contextnode)
+
+        assert((not self.use_locking) or self.rw_lockcount!=0 or self.ro_lockcount!=0)  # should be locked if we are using locking
+
+        (namespaces,useextensions,variables)=self._xpath_merge_params(namespaces,extensions,variables)
+        
+
+        # sys.stderr.write("namespaces=%s\n" % (unicode(namespaces)))
+        
 
         if contextnode is None:
             resultlist=self.doc.xpath(path,namespaces=namespaces,extensions=useextensions,**variables)
@@ -1818,39 +1856,64 @@ class xmldoc(object):
             resultlist=contextnode.xpath(path,namespaces=namespaces,extensions=useextensions,**variables)
             pass
 
-        if not noprovenance: 
-            if isinstance(resultlist,basestring) or isinstance(resultlist,numbers.Number) or isinstance(resultlist,bool):
-                # single result
-                if  hasattr(resultlist,"getparent") and resultlist.getparent() is not None:
-                    provenance.elementaccessed(self._filename,self.doc,resultlist.getparent())
-                    pass
-                else :
-                    provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (str(resultlist),path,self._filename))
-                    pass
-                pass
-            else :
-                
-                
-                # notify provenance of our dependence on each node in the resultlist
-                for resultel in resultlist:
-                    if isinstance(resultel,basestring) or isinstance(resultel,numbers.Number): #  or isinstance(resultel,bool): (always satisfied by number criterion)
-                        if hasattr(resultel,"getparent") and resultel.getparent() is not None:
-                            provenance.elementaccessed(self._filename,self.doc,resultel.getparent())
-                            pass
-                        else :
-                            provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (unicode(resultel),path,self._filename))
-                            pass
-                        pass
-                    else : 
-                        # Should be an element of somesort
-                        provenance.elementaccessed(self._filename,self.doc,resultel)
-                        pass
-                    pass
-                pass
+        if not noprovenance:
+            self._xpath_record_provenance(path,resultlist)
             pass
         return resultlist
         
 
+    def etxpath(self,path,contextnode=None,extensions=None,variables=None,noprovenance=False):
+        """Find the specified path given the option context (or main tag)
+        Additional namespaces or extensions can be provided if desired.
+
+        path:         etxpath to search
+        contextnode:  Starting point for path, or list of starting points.
+        extensions:   Any additional xpath extensions desired
+        """
+
+        self.element_in_doc(contextnode)
+
+        assert((not self.use_locking) or self.rw_lockcount!=0 or self.ro_lockcount!=0)  # should be locked if we are using locking
+
+        (namespaces,useextensions,variables)=self._xpath_merge_params(None,extensions,variables)
+        
+
+        ETXobj=etree.ETXPath(path,extensions=useextensions)
+
+        if contextnode is None:
+            resultlist=ETXobj(self.doc,**variables)
+            pass
+        elif isinstance(contextnode,collections.Sequence):
+            # context node is some sort of list
+            xpathresults=[]
+            for singlenode in contextnode:                
+                xpathresults.append(ETXobj(singlenode,**variables))
+                pass
+            resultlist=[]
+            for xpathresult in xpathresults:
+                if isinstance(xpathresult,collections.Sequence) and not isinstance(xpathresult,basestring):
+                    # Some sort of list... add contents to result
+                    resultlist.extend(xpathresult)
+                    pass
+                else : 
+                    # not a list
+                    resultlist.append(xpathresult)
+                    pass
+                pass
+            pass
+        else: 
+            # Single element for context node
+            resultlist=ETXobj(contextnode,**variables)
+            pass
+        
+        if not noprovenance:
+            self._xpath_record_provenance(path,resultlist)
+            pass
+        return resultlist
+    
+
+
+    
     def xpathcontext(self,contextnode,path,namespaces=None,extensions=None,variables=None):
         """Alias for xpath(path,namespaces,contextnode)"""
         return self.xpath(path,namespaces=namespaces,contextnode=contextnode,extensions=extensions,variables=variables)
