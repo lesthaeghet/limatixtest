@@ -978,8 +978,6 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
         # print "Target location=%s" % (canonicalize_path.create_canonical_etxpath(output.filename,output.doc,element))
         # print "Relative location=%s" % (canonicalize_path.relative_etxpath_to(canonicalize_path.create_canonical_etxpath(output.filename,output.doc,rootprocess_el.getparent()),canonicalize_path.create_canonical_etxpath(output.filename,output.doc,element)))
 
-        targetpath=canonicalize_path.relative_etxpath_to(canonicalize_path.create_canonical_etxpath(output.filehref.getpath(),output.doc,rootprocess_el.getparent()),canonicalize_path.create_canonical_etxpath(output.filehref.getpath(),output.doc,element))
-    # targetpath=output.savepath(element)
 
         process_el=provenance.writeprocessprovenance(output,rootprocesspath,stepprocesspath,referenced_elements)
         
@@ -989,7 +987,7 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
         provenance.write_process_info(output,process_el)  # We always write process info to ensure uniqueness of our UUID. It would be better to merge with parent elements before calculating UUID.
         provenance.write_process_log(output,process_el,status,errcapt.getvalue())
 
-        provenance.write_target(output,process_el,targetpath)  # dcp:target -- target of this particular iteration (ETXPath)
+        provenance.write_target(output,process_el,output.filehref.value())  # dcp:target -- target of this particular iteration (ETXPath)
     
         # Generate uuid
         process_uuid=provenance.set_hash(output,rootprocess_el,process_el)
@@ -1588,7 +1586,7 @@ if __name__=="__main__":
         outputroot=output.getroot()
         process_el=output.addelement(outputroot,"dcp:process")
         wcb_el=output.addelement(process_el,"dcp:wascontrolledby")
-        prxfile_el=provenance.reference_file(output,wcb_el,"dcp:prxfile",outputroot,prxfilehref,"info")
+        prxfile_el=provenance.reference_file(output,wcb_el,"dcp:prxfile",outputroot,prxfilehref.value(),"info")
         output.setattr(prxfile_el,"dcp:timestamp",datetime.datetime.fromtimestamp(os.path.getmtime(prxfilehref.getpath()),dg_timestamp.UTC()).isoformat())
         
         provenance.write_timestamp(output,process_el,"dcp:starttimestamp",overall_starttime)
@@ -1605,7 +1603,7 @@ if __name__=="__main__":
             # Add a sub dcp:process representing file copy action
             cfprocess_el=output.addelement(process_el,"dcp:process")
             # have dcp:used point to the input file we copied from 
-            provenance.reference_file(output,cfprocess_el,"dcp:used",outputroot,inputfilehref,warnlevel="warning")
+            provenance.reference_file(output,cfprocess_el,"dcp:used",outputroot,inputfilehref.value(),warnlevel="warning")
             provenance.write_action(output,cfprocess_el,"_copy_input_file")
             provenance.write_timestamp(output,cfprocess_el,"dcp:starttimestamp",cf_starttime)
             provenance.write_timestamp(output,cfprocess_el,"dcp:finishtimestamp")

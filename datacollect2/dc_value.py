@@ -407,9 +407,9 @@ class xmltreevalue(value):
 
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,element)
+            provenance.elementgenerated(xmldocu,element)
             for child in element.iterdescendants():
-                provenance.elementgenerated(xmldocu.doc,child)
+                provenance.elementgenerated(xmldocu,child)
                 pass
             
             
@@ -591,7 +591,7 @@ class stringvalue(value):
             
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,element)
+            provenance.elementgenerated(xmldocu,element)
             pass
 
         pass
@@ -715,7 +715,7 @@ class hrefvalue(value):
 
         self.href_context.xmlrepr(xmldocu,element,force_abs_href=force_abs_href)
 
-        provenance.elementgenerated(xmldocu.doc,element)
+        provenance.elementgenerated(xmldocu,element)
 
         pass
 
@@ -815,6 +815,11 @@ class hrefvalue(value):
     def canonicalize(self):
         return self.href_context.canonicalize()
 
+    @classmethod
+    def fromelement(cls,xmldocu,element,tag_index_paths_override=None):
+        return cls(canonicalize_path.href_context.fromelement(xmldocu,element,tag_index_paths_override=tag_index_paths_override))
+    
+    
     def value(self):
         return self.href_context
     
@@ -1095,7 +1100,7 @@ class complexunitsvalue(value) :
         
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,element)
+            provenance.elementgenerated(xmldocu,element)
             pass
 
         
@@ -1512,7 +1517,7 @@ class numericunitsvalue(value) :
         
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,element)
+            provenance.elementgenerated(xmldocu,element)
             pass
         
         pass
@@ -1776,7 +1781,7 @@ class integervalue(value) :
         
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,element)
+            provenance.elementgenerated(xmldocu,element)
             pass
             
         pass
@@ -2036,7 +2041,7 @@ class excitationparamsvalue(value) :
             pass
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,tag)
+            provenance.elementgenerated(xmldocu,tag)
             pass
 
         return
@@ -2217,7 +2222,7 @@ class photosvalue(value):
             pass
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,tag)
+            provenance.elementgenerated(xmldocu,tag)
             pass
             
         return
@@ -2345,7 +2350,7 @@ class datesetvalue(value):
 
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,element)
+            provenance.elementgenerated(xmldocu,element)
             pass
 
         pass
@@ -2496,7 +2501,7 @@ class integersetvalue(value) :
         
         if xmldocu is not None:
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu.doc,element)
+            provenance.elementgenerated(xmldocu,element)
             pass
             
         pass
@@ -2599,7 +2604,7 @@ class arrayvalue(value):
         element.append(data_element)
 
         xmldocu.modified=True
-        provenance.elementgenerated(xmldocu.doc,element)
+        provenance.elementgenerated(xmldocu,element)
         
         pass
     
