@@ -52,7 +52,7 @@ except ImportError:
     # Create dummy class "provenance" that makes provenance calls into no-ops
     class provenance(object):
         @classmethod
-        def elementaccessed(cls,filename,doc,element):
+        def xmldocelementaccessed(cls,xmldocu,element):
             pass
 
         @classmethod
@@ -535,15 +535,21 @@ class xmldoc(object):
             #else : 
             #    self.filename=os.path.realpath(self.filename)
             #    pass
-            assert(not href.ismem()) # Can't arbitrarily access mem:// URL's 
+            assert(not href.ismem()) # Can't arbitrarily access mem:// URL's
+            assert(isinstance(href,dc_value.hrefvalue))
             self.filehref=href
             
             self._filename=self.filehref.getpath()
             pass
         else:
-            if contexthref is not None:
-                self.contexthref=contexthref.leafless()
-                pass
+            # Context should not be forced to be leafless -- the leaf
+            # (file name) is relevant to identifying self-links 
+            
+            # if contexthref is not None:
+            #    self.contexthref=contexthref.leafless()
+            #    pass
+            self.contexthref=contexthref
+            
             self.filehref=None
             self._filename=None
             pass
@@ -761,7 +767,9 @@ class xmldoc(object):
         if self.filehref is not None:
             #sys.stderr.write("filehref contextlist: %s\n" % (str(self.filehref.contextlist)))
             #sys.stderr.write("filehref leafless contextlist: %s\n" % (str(self.filehref.leafless().contextlist)))
-            return self.filehref.leafless()
+            # context is no longer leafless so that we
+            # can support document self- and internal-references
+            return self.filehref     # .leafless()
         else:
             #sys.stderr.write("contexthref contextlist: %s\n" % (str(self.contexthref.contextlist)))
             return self.contexthref
@@ -777,9 +785,9 @@ class xmldoc(object):
 
         assert(self.filehref is None) # filename overrides context!
 
-        if contexthref is not None:
-            contexthref=contexthref.leafless()
-            pass
+        #if contexthref is not None:
+        #    contexthref=contexthref.leafless()  contexts are no longer always leafless
+        #    pass
         
         # we should be locked!
         self.lock_rw()
@@ -798,7 +806,8 @@ class xmldoc(object):
             self.unlock_rw()
             pass
 
-        
+
+        assert(isinstance(contexthref,dc_value.hrefvalue))
         self.contexthref=contexthref
         pass
 
@@ -820,7 +829,7 @@ class xmldoc(object):
 
         if xpath is None:
             worknode=contextnode
-            provenance.elementaccessed(self.filehref.value(),self.doc,worknode)
+            provenance.xmldocelementaccessed(self,worknode)
             pass
         else:
             # provenance handled by xpathsingle
@@ -936,17 +945,22 @@ class xmldoc(object):
             pass
         else:
             #oldcanonname=canonicalize_path(oldfilename)
-            oldcontexthref=self.filehref.leafless()
+            oldcontexthref=self.filehref   #.leafless()
             pass
             
         if href is None:
-            if contexthref is not None:
-                contexthref=contexthref.leafless()
+            #if contexthref is not None:
+            #    contexthref=contexthref.leafless()
+            #    pass
+            if contexthref is None:
+                newcontexthref=oldcontexthref
                 pass
-            newcontexthref=contexthref
+            else:
+                newcontexthref=contexthref
+                pass
             pass
         else:
-            newcontexthref=href.leafless()
+            newcontexthref=href    #.leafless()
             assert(contexthref is None) # should not supply a contexthref if supplying a filename
             pass
 
@@ -992,6 +1006,7 @@ class xmldoc(object):
             # update the filename
             self.filehref=href
             if self.filehref is not None:
+                assert(isinstance(href,dc_value.hrefvalue))
                 self._filename=self.filehref.getpath()
                 pass
             else:
@@ -1007,12 +1022,13 @@ class xmldoc(object):
                 pass
 
             
-            if self.filehref is None:
-                self.contexthref=newcontexthref
-                pass
-            else: 
-                self.contexthref=None
-                pass
+            # if self.filehref is None:
+            assert(isinstance(newcontexthref,dc_value.hrefvalue))
+            self.contexthref=newcontexthref
+            #    pass
+            #else: 
+            #    self.contexthref=None
+            #    pass
 
             # flush out under the new name
             if self.filehref is not None:
@@ -1118,7 +1134,7 @@ class xmldoc(object):
             # lxml text nodes and attributes are "smart strings"
             # with a getparent() method to identify the enclosing element
             # if  hasattr(taglist,"getparent") and taglist.getparent() is not None:
-            #     provenance.elementaccessed(self.filename,self.doc,taglist.getparent())
+            #     provenance.xmldocelementaccessed(self,taglist.getparent())
             #     pass
             # else :
             #     provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (unicode(taglist),xpath,self.filename))
@@ -1135,7 +1151,7 @@ class xmldoc(object):
                 return default
             pass
         
-        # provenance.elementaccessed(self.filename,self.doc,taglist[0])
+        # provenance.xmldocelementaccessed(self,taglist[0])
         
         return taglist[0]
 
@@ -1645,7 +1661,7 @@ class xmldoc(object):
             parent.append(newnode);
             # Record provenance of this element
             if sourcedoc is not None:
-                provenance.elementaccessed(sourcedoc.filehref.value(),sourcedoc.doc,node)
+                provenance.xmldocelementaccessed(sourcedoc,node)
                 pass
             provenance.elementgenerated(self,newnode)
             newnodes.append(newnode)
@@ -1750,7 +1766,7 @@ class xmldoc(object):
         self.element_in_doc(element)
 
         # Record provenance update for this element
-        provenance.elementaccessed(self.filehref.value(),self.doc,element)
+        provenance.xmldocelementaccessed(self,element)
 
         return element.text
 
@@ -1783,7 +1799,7 @@ class xmldoc(object):
         if isinstance(resultlist,basestring) or isinstance(resultlist,numbers.Number) or isinstance(resultlist,bool):
             # single result
             if  hasattr(resultlist,"getparent") and resultlist.getparent() is not None:
-                provenance.elementaccessed(self.filehref.value(),self.doc,resultlist.getparent())
+                provenance.xmldocelementaccessed(self,resultlist.getparent())
                 pass
             else :
                 provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (str(resultlist),path,self._filename))
@@ -1796,7 +1812,7 @@ class xmldoc(object):
             for resultel in resultlist:
                 if isinstance(resultel,basestring) or isinstance(resultel,numbers.Number): #  or isinstance(resultel,bool): (always satisfied by number criterion)
                     if hasattr(resultel,"getparent") and resultel.getparent() is not None:
-                        provenance.elementaccessed(self.filehref.value(),self.doc,resultel.getparent())
+                        provenance.xmldocelementaccessed(self,resultel.getparent())
                         pass
                     else :
                         provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (unicode(resultel),path,self._filename))
@@ -1804,7 +1820,7 @@ class xmldoc(object):
                     pass
                 else : 
                     # Should be an element of somesort
-                    provenance.elementaccessed(self.filehref.value(),self.doc,resultel)
+                    provenance.xmldocelementaccessed(self,resultel)
                     pass
                 pass
             pass
@@ -2035,7 +2051,7 @@ class xmldoc(object):
                     nodeset.append(newnodes)
                     # provenance now handled by base xpath method
                     # if  hasattr(newnodes,"getparent"):
-                    #     provenance.elementaccessed(self.filehref.value(),self.doc,newnodes.getparent())
+                    #     provenance.xmldocelementaccessed(self,newnodes.getparent())
                     #     pass
                     # else : 
                     #     provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self._filename))
@@ -2051,7 +2067,7 @@ class xmldoc(object):
                         # register provenance
                         if isinstance(node,basestring) or isinstance(node,float):
                             if hasattr(node,"getparent"):
-                                provenance.elementaccessed(self.filehref.value(),self.doc,node.getparent())
+                                provenance.xmldocelementaccessed(self,node.getparent())
                                 pass
                             else : 
                                 provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self._filename))
@@ -2059,7 +2075,7 @@ class xmldoc(object):
                                 pass
                             pass
                         else :
-                            provenance.elementaccessed(self.filehref.value(),self.doc,node)
+                            provenance.xmldocelementaccessed(self,node)
                             pass
                         pass
                     nodeset.extend(newnodes)
@@ -2157,7 +2173,7 @@ class xmldoc(object):
     def getroot(self):
         """Get the root node of the document"""
         root=self.doc.getroot()
-        provenance.elementaccessed(self.filehref.value(),self.doc,root)
+        provenance.xmldocelementaccessed(self,root)
 
         return self.doc.getroot()
 
@@ -2217,7 +2233,7 @@ class xmldoc(object):
                 raise ValueError("Non-unique result restoring saved path %s" % (savedpath))
 
             # Mark provenance reference
-            provenance.elementaccessed(self.filehref.value(),self.doc,foundelement[0])
+            provenance.xmldocelementaccessed(self,foundelement[0])
             return foundelement[0]
             
         pass
@@ -2251,14 +2267,14 @@ class xmldoc(object):
 
         if isinstance(foundnode,basestring) or isinstance(foundnode,float):
             if  hasattr(foundnode,"getparent"):
-                provenance.elementaccessed(self.filehref.value(),self.doc,foundnode.getparent())
+                provenance.xmldocelementaccessed(self,foundnode.getparent())
                 pass
             else :
                 provenance.warnnoprovenance("Unable to identify provenance of XPath result for %s on file %s" % (path,self._filename))
                 pass
             pass
         else : 
-            provenance.elementaccessed(self.filehref.value(),self.doc,foundnode)
+            provenance.xmldocelementaccessed(self,foundnode)
 
             pass
 
@@ -2371,7 +2387,7 @@ class xmldoc(object):
         for child in context.iterchildren():
             if child.tag==clarktag:
                 if not noprovenanceupdate:
-                    provenance.elementaccessed(self.filehref.value(),self.doc,child)
+                    provenance.xmldocelementaccessed(self,child)
                     pass
                 return child
             pass
@@ -2407,7 +2423,7 @@ class xmldoc(object):
             for child in context.iterchildren():
                 if child.tag==clarktag:
                     if not noprovenanceupdate:
-                        provenance.elementaccessed(self.filehref.value(),self.doc,child)
+                        provenance.xmldocelementaccessed(self,child)
                         pass
                     children.append(child)
                     pass                
@@ -2420,7 +2436,7 @@ class xmldoc(object):
                 if child.tag is etree.Comment and not allow_comments:
                     continue
                 if not noprovenanceupdate:
-                    provenance.elementaccessed(self.filehref.value(),self.doc,child)
+                    provenance.xmldocelementaccessed(self,child)
                     pass
                 children.append(child)
                 pass
@@ -2539,8 +2555,8 @@ class xmldoc(object):
         
         self.element_in_doc(element)
 
+        provenance.element_to_be_removed(self,element)
         element.getparent().remove(element)
-        # Removing an element has no provenance impact
         pass
 
     def getattr(self,tag,attrname,defaultvalue=None,namespaces=None) :
@@ -3187,7 +3203,7 @@ class xmldoc(object):
             return etree.tostring(self.doc,encoding='utf-8',pretty_print=pretty_print).decode("utf-8")
         else : 
             # !!! Should we mark the provenance of the entire tree under this? 
-            provenance.elementaccessed(self.filehref.value(),self.doc,element)
+            provenance.xmldocelementaccessed(self,element)
             return etree.tostring(element,encoding='utf-8',pretty_print=pretty_print).decode("utf-8")
 
         pass
@@ -3205,7 +3221,7 @@ class xmldoc(object):
             return etree.tostring(self.doc,encoding=encoding,pretty_print=pretty_print)
         else : 
             # !!! Should we mark the provenance of the entire tree under this? 
-            provenance.elementaccessed(self.filehref.value(),self.doc,element)
+            provenance.xmldocelementaccessed(self,element)
             return etree.tostring(element,encoding=encoding,pretty_print=pretty_print)
 
         pass
@@ -3213,7 +3229,7 @@ class xmldoc(object):
     def getparent(self,element):
         """Get the parent of a particular element"""
         parent=element.getparent()
-        provenance.elementaccessed(self.filehref.value(),self.doc,element)
+        provenance.xmldocelementaccessed(self,element)
         return parent
     
     
