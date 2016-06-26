@@ -11,6 +11,7 @@ share_checklist_files=glob.glob("checklists/*")
 dcp_steps_files=glob.glob("dcp_steps/*")
 conf_files=glob.glob("conf/*")
 doc_files=glob.glob("doc/*")
+xslt_files=glob.glob("xslt/*")
 root_files=["README.txt","INSTALL.txt"]
 #datacollect2_widgets_glade_catalogs_package_files=["*.xml"]
 datacollect2_widgets_package_files=["*.glade","glade_catalogs/*"]
@@ -95,6 +96,7 @@ setup(name="datacollect2",
                    ("share/datacollect2/dcp_steps",dcp_steps_files),
                    ("share/datacollect2/conf",conf_files),
                    ("share/datacollect2/doc",doc_files),
+                   ("share/datacollect2/xslt",xslt_files),
                    ("share/datacollect2",root_files),
                    ("etc/canonicalize_path",canonicalize_path_config_files)],
       package_data={"datacollect2.canonicalize_path": canonicalize_path_package_files, 

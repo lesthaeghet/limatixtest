@@ -710,8 +710,8 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
             name=resultname
             pass
 
-        if not ":" in name:
-            sys.stderr.write("dc_process.applyresultdict() WARNING: Results from dc_process\nsteps should always specify the XML namespace of result tags\nOtherwise they get placed in the default namespace, but not replaced on the next run.\n")
+        if not ":" in name and None in output.nsmap:
+            sys.stderr.write("dc_process.applyresultdict() WARNING: Results from dc_process\nsteps should always specify the XML namespace of result tags\nwhen a default namespace is set. Otherwise they get placed in\nthe default namespace, but not replaced on the next run.\n")
             pass
 
 
@@ -856,6 +856,8 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
                 pass
             else: 
                 resultdict=procsteppython_do_run(stepglobals,execfunc,argkw,ipythonmodelist,action,scripthref,pycode_text,pycode_lineno)
+                # print("dc_process: print_current_used() after do_run of %s" % (str(execfunc)))
+                # provenance.print_current_used()
                 
             
                 output.should_be_rwlocked_once() # Verify that after running, the output is still locked exactly once
@@ -879,6 +881,9 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
     except:
         raise
     finally:
+        # print("dc_process: print_current_used()")
+        # provenance.print_current_used()
+
         (modified_elements,referenced_elements)=provenance.finishtrackprovenance()
         pass
 

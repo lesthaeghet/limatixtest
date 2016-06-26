@@ -376,15 +376,16 @@ class xmltreevalue(value):
             sourcecontext=self.__xmldoc.getcontexthref()
             targetcontext=xmldocu.getcontexthref()
 
-            if self.__xmldoc.getroot().tag=="http://thermal.cnde.iastate.edu/checklist}subchecklists":
-                sys.stderr.write("xmltreevalue.xmlrepr: tag=%s; sourcecontext=%s; targetcontext=%s\n" % (self.__xmldoc.getroot().tag,sourcecontext.absurl(),targetcontext.absurl()))
-                sys.stderr.write("xmltreevalue=%s\n" % (str(self)))
-                pass
+            # if self.__xmldoc.getroot().tag=="http://thermal.cnde.iastate.edu/checklist}subchecklists":
+            #     sys.stderr.write("xmltreevalue.xmlrepr: tag=%s; sourcecontext=%s; targetcontext=%s\n" % (self.__xmldoc.getroot().tag,sourcecontext.absurl(),targetcontext.absurl()))
+            #     sys.stderr.write("xmltreevalue=%s\n" % (str(self)))
+            #     pass
             
             if sourcecontext is None or targetcontext is None:
-                import pdb as pythondb
-                pythondb.set_trace()
-                pass
+                assert(0)
+                # import pdb as pythondb
+                # pythondb.set_trace()
+                # pass
             
             # if canonicalize_path.canonicalize_path(sourcecontext) != canonicalize_path.canonicalize_path(targetcontext):
             if sourcecontext != targetcontext: 
@@ -688,7 +689,13 @@ class hrefvalue(value):
 
     def absurl(self):
         return self.href_context.absurl()
-    
+
+    def humanurl(self):
+        return self.href_context.humanurl()
+
+    def canonicalize(self):
+        return self.href_context.canonicalize()
+
         
     def islocalfile(self):
         return self.href_context.islocalfile()
