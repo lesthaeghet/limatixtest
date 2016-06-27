@@ -26,7 +26,7 @@ include defs.mk
 DIST_FILES=.
 
 
-PUBEXCLUDE=--exclude .hg --exclude datacollect2/canonicalize_path/.hg  --exclude datacollect2/dc_lxml_treesync/.hg
+PUBEXCLUDE=--exclude .hg --exclude limatix/canonicalize_path/.hg  --exclude limatix/dc_lxml_treesync/.hg
 
 
 PYSUBDIRS=widgets steps
@@ -58,11 +58,11 @@ all:
 
 clean:
 	@for i in $(SUBDIRS) ; do if [ -d $$i ] && [ -f $$i/Makefile ] ; then $(MAKE) $(MFLAGS) -C $$i clean; fi done
-	rm -f *.bak *~ core.* *.o *.pyc a.out octave-core *.pycheck datacollect2/widgets/*~ datacollect2/steps/*~ datacollect2/widgets/core.* datacollect2/steps/core.* datacollect2/widgets/*.pyc datacollect2/steps/*.pyc checklists/*~ datacollect2/widgets/glade-3/*~ datacollect2/widgets/glade-3/glade_catalogs/*~ datacollect2/widgets/glade-3/glade_catalogs/*.pyc datacollect2/widgets/glade-3/glade_modules/*~ datacollect2/widgets/glade-3/glade_modules/*.pyc datacollect2/*~ datacollect2/core.* datacollect2/*.o datacollect2/*.pyc datacollect2/a.out datacollect2/octave-core datacollect2/*.pycheck conf/*~ conf/core.* conf/*.bak conf/*.pyc doc/*.bak doc/*.pyc doc/*~ bin/*~ bin/*.bak bin/*.pyc
+	rm -f *.bak *~ core.* *.o *.pyc a.out octave-core *.pycheck limatix/widgets/*~ limatix/steps/*~ limatix/widgets/core.* limatix/steps/core.* limatix/widgets/*.pyc limatix/steps/*.pyc checklists/*~ limatix/widgets/glade-3/*~ limatix/widgets/glade-3/glade_catalogs/*~ limatix/widgets/glade-3/glade_catalogs/*.pyc limatix/widgets/glade-3/glade_modules/*~ limatix/widgets/glade-3/glade_modules/*.pyc limatix/*~ limatix/core.* limatix/*.o limatix/*.pyc limatix/a.out limatix/octave-core limatix/*.pycheck conf/*~ conf/core.* conf/*.bak conf/*.pyc doc/*.bak doc/*.pyc doc/*~ bin/*~ bin/*.bak bin/*.pyc
 	rm -rf lib/__pycache__ steps/__pycache__ widgets/__pycache__
 	rm -rf build/
 	rm -rf dist/
-	rm -rf datacollect2.egg-info
+	rm -rf limatix.egg-info
 
 distclean: clean
 	@for i in $(SUBDIRS) ; do if [ -d $$i ] && [ -f $$i/Makefile ] ; then $(MAKE) $(MFLAGS) -C $$i distclean ; fi done
@@ -91,8 +91,8 @@ endif
 
 
 	#	$(INSTALL) -d $(DCINSTDIR)
-	#rm -f $(PREFIX)/datacollect2
-	#ln -s $(DCINSTDIR) $(PREFIX)/datacollect2
+	#rm -f $(PREFIX)/limatix
+	#ln -s $(DCINSTDIR) $(PREFIX)/limatix
 	#$(INSTALL) -d $(DCINSTDIR)/lib
 	#$(INSTALL) -d $(DCINSTDIR)/conf
 	#$(INSTALL) -d $(DCINSTDIR)/doc
@@ -142,11 +142,11 @@ dist:
 	$(MAKE) $(MFLAGS) realclean
 	hg tag -f `cat VERSION`
 
-	tar -cvzf /tmp/realclean-datacollect2-`cat VERSION`.tar.gz $(DIST_FILES)
+	tar -cvzf /tmp/realclean-limatix-`cat VERSION`.tar.gz $(DIST_FILES)
 
-	tar $(PUBEXCLUDE) -cvzf /tmp/realclean-datacollect2-pub-`cat VERSION`.tar.gz $(DIST_FILES)
+	tar $(PUBEXCLUDE) -cvzf /tmp/realclean-limatix-pub-`cat VERSION`.tar.gz $(DIST_FILES)
 
-	@for archive in  datacollect2-`cat VERSION` datacollect2-pub-`cat VERSION`  ; do mkdir /tmp/$$archive ; tar -C /tmp/$$archive  -x -f /tmp/realclean-$$archive.tar.gz ; make -C /tmp/$$archive all ; make -C /tmp/$$archive distclean ; tar -C /tmp -c -v -z -f /home/sdh4/research/software/archives/$$archive.tar.gz $$archive ; done
+	@for archive in  limatix-`cat VERSION` limatix-pub-`cat VERSION`  ; do mkdir /tmp/$$archive ; tar -C /tmp/$$archive  -x -f /tmp/realclean-$$archive.tar.gz ; make -C /tmp/$$archive all ; make -C /tmp/$$archive distclean ; tar -C /tmp -c -v -z -f /home/sdh4/research/software/archives/$$archive.tar.gz $$archive ; done
 
 	mv VERSION VERSIONtmp
 	awk -F . '{ print $$1 "." $$2 "." $$3+1 "-devel"}' <VERSIONtmp >VERSION  # increment version number and add trailing-devel
