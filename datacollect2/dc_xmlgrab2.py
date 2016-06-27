@@ -9,7 +9,7 @@ import numbers
 import inspect
 import traceback
 import dc_value as dcv
-from datacollect2.dc_value import hrefvalue
+from limatix.dc_value import hrefvalue
 
 try: 
     from collections.abc import Sequence  # moved to collections.abc in numpy 3.4(?)
