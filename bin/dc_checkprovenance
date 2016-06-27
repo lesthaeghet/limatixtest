@@ -55,8 +55,8 @@ import dg_timestamp
 #sys.path.append(installeddir)
 #sys.path.append(os.path.join(installeddir,"lib/"))
 
-import datacollect2.dc_value as dcv
-import datacollect2.dc_provenance as provenance
+import limatix.dc_value as dcv
+import limatix.dc_provenance as provenance
 from limatix import xmldoc
 
 def usage():
