@@ -13,27 +13,27 @@ conf_files=glob.glob("conf/*")
 doc_files=glob.glob("doc/*")
 xslt_files=glob.glob("xslt/*")
 root_files=["README.txt","INSTALL.txt"]
-#datacollect2_widgets_glade_catalogs_package_files=["*.xml"]
-datacollect2_widgets_package_files=["*.glade","glade_catalogs/*"]
-datacollect2_steps_package_files=["*.glade"]
-datacollect2_package_files=["*.glade"]
+#limatix_widgets_glade_catalogs_package_files=["*.xml"]
+limatix_widgets_package_files=["*.glade","glade_catalogs/*"]
+limatix_steps_package_files=["*.glade"]
+limatix_package_files=["*.glade"]
 
-canonicalize_path_config_files=["datacollect2/canonicalize_path/canonical_paths.conf.example","datacollect2/canonicalize_path/tag_index_paths.conf.example"]
+canonicalize_path_config_files=["limatix/canonicalize_path/canonical_paths.conf.example","limatix/canonicalize_path/tag_index_paths.conf.example"]
 canonicalize_path_package_files=["canonical_paths.conf","tag_index_paths.conf"]
 
-datacollect2_step_paths=glob.glob("datacollect2/steps/*.py")
-datacollect2_step_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in datacollect2_step_paths if not path.endswith("__init__.py")]
-datacollect2_step_entrypoints = [ '%s = datacollect2.steps.%s' % (stepname,stepname) for stepname in datacollect2_step_names]
+limatix_step_paths=glob.glob("limatix/steps/*.py")
+limatix_step_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in limatix_step_paths if not path.endswith("__init__.py")]
+limatix_step_entrypoints = [ '%s = limatix.steps.%s' % (stepname,stepname) for stepname in limatix_step_names]
 
-datacollect2_widget_paths=glob.glob("datacollect2/widgets/*.py")
-datacollect2_widget_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in datacollect2_widget_paths if not path.endswith("__init__.py")]
-datacollect2_widget_entrypoints = [ '%s = datacollect2.widgets.%s' % (widgetname,widgetname) for widgetname in datacollect2_widget_names]
+limatix_widget_paths=glob.glob("limatix/widgets/*.py")
+limatix_widget_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in limatix_widget_paths if not path.endswith("__init__.py")]
+limatix_widget_entrypoints = [ '%s = limatix.widgets.%s' % (widgetname,widgetname) for widgetname in limatix_widget_names]
 
 #package_files=["canonical_paths.conf","tag_index_paths.conf"]
 
-# NOTE ***: share files will be installed to prefix/share/datacollect2
+# NOTE ***: share files will be installed to prefix/share/limatix
 # By default, prefix is /usr so share_files to be found in
-# /usr/share/datacollect2
+# /usr/share/limatix
 
 # Apply hotfix to setuptools issue #130, from 
 # https://bitbucket.org/pypa/setuptools/issues/130/install_data-doesnt-respect-prefix
@@ -80,29 +80,29 @@ class install_lib_save_prefix(install_lib):
     pass
 
 
-setup(name="datacollect2",
+setup(name="limatix",
       description="Automated data collection",
       author="Stephen D. Holland",
       # url="http://thermal.cnde.iastate.edu/dataguzzler",
       zip_safe=False,
-      packages=["datacollect2",
-                "datacollect2.steps",
-                "datacollect2.widgets", 
-                "datacollect2.canonicalize_path", 
-                "datacollect2.dc_lxml_treesync"],
-      package_dir={"datacollect2.canonicalize_path": "datacollect2/canonicalize_path/canonicalize_path"},
+      packages=["limatix",
+                "limatix.steps",
+                "limatix.widgets", 
+                "limatix.canonicalize_path", 
+                "limatix.dc_lxml_treesync"],
+      package_dir={"limatix.canonicalize_path": "limatix/canonicalize_path/canonicalize_path"},
       cmdclass={"install_lib": install_lib_save_prefix},
-      data_files=[ ("share/datacollect2/checklists",share_checklist_files),
-                   ("share/datacollect2/dcp_steps",dcp_steps_files),
-                   ("share/datacollect2/conf",conf_files),
-                   ("share/datacollect2/doc",doc_files),
-                   ("share/datacollect2/xslt",xslt_files),
-                   ("share/datacollect2",root_files),
+      data_files=[ ("share/limatix/checklists",share_checklist_files),
+                   ("share/limatix/dcp_steps",dcp_steps_files),
+                   ("share/limatix/conf",conf_files),
+                   ("share/limatix/doc",doc_files),
+                   ("share/limatix/xslt",xslt_files),
+                   ("share/limatix",root_files),
                    ("etc/canonicalize_path",canonicalize_path_config_files)],
-      package_data={"datacollect2.canonicalize_path": canonicalize_path_package_files, 
-                    "datacollect2.widgets": datacollect2_widgets_package_files,
-                    "datacollect2.steps": datacollect2_steps_package_files,
-                    "datacollect2": datacollect2_package_files},
+      package_data={"limatix.canonicalize_path": canonicalize_path_package_files, 
+                    "limatix.widgets": limatix_widgets_package_files,
+                    "limatix.steps": limatix_steps_package_files,
+                    "limatix": limatix_package_files},
       scripts=["bin/datacollect2",
                "bin/dc_checklist",
                "bin/dc_checkprovenance",
@@ -113,8 +113,8 @@ setup(name="datacollect2",
                "bin/dc_process",
                "bin/dc_ricohphoto",
                "bin/dc_xlg2dpd",],
-      entry_points={"datacollect2.step": datacollect2_step_entrypoints,
-                    "datacollect2.widget": datacollect2_widget_entrypoints})
+      entry_points={"limatix.step": limatix_step_entrypoints,
+                    "limatix.widget": limatix_widget_entrypoints})
 
 
 
