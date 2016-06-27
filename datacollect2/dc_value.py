@@ -259,11 +259,10 @@ class xmltreevalue(value):
             self.__xmldoc=xmldoc.xmldoc.inmemorycopy(xmldoc_element_or_string,nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
             pass
         elif isinstance(xmldoc_element_or_string,etree._ElementTree):
-            self.__xmldoc=xmldoc.xmldoc.frometree(copy.deepcopy(xmldoc_element_or_string),nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
+            self.__xmldoc=xmldoc.xmldoc.copy_from_element(None,xmldoc_element_or_string,nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
             pass
         elif isinstance(xmldoc_element_or_string,etree._Element):
-            element=copy.deepcopy(xmldoc_element_or_string)
-            self.__xmldoc=xmldoc.xmldoc.frometree(etree.ElementTree(element),nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
+            self.__xmldoc=xmldoc.xmldoc.copy_from_element(None,xmldoc_element_or_string,nsmap=nsmap,contexthref=contexthref,force_abs_href=force_abs_href)
             
             pass
         elif xmldoc_element_or_string is None or xmldoc_element_or_string=="":
@@ -734,7 +733,10 @@ class hrefvalue(value):
     
     def getquotedfragment(self):
         return self.href_context.getquotedfragment()
-    
+
+    def gethumanfragment(self):
+        return self.href_context.gethumanfragment()
+
     def get_bare_quoted_filename(self):
         return self.href_context.get_bare_quoted_filename()
     
@@ -745,12 +747,15 @@ class hrefvalue(value):
     def getpath(self):
         return self.href_context.getpath()
 
+    def fragless(self):
+        return hrefvalue(self.href_context.fragless())
+    
 
     def leafless(self):
         # hrefvalues can include path and file. When defining a context, you
         # often want to remove the file part. This routine copies a href and
         # removes the file part, (but leaves the trailing slash)
-        return self.href_context.leafless()
+        return hrefvalue(self.href_context.leafless())
 
         
     #@classmethod
@@ -830,6 +835,9 @@ class hrefvalue(value):
     def value(self):
         return self.href_context
     
+    
+    def evaluate_fragment(self,xmldocu,refelement=None,noprovenance=False):
+        return self.href_context.evaluate_fragment(xmldocu,refelement=refelement,noprovenance=noprovenance)
     
     pass
 

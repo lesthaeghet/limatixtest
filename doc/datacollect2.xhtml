@@ -1012,14 +1012,23 @@
       <tr><td>ismem</td><td>(none)</td><td>Return whether this is an in-memory (mem://) URL</td></tr>
       <tr><td>ishttp</td><td>(none)</td><td>Return whether this is an HTTP (http://) URL</td></tr>
       <tr><td>isfile</td><td>(none)</td><td>Return whether this is an FILE (file:// or no specified protocol) URL</td></tr>
+      <tr><td>humanurl</td><td>(none)</td><td>Return most human-readable form of the full, absolute URL. Note that this is NOT a file path (see getpath())</td></tr>
+      <tr><td>canonicalize</td><td>(none)</td><td>Attempt to create a canonicalized representation of this URL. Note that the canonical form is dependent on tag_index_paths</td></tr>
+      <tr><td>fromelement</td>(xmldocu,element,tag_index_paths_override=None)<td>(none)</td><td>Create and return an hrefvalue that points at the specified element, including URL path and fragment. Use tag_index_paths_override to specify additional tag_index_paths</td></tr>
       <tr><td>islocalfile</td><td>(none)</td><td>same as isfile()</td></tr>
       <tr><td>absurl</td><td>(none)</td><td>Return full, absolute URL. Note that this is NOT a file path (see getpath())</td></tr>
       <tr><td>attempt_relative_href</td><td>(new_context)</td><td>Create a new hrefvalue relative to specified new_context</td></tr>
+      <tr><td>has_fragment</td><td>(none)</td><td>Return if the URL has a fragment (portion after the '#')</td></tr>
+      <tr><td>getunquotedfragment</td><td>(none)</td><td>Get URL fragment (after the #) in non-percent-encoded form</td></tr>
+      <tr><td>getquotedfragment</td><td>(none)</td><td>Get URL fragment (after the #) in proper percent-encoded URL form</td></tr>
+      <tr><td>gethumanfragment</td><td>(none)</td><td>Get URL fragment (after the #) translated to most human-readable form</td></tr>
       <tr><td>get_bare_quoted_filename</td><td>(none)</td><td>Return filename portion of URL, with special characters quoted as in a URL</td></tr>
       <tr><td>get_bare_unquoted_filename</td><td>(none)</td><td>Return filename portion of URL, not using quoting of special URL characters, as in a filename</td></tr>
       <tr><td>getpath</td><td>(none)</td><td>For FILE URL's, convert URL to a filesystem pathname and return</td></tr>
+      <tr><td>fragless</td><td>(none)</td><td>Return a hrefvalue with any fragment portion of the URL removed</td></tr>
       <tr><td>leafless</td><td>(none)</td><td>Return a hrefvalue with any file part portion of the URL removed (but with trailing slash present)</td></tr>
       <tr><td>__hash__</td><td>(none)</td><td>hrefvalue is hashable, based on the return value of absurl(), so it is usable for dictionary keys</td></tr>
+      <tr><td>evaluate_fragment</td><td>(xmldocu,refelement,noprovenance=False)</td><td>Given this hrefvalue and an opened document xmldocu which contains its target, evaluate the fragment portion of the hrefvalue and return an element set of those which match the fragment criterion. refelement is used if the fragment is a relative in-document URI (not fully supported)</td></tr>
             
     </table>
 
@@ -1224,6 +1233,20 @@
       <tr><td>force_abs_href</td><td>Convert all relative hypertext references to absolute on load</td></tr>
     </table>
     
+    <h3>datacollect2.xmldoc.xmldoc.copy_from_element(xmldocu,etree_or_element,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False)</h3>
+    <p>Constructor for creating an in-memory XML document by copying a
+      tree of elements from another document. Can be the whole
+      document, just one element, or anwhere inbetween. Note that this
+      makes its own deep copy of the original, so the original can be
+      modified independently.  Assumes hypertext references are in the
+      context of specified xmldocu, unless that is None in which case
+      they are assumed to be in the context of contexthref, and will
+      make them absolute if force_abs_href is specified.</p>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>lxmletree</td><td>Pre-existing lxml ElementTree object. Don't keep using it after passing it to frometree() as it becomes embedded in the new xmldoc object. </td></tr>
+      <tr><td>force_abs_href</td><td>Convert all relative hypertext references to absolute on load</td></tr>
+    </table>
     
     <h3>datacollect2.xmldoc.xmldoc.frometree(lxmletree,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False)</h3>
     <p>Constructor for creating an in-memory XML document from a Python LXML etree. Note that this steals the existing object, so don't use it for anything else.  Assumes hypertext references are in the context of specified contexthref, and will make them absolute if force_abs_href is specified.</p>

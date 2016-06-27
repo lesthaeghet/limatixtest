@@ -421,6 +421,33 @@ class xmldoc(object):
         return newdoc
 
     @classmethod
+    def copy_from_element(cls,xmldocu,etree_or_element,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False):
+        # Create a new xmldoc object by copying an element (and sub-elements)
+        # or element tree object
+
+        elementcopy=copy.deepcopy(etree_or_element)
+        
+        if hasattr(elementcopy,"getchildren"):
+            # Element object has getchildren()
+            # Wrap it in a new tree
+            newetree=etree.ElementTree(elementcopy)
+            pass
+        else:     
+            # ElementTree object does not have getchildren()
+            newetree=elementcopy
+            pass
+
+        if xmldocu is not None:
+            assert(contexthref is None)
+            contexthref=xmldocu.getcontexthref()
+            pass
+        
+        
+
+        return xmldoc.frometree(newetree,nsmap=nsmap,readonly=readonly,contexthref=xmldocu.getcontexthref(),debug=debug,force_abs_href=force_abs_href)
+    
+    
+    @classmethod
     def frometree(cls,lxmletree,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False):
         # Create an xmldoc object from an existing lxml ElementTree object
         # NOTE: Steals existing object and keeps using it internally!!!
