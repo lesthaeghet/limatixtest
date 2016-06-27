@@ -73,34 +73,34 @@ class dummy(object):
 #sys.path.append(os.path.join(installeddir,"steps/"))
 
 
-from datacollect2.dc_value import numericunitsvalue as numericunitsv
-from datacollect2.dc_value import stringvalue as stringv
-from datacollect2.dc_value import hrefvalue as hrefv
-from datacollect2.dc_value import integervalue as integerv
-from datacollect2.dc_value import photosvalue as photosv
-from datacollect2.dc_value import datesetvalue as datesetv
-from datacollect2.dc_value import accumulatingdatesetvalue as accumulatingdatesetv
-from datacollect2.dc_value import xmltreevalue as xmltreev
+from limatix.dc_value import numericunitsvalue as numericunitsv
+from limatix.dc_value import stringvalue as stringv
+from limatix.dc_value import hrefvalue as hrefv
+from limatix.dc_value import integervalue as integerv
+from limatix.dc_value import photosvalue as photosv
+from limatix.dc_value import datesetvalue as datesetv
+from limatix.dc_value import accumulatingdatesetvalue as accumulatingdatesetv
+from limatix.dc_value import xmltreevalue as xmltreev
 
-from datacollect2.dc_dbus_barcode import dc_dbus_barcode
+from limatix.dc_dbus_barcode import dc_dbus_barcode
 
 #import dg_io 
 import datacollect2.paramdb2 as pdb
-from datacollect2 import paramdbfile
-from datacollect2 import dc2_misc
+from limatix import paramdbfile
+from limatix import dc2_misc
 
-from datacollect2 import checklist
+from limatix import checklist
 
-from datacollect2.dc_gtksupp import build_from_file
-from datacollect2.dc_gtksupp import dc_initialize_widgets
-from datacollect2.dc_gtksupp import import_widgets
-from datacollect2.dc_gtksupp import guistate as create_guistate
+from limatix.dc_gtksupp import build_from_file
+from limatix.dc_gtksupp import dc_initialize_widgets
+from limatix.dc_gtksupp import import_widgets
+from limatix.dc_gtksupp import guistate as create_guistate
 
-from datacollect2 import explogwindow
+from limatix import explogwindow
 
-from datacollect2 import xmldoc
-from datacollect2 import xmlexplog
-from datacollect2 import checklistdb
+from limatix import xmldoc
+from limatix import xmlexplog
+from limatix import checklistdb
 
 # from dc_dbus_paramserver import dc_dbus_paramserver
 

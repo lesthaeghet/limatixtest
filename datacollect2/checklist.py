@@ -260,7 +260,7 @@ def get_step(name):
             pass
         pass
     if len(matches) == 0:
-        raise ValueError("Step %s not provided by any installed Python module or package.\nStep must be configured using setuptools with entry_points={\"datacollect2.step\": \"%s = <importable Python module>\"" % (name,name))
+        raise ValueError("Step %s not provided by any installed Python module or package.\nStep must be configured using setuptools with entry_points={\"limatix.step\": \"%s = <importable Python module>\"" % (name,name))
     
     elif len(matches) > 1:
         sys.stderr.write("datacollect2 checklist: step %s is provided by multiple modules (%s). Using %s\n" % (name,str([entrypoint.module_name for entrypoint in matches]),matches[0].module_name))

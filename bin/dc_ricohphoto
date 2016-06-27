@@ -47,19 +47,19 @@ dg_units.units_config("insert_basic_units")
 #sys.path.append(installeddir)
 #sys.path.append(os.path.join(installeddir,"lib/"))
 
-from datacollect2.dc_value import numericunitsvalue as numericunitsv
-from datacollect2.dc_value import stringvalue as stringv
-from datacollect2.dc_value import photosvalue as photosv
+from limatix.dc_value import numericunitsvalue as numericunitsv
+from limatix.dc_value import stringvalue as stringv
+from limatix.dc_value import photosvalue as photosv
 
-from datacollect2 import paramdb2 as pdb
+from limatix import paramdb2 as pdb
 
-from datacollect2.dc_gtksupp import import_widgets
-from datacollect2.dc_gtksupp import guistate as create_guistate
+from limatix.dc_gtksupp import import_widgets
+from limatix.dc_gtksupp import guistate as create_guistate
 
-from datacollect2.dc_dbus_barcode import dc_dbus_barcode
+from limatix.dc_dbus_barcode import dc_dbus_barcode
 
 
-from datacollect2 import ricohcamera
+from limatix import ricohcamera
 
 if "gobject" in sys.modules:  # only for GTK2
     gobject.threads_init()

@@ -68,14 +68,14 @@ class dummy(object):
 #sys.path.append(os.path.join(installeddir,"steps/"))
 
 
-from datacollect2.dc_value import numericunitsvalue as numericunitsv
-from datacollect2.dc_value import stringvalue as stringv
-from datacollect2.dc_value import datesetvalue as datesetv
-from datacollect2.dc_value import accumulatingdatesetvalue as accumulatingdatesetv
-from datacollect2.dc_dbus_barcode import dc_dbus_barcode
+from limatix.dc_value import numericunitsvalue as numericunitsv
+from limatix.dc_value import stringvalue as stringv
+from limatix.dc_value import datesetvalue as datesetv
+from limatix.dc_value import accumulatingdatesetvalue as accumulatingdatesetv
+from limatix.dc_dbus_barcode import dc_dbus_barcode
 
-from datacollect2 import checklist
-from datacollect2 import xmldoc
+from limatix import checklist
+from limatix import xmldoc
 
 dg_io=None
 try:
@@ -84,15 +84,15 @@ try:
 except ImportError:
     pass
 
-from datacollect2 import dc_value
-from datacollect2 import paramdb2 as pdb
-from datacollect2 import dc2_misc
-from datacollect2 import standalone_checklist
+from limatix import dc_value
+from limatix import paramdb2 as pdb
+from limatix import dc2_misc
+from limatix import standalone_checklist
 
-from datacollect2.dc_gtksupp import build_from_file
-from datacollect2.dc_gtksupp import dc_initialize_widgets
-from datacollect2.dc_gtksupp import import_widgets
-from datacollect2.dc_gtksupp import guistate as create_guistate
+from limatix.dc_gtksupp import build_from_file
+from limatix.dc_gtksupp import dc_initialize_widgets
+from limatix.dc_gtksupp import import_widgets
+from limatix.dc_gtksupp import guistate as create_guistate
 
 # from steptemplate import steptemplate
 

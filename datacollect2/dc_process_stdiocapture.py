@@ -5,7 +5,7 @@ import sys
 # This module MUST be imported as a first step before other modules get loaded.
 # Then immediately create the handlers, e.g.
 
-# from datacollect2.dc_process_stdiocapture import stdiohandler
+# from limatix.dc_process_stdiocapture import stdiohandler
 # stdouthandler=stdiohandler(sys.stdout,None)
 # sys.stdout=stdouthandler
 

@@ -57,7 +57,7 @@ import dg_timestamp
 
 import datacollect2.dc_value as dcv
 import datacollect2.dc_provenance as provenance
-from datacollect2 import xmldoc
+from limatix import xmldoc
 
 def usage():
     print ("""Usage: %s file.xlp

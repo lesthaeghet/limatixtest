@@ -21,13 +21,13 @@ else :
     DELETE=gdk.DELETE
     pass
 
-from datacollect2 import dc2_misc
-from datacollect2 import checklist
-from datacollect2 import xmldoc
-from datacollect2 import checklistdb
-from datacollect2 import checklistdbwin
+from limatix import dc2_misc
+from limatix import checklist
+from limatix import xmldoc
+from limatix import checklistdb
+from limatix import checklistdbwin
 
-from datacollect2.dc_gtksupp import guistate as create_guistate
+from limatix.dc_gtksupp import guistate as create_guistate
 
 
 # global pointers to the checklistdbwindow and plandbwindow

@@ -34,9 +34,9 @@ from lxml import etree
 #sys.path.append(installeddir)
 #sys.path.append(os.path.join(installeddir,"lib/"))
 
-from datacollect2 import dc_value 
-from datacollect2 import xmldoc
-from datacollect2 import dc2_misc
+from limatix import dc_value 
+from limatix import xmldoc
+from limatix import dc2_misc
 
 positionals=[]
 
