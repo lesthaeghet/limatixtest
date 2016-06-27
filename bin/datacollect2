@@ -85,7 +85,7 @@ from limatix.dc_value import xmltreevalue as xmltreev
 from limatix.dc_dbus_barcode import dc_dbus_barcode
 
 #import dg_io 
-import datacollect2.paramdb2 as pdb
+import limatix.paramdb2 as pdb
 from limatix import paramdbfile
 from limatix import dc2_misc
 

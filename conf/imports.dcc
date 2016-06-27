@@ -1,7 +1,7 @@
 m4_ifdef(imports_dcc,[[]],[[
 m4_define(imports_dcc,[[]])
 
-import datacollect2.dg_io
+import limatix.dg_io
 
 from limatix.paramdb2 import dgcontroller
 from limatix.paramdb2 import autocontroller_specimendb
