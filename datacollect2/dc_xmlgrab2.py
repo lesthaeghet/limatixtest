@@ -9,6 +9,7 @@ import numbers
 import inspect
 import traceback
 import dc_value as dcv
+from datacollect2.dc_value import hrefvalue
 
 try: 
     from collections.abc import Sequence  # moved to collections.abc in numpy 3.4(?)
@@ -102,7 +103,8 @@ def filelistrecurse(name,use_databrowse):
 
 
 def openxmldoc(filename,nsmap=None,use_databrowse=False):
-    doc = xmldoc.xmldoc(filename,maintagname=None,nsmap=nsmap,readonly=True,use_databrowse=use_databrowse)
+    filenamehref=hrefvalue(filename)
+    doc = xmldoc.xmldoc(filenamehref,maintagname=None,nsmap=nsmap,readonly=True,use_databrowse=use_databrowse)
     return doc
 
 
