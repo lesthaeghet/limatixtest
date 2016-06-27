@@ -7,7 +7,7 @@ orig_sys_exit=sys.exit # keep a copy of real sys.exit, because ipython messes it
 
 # set up stdout/stderr forwarders as FIRST step before other modules get loaded
 
-from datacollect2.dc_process_stdiocapture import stdiohandler
+from limatix.dc_process_stdiocapture import stdiohandler
 
 stdouthandler=stdiohandler(sys.stdout,None)
 sys.stdout=stdouthandler
@@ -76,8 +76,8 @@ except ImportError:
 import dg_units
 dg_units.units_config("insert_basic_units")
 import dg_timestamp
-from datacollect2 import canonicalize_path
-from datacollect2.canonicalize_path import etxpath2human
+from limatix import canonicalize_path
+from limatix.canonicalize_path import etxpath2human
 
 #class dummy(object):
 #    pass
@@ -106,12 +106,12 @@ from datacollect2.canonicalize_path import etxpath2human
 #sys.path.append(installeddir)
 #sys.path.append(os.path.join(installeddir,"lib/"))
 
-from datacollect2 import dc_value as dcv
-from datacollect2 import dc_provenance as provenance
-from datacollect2 import xmldoc
-from datacollect2 import dc_process_prxdoc
-from datacollect2 import dc_process_common
-from datacollect2 import dc_process_procstep
+from limatix import dc_value as dcv
+from limatix import dc_provenance as provenance
+from limatix import xmldoc
+from limatix import dc_process_prxdoc
+from limatix import dc_process_common
+from limatix import dc_process_procstep
 
 
 # Concept

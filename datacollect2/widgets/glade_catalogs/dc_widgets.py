@@ -13,7 +13,7 @@ import gtk
 #sys.path.append(os.path.join(os.path.split(sys.modules[dummy.__module__].__file__)[0],"../../lib"))
 #sys.path.append(os.path.join(os.path.split(sys.modules[dummy.__module__].__file__)[0],"../.."))
 
-from datacollect2 import dc_gtksupp
+from limatix import dc_gtksupp
 
 dc_gtksupp.import_widgets()
 

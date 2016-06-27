@@ -29,7 +29,7 @@ import os.path
 #elif os.path.exists(os.path.join(installeddir,"../glade-3")):
 #    gladedir=os.path.join(installeddir,"../glade-3")
 #    pass
-from datacollect2 import widgets
+from limatix import widgets
 
 widgetsdir=os.path.split(widgets.__file__)[0]
 

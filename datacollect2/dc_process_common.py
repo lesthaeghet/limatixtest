@@ -385,7 +385,7 @@ def build_outputdict(prxdoc,useinputfiles_with_hrefs):
 
 def outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist):
     # delayed import to avoid circular reference
-    from datacollect2 import dc_process_procstep
+    from limatix import dc_process_procstep
     
     # Run the specified steps, on the specified files
 

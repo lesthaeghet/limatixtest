@@ -43,10 +43,10 @@ dg_units.units_config("insert_basic_units")
 #sys.path.append(installeddir)
 #sys.path.append(os.path.join(installeddir,"lib/"))
 
-from datacollect2 import dc_value
-from datacollect2 import xmldoc
-from datacollect2 import canonicalize_path
-from datacollect2 import paramdbfile
+from limatix import dc_value
+from limatix import xmldoc
+from limatix import canonicalize_path
+from limatix import paramdbfile
 
 
 x2d_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://thermal.cnde.iastate.edu/checklist"}
