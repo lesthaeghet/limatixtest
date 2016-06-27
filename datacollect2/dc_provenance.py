@@ -2,6 +2,7 @@
 # as other modules need to be able to find it!
 
 import os
+import os.path
 import sys
 import copy
 import os.path
@@ -22,10 +23,10 @@ from . import canonicalize_path
 from .canonicalize_path import href_context
 
 # from . import xmldoc  # remove to eliminate circular reference
-from .import dc_process_common
+from .import dc_process_prxdoc
 
 from lxml import etree
-from pytz import reference
+# from pytz import reference
 
 
 try: 
@@ -180,7 +181,7 @@ def reference_pymodule(doc,parent,tagname,contextelement,module,warnlevel="none"
 
     
 
-def reference_file(doc,parent,tagname,contextelement,referencehrefc,warnlevel="error"):
+def reference_file(doc,parent,tagname,contextelement,referencehrefc,warnlevel="error",fragcanonsha256=None):
     # filecontext_xpath is "/"+outputroot.tag
     # warnlevel should be "none" "info", "warning", or "error" and represents when the 
     # reference to this file does not match the file itself, how loud the warning
@@ -188,15 +189,28 @@ def reference_file(doc,parent,tagname,contextelement,referencehrefc,warnlevel="e
 
     #hrefc=referencehref.value()
     hrefc=referencehrefc
+
     
     element=doc.addelement(parent,tagname)
 
     
-
+    #import pdb
+    #pdb.set_trace()
     hrefc.xmlrepr(doc,element)  # Note no provenance because we use hrefc not dc_value
+
+    # print("provenance.reference_file(%s,%s) -> xlink:href=%s" % (doc.getcontexthref().value().humanurl(),hrefc.humanurl(),element.attrib["{http://www.w3.org/1999/xlink}href"]))
+
     doc.setattr(element,"warnlevel",warnlevel)
     doc.setattr(element,"type","href")
 
+
+    mtime=datetime.datetime.fromtimestamp(os.path.getmtime(hrefc.getpath()),dg_timestamp.UTC()).isoformat()
+    doc.setattr(element,"mtime",mtime)
+    
+    if hrefc.has_fragment() and fragcanonsha256 is not None:
+        doc.setattr(element,"fragcanonsha256",fragcanonsha256)
+        pass
+    
     
     doc.setattr(element,"warnlevel",warnlevel)
     # print etree.tostring(element)
@@ -247,11 +261,17 @@ class iterelementsbutskip(object):
             if retval is self.skipelement:
                 return self.next() # find another element instead
 
+            if "Element" not in retval.__class__.__name__:
+                # not an element... perhaps a comment or processing instruction
+                # ignore
+                return self.next()
+
             if isinstance(self.skipelement,basestring):
                 if retval.tag==self.skipelement:
                     return self.next() # find another element instead
                 pass
 
+            
 
             # Add sub level if children present
             if hasattr(retval,"getchildren"):
@@ -668,7 +688,7 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
         assert(modified_element_hrefc.fragless()==xmldocu.filehref.value())
 
         
-        foundelement=modified_element_hrefc.fragment.evaluate(xmldocu,None,noprovenance=True)
+        foundelement=modified_element_hrefc.evaluate_fragment(xmldocu,None,noprovenance=True)
 
         
         #sys.stderr.write("foundelement=%s\n" % (str(foundelement)))
@@ -901,10 +921,9 @@ def suggest(docdict,processdict,processdictbyhrefc,processdictbyusedelement,elem
                             continue
 
                         xmldocu=docdict[processfilehrefc]
-                        fragment=processhrefc.fragment
-                        foundelement=fragment.evaluate(xmldocu,None,noprovenance=True)
+                        foundelement=processhrefc.evaluate_fragment(xmldocu,None,noprovenance=True)
                         if len(foundelement)==0:
-                            sys.stderr.write("Warning: Could not find process path %s in URL %s\n" % (fragment.get_human(),processfilehrefc.absurl()))
+                            sys.stderr.write("Warning: Could not find process path %s in URL %s\n" % (processhrefc.gethumanfragment(),processfilehrefc.absurl()))
                             continue
                         assert(len(foundelement)==1)  # This would be triggered by a hash collision. Should be separately diagnosed in processing. 
                         # foundelement[0] is the dcp:process tag
@@ -937,11 +956,13 @@ def suggest(docdict,processdict,processdictbyhrefc,processdictbyusedelement,elem
         from . import xmldoc # don't want this in top-of-file because it creates a circular reference
         from . import dc_value # don't want this in top-of-file because it creates a circular reference
 
+        print("prxfile_hrefc=%s" % (prxfile_hrefc.humanurl()))
+
         prxfile_doc=xmldoc.xmldoc.loadhref(dc_value.hrefvalue(prxfile_hrefc),nsmap={"prx":"http://thermal.cnde.iastate.edu/datacollect/processinginstructions","xlink":"http://www.w3.org/1999/xlink"})
         prxfile_steps=prxfile_doc.xpath("prx:step")
         prxfile_inputfiles=prxfile_doc.xpath("prx:inputfile")
         for step in prxfile_steps:
-            stepaction=dc_process_common.getstepname(prxfile_doc,step)
+            stepaction=dc_process_prxdoc.getstepname(prxfile_doc,step)
             refdinputhrefcs=[inputfilehrefc for (inputfilehrefc,action) in suggestions_by_prxfile[prxfile_hrefc] if action==stepaction]
             for refdinputhrefc in refdinputhrefcs:
                 suggestions_by_prxfile[prxfile_hrefc].remove((refdinputhrefc,stepaction))
@@ -1051,13 +1072,14 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
     if element_hrefc in processdictbyhrefc:
         return # already processed this dcp:process element
         
-    # print "element_hrefc=",element_hrefc
+    # sys.stderr.write("element_hrefc="+str(element_hrefc)+"\n")
     filehrefc=element_hrefc.fragless()
 
-    fragment=element_hrefc.fragment
+    # sys.stderr.write("filehrefc="+str(filehrefc)+"\n")
+
     #(filepath,etxpath)=canonicalize_path.canonical_etxpath_break_out_file(element_etxpath)
 
-    if fragment is not None:
+    if element_hrefc.has_fragment():
         # not just a file...
         # load file and extract provenance uuids if possible
 
@@ -1099,7 +1121,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
         if xmldocu is None:
             return # nothing to do... error would have been diagnosed above
 
-        foundelement=fragment.evaluate(xmldocu,None,noprovenance=True)
+        foundelement=element_hrefc.evaluate_fragment(xmldocu,None,noprovenance=True)
         if len(foundelement)==0:
             elementdict[(element_hrefc,refuuids_or_mtime)]=([],copy.deepcopy(messagelisttemplate)) # mark that we have done this
             # Add error message to messagelists
@@ -1171,6 +1193,15 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                         #    pass
 
                         newhrefc=href_context.fromxml(xmldocu,usedtag)
+                        #sys.stderr.write("newhref=%s fragment=%s\n" % (str(newhrefc.contextlist),str(newhrefc.fragment)))
+                        
+                        #if str(newhrefc.contextlist)=="('',)":
+                        #    import pdb
+                        #    pdb.set_trace()
+                        #    newhrefc=href_context.fromxml(xmldocu,usedtag)
+                        #    pass
+                        
+                        
                         
                         uuids_or_mtime=None
                         if "usedwasgeneratedby" in usedtag.attrib:

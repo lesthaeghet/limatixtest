@@ -1630,7 +1630,7 @@ class checklist(object):
             
                 aecopy=copy.deepcopy(autoexp)
                 # sys.stderr.write("\n\ngot aecopy: %s\n" % (etree.tostring(aecopy)))
-                aecopydoc=xmldoc.frometree(aecopy,contexthref=self.xmldoc.getcontexthref())
+                aecopydoc=xmldoc.copy_from_element(self.xmldoc,autoexp)
                 
                 title=self.xmldoc.xpathcontext(autoexp,"string(../@title)")
                 if len(title)==0:
