@@ -109,7 +109,7 @@ class ricohphotorequest(gtk.Window):
 
     gladeobjdict=None
     builder=None
-    dc_gui_io=None
+    #dc_gui_io=None
     guistate=None
 
     reqfilenamexpath=None
@@ -352,7 +352,7 @@ class ricohphotorequest(gtk.Window):
         
         self.guistate=guistate
         
-        self.dc_gui_io=guistate.io
+        # self.dc_gui_io=guistate.io
         
         dc_initialize_widgets(self.gladeobjdict,guistate)
         
