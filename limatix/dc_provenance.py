@@ -728,7 +728,7 @@ def find_process_el(xmldocu,processdict,element,uuidcontent):
     process=None
 
     while process is None:
-        processlist=workelement.xpath("lip:process",namespaces={"dcp":dcp})
+        processlist=workelement.xpath("lip:process",namespaces={"lip":dcp})
         for processtag in processlist:
             # if "uuid" in processtag.attrib: 
             #     print "%s vs %s" % (processtag.attrib["uuid"],uuidcontent)
@@ -736,7 +736,7 @@ def find_process_el(xmldocu,processdict,element,uuidcontent):
             if "uuid" in processtag.attrib and processtag.attrib["uuid"]==uuidcontent:
                 process=processtag # Match!
                 break
-            processsublist=processtag.xpath(".//lip:process[@uuid=\"%s\"]" % (uuidcontent),namespaces={"dcp": dcp})
+            processsublist=processtag.xpath(".//lip:process[@uuid=\"%s\"]" % (uuidcontent),namespaces={"lip": dcp})
             # print "sublist constraint: .//lip:process[@uuid=\"%s\"]" % (uuidcontent)
             # print "len(processsublist)=%d" % (len(processsublist))
             if len(processsublist) > 1: 
@@ -806,7 +806,7 @@ def checkallprovenance(xmldocu):
 def find_process_value_or_ancestor(process_el,tagpath,default=AttributeError("Could not find tag")):
     # tag should use lip: prefix
     # print "tag:",tag
-    gottags=process_el.xpath(tagpath,namespaces={"dcp":dcp})
+    gottags=process_el.xpath(tagpath,namespaces={"lip":dcp})
     
     if len(gottags)==0: 
         parent=process_el.getparent()
@@ -1160,7 +1160,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                 processdict[uuid]=(element_hrefc,[],copy.deepcopy(messagelisttemplate),parent_uuid)
                 processdictbyhrefc[element_hrefc]=uuid # mark that we have done this
                 
-                for usedtag in foundelement[0].xpath("lip:used",namespaces={"dcp": dcp}):
+                for usedtag in foundelement[0].xpath("lip:used",namespaces={"lip": dcp}):
                     if not "type" in usedtag.attrib:
                         # add error message to message list
                         processdict[uuid][2]["error"].append("lip:used tag %s does not have a type attribute" % (href_context.fromelement(xmldocu,usedtag).humanurl()))
@@ -1236,7 +1236,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
         else:
 
             # no specific tag. Look for recorded provenance
-            uuidstring=str(xmldocu.getattr(foundelement[0],"lip:wasgeneratedby","",namespaces={"dcp": dcp}))
+            uuidstring=str(xmldocu.getattr(foundelement[0],"lip:wasgeneratedby","",namespaces={"lip": dcp}))
             if refuuids_or_mtime is not None and refuuids_or_mtime != uuidstring:
                 # refuuids_or_mtime is what we were lead to believe (by the calling lip:process) generated this element
                 # uuidstring is what actually generated this element
@@ -1348,7 +1348,7 @@ junk="""
                 refuuid="object_not_unique"
                 pass
             else:
-                refuuid=refdoc.getattr(foundrefelement[0],"lip:wasgeneratedby","",namespaces={"dcp": dcp})
+                refuuid=refdoc.getattr(foundrefelement[0],"lip:wasgeneratedby","",namespaces={"lip": dcp})
                 pass
             pass
 """   
