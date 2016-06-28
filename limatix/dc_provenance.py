@@ -122,7 +122,7 @@ def write_timestamp(doc,process_el,tagname,timestamp=None):
 
 def write_process_log(doc,process_el,status,stdoutstderrlog):
     # "status" shoudl be "success" or "exception" 
-    log_el=doc.addelement(process_el,"dcp:log")
+    log_el=doc.addelement(process_el,"lip:log")
     log_el.text=stdoutstderrlog
     log_el.attrib["status"]=status
     pass
@@ -131,7 +131,7 @@ def write_input_file(doc,process_el,inputfilehref):
 
     hrefc=inputfilehref.value()
 
-    inpf_el=doc.addelement(process_el,"dcp:inputfile")
+    inpf_el=doc.addelement(process_el,"lip:inputfile")
     hrefc.xmlrepr(doc,inpf_el)  # Note no provenance written here because we use hrefc not dc_value
 
     
@@ -141,12 +141,12 @@ def write_input_file(doc,process_el,inputfilehref):
     
 
 def write_process_info(doc,process_el):
-    hostname_el=doc.addelement(process_el,"dcp:hostname")
+    hostname_el=doc.addelement(process_el,"lip:hostname")
     doc.settext(hostname_el,determinehostname())
     doc.setattr(hostname_el,"pid",str(os.getpid()))
     doc.setattr(hostname_el,"uid",str(os.getuid()))
     doc.setattr(hostname_el,"username",getpass.getuser())
-    argv_el=doc.addelement(process_el,"dcp:argv")
+    argv_el=doc.addelement(process_el,"lip:argv")
     doc.settext(argv_el,unicode(sys.argv)) # Save command line parameters
     pass
 
@@ -217,12 +217,12 @@ def reference_file(doc,parent,tagname,contextelement,referencehrefc,warnlevel="e
     return element
 
 def write_action(doc,process_el,action_name):
-    action_el=doc.addelement(process_el,"dcp:action")
+    action_el=doc.addelement(process_el,"lip:action")
     doc.settext(action_el,action_name)
     pass
 
 def write_target(doc,process_el,target_hrefc):
-    target_el=doc.addelement(process_el,"dcp:target")
+    target_el=doc.addelement(process_el,"lip:target")
     target_hrefc.xmlrepr(doc,target_el)  # Note no provenance because we use hrefc not dc_value
     pass
 
@@ -292,7 +292,7 @@ class iterelementsbutskip(object):
 
 
 def add_generatedby_to_tree(xmldocu,treeroot,skipel,uuid):
-    # skipel is None or perhaps the dcp:process element we have been creating
+    # skipel is None or perhaps the lip:process element we have been creating
     # so that we don't list dependence on that
 
     for descendent in iterelementsbutskip(treeroot,skipel): #  iterate through descendents, but ignore the provenance tag structure we just created. 
@@ -318,7 +318,7 @@ def set_hash(xmldocu,doc_process_root,process_el):
     ourprocesshash=hashlib.sha1(etree.tostring(process_el)).hexdigest()
     
     # Check for hash collisions
-    other_processes=xmldocu.xpathcontext(doc_process_root,"dcp:process")
+    other_processes=xmldocu.xpathcontext(doc_process_root,"lip:process")
     for other_process in other_processes:
         if xmldocu.hasattr(other_process,"uuid"):
             other_uuid=xmldocu.getattr(other_process,"uuid")
@@ -370,7 +370,7 @@ ProvenanceDB={}
 # that have been accessed ("Used") by this process.
 # The third member is a dictionary, by element object id, of a tuple: (the element, the corresponding element hrefc) for all XML elements that have been created or modified
 #
-# These will become the contents of the dcp:process tag 
+# These will become the contents of the lip:process tag 
 #
 
 
@@ -643,14 +643,14 @@ def finishtrackprovenance():
     return (latestcontext[0] ,latestcontext[1])  # currently omits dictionary of element ids
 
 def writeprocessprovenance(doc,rootprocesspath,parentprocesspath,referenced_elements):
-    # Create dcp:process element that contains dcp:used tags listing all referenced elements 
+    # Create lip:process element that contains lip:used tags listing all referenced elements 
 
     
     # ourhrefc=doc.filehref.fragless()
 
     rootprocess_el=doc.restorepath(rootprocesspath)
     parentprocess_el=doc.restorepath(parentprocesspath)
-    process_el=doc.addelement(parentprocess_el,"dcp:process")
+    process_el=doc.addelement(parentprocess_el,"lip:process")
 
     # refdoccache={}  # Dictionary of referenced documents... so we don't 
     #                 # have to reparse for each element
@@ -659,12 +659,12 @@ def writeprocessprovenance(doc,rootprocesspath,parentprocesspath,referenced_elem
 
     for (element_hrefc,uuids_or_mtime) in referenced_elements:
 
-        used_el=reference_hrefcontext(doc,process_el,"dcp:used",rootprocess_el.getparent(),element_hrefc,warnlevel="error")
+        used_el=reference_hrefcontext(doc,process_el,"lip:used",rootprocess_el.getparent(),element_hrefc,warnlevel="error")
 
         if len(uuids_or_mtime) > 0:
             if uuids_or_mtime.startswith("mtime="):
                 # mtime
-                doc.setattr(used_el,"dcp:timestamp",uuids_or_mtime[6:])
+                doc.setattr(used_el,"lip:timestamp",uuids_or_mtime[6:])
                 pass
             else:
                 # uuid list
@@ -697,10 +697,10 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
             msg+=" ".join("foundelement[%d]=%s" % (idx,href_context.from_element(xmldocu,foundelement[idx]).humanurl()) for idx in range(len(foundelement)))
             raise ValueError(msg) # etree.tostring(xmldocu.doc)))
 
-        # oldwgb=xmldocu.getattr(foundelement[0],"dcp:wasgeneratedby","")
-        # xmldocu.setattr(foundelement[0],"dcp:wasgeneratedby",oldwgb+"uuid="+process_uuid+";")
+        # oldwgb=xmldocu.getattr(foundelement[0],"lip:wasgeneratedby","")
+        # xmldocu.setattr(foundelement[0],"lip:wasgeneratedby",oldwgb+"uuid="+process_uuid+";")
 
-        # read out "dcp:wasgeneratedby" attribute of foundelement[0]
+        # read out "lip:wasgeneratedby" attribute of foundelement[0]
         if DCP+"wasgeneratedby" in foundelement[0].attrib:
             oldwgb=foundelement[0].attrib[DCP+"wasgeneratedby"]
             pass
@@ -709,7 +709,7 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
             pass
 
         
-        # rewrite "dcp:wasgeneratedby" tag with this process uuid attached
+        # rewrite "lip:wasgeneratedby" tag with this process uuid attached
         foundelement[0].attrib[DCP+"wasgeneratedby"]=oldwgb+"uuid="+process_uuid+";"
         
         pass
@@ -724,11 +724,11 @@ def find_process_el(xmldocu,processdict,element,uuidcontent):
     if uuidcontent in processdict:
         return processdict[uuidcontent][0]  # return hrefc from processdict
 
-    workelement=element   # start first with children of our node in search for <dcp:process> element with matching uuid
+    workelement=element   # start first with children of our node in search for <lip:process> element with matching uuid
     process=None
 
     while process is None:
-        processlist=workelement.xpath("dcp:process",namespaces={"dcp":dcp})
+        processlist=workelement.xpath("lip:process",namespaces={"dcp":dcp})
         for processtag in processlist:
             # if "uuid" in processtag.attrib: 
             #     print "%s vs %s" % (processtag.attrib["uuid"],uuidcontent)
@@ -736,11 +736,11 @@ def find_process_el(xmldocu,processdict,element,uuidcontent):
             if "uuid" in processtag.attrib and processtag.attrib["uuid"]==uuidcontent:
                 process=processtag # Match!
                 break
-            processsublist=processtag.xpath(".//dcp:process[@uuid=\"%s\"]" % (uuidcontent),namespaces={"dcp": dcp})
-            # print "sublist constraint: .//dcp:process[@uuid=\"%s\"]" % (uuidcontent)
+            processsublist=processtag.xpath(".//lip:process[@uuid=\"%s\"]" % (uuidcontent),namespaces={"dcp": dcp})
+            # print "sublist constraint: .//lip:process[@uuid=\"%s\"]" % (uuidcontent)
             # print "len(processsublist)=%d" % (len(processsublist))
             if len(processsublist) > 1: 
-                raise IndexError("Multiple dcp:process tags matching uuid %s." % (uuidcontent))
+                raise IndexError("Multiple lip:process tags matching uuid %s." % (uuidcontent))
             if len(processsublist) == 1:
                 process=processsublist[0] # Match!
                 break
@@ -776,7 +776,7 @@ def checkallprovenance(xmldocu):
             refuuids_or_mtime=str(descendent.attrib[DCP+"wasgeneratedby"])
             pass
         else : 
-            globalmessagelists["warning"].append("Element %s does not have dcp:wasgenerateby provenance" % (href_context.fromelement(xmldocu,descendent).humanurl()))
+            globalmessagelists["warning"].append("Element %s does not have lip:wasgenerateby provenance" % (href_context.fromelement(xmldocu,descendent).humanurl()))
             pass
         element_hrefc=href_context.fromelement(xmldocu,descendent)
         checkprovenance("",element_hrefc,refuuids_or_mtime,nsmap=xmldocu.nsmap,docdict=docdict,processdict=processdict,processdictbyhrefc=processdictbyhrefc,processdictbyusedelement=processdictbyusedelement,elementdict=elementdict,globalmessagelists=globalmessagelists)
@@ -804,7 +804,7 @@ def checkallprovenance(xmldocu):
     return  (docdict,processdict,processdictbyhrefc,processdictbyusedelement,elementdict,globalmessagelists,totalmessagelists)
 
 def find_process_value_or_ancestor(process_el,tagpath,default=AttributeError("Could not find tag")):
-    # tag should use dcp: prefix
+    # tag should use lip: prefix
     # print "tag:",tag
     gottags=process_el.xpath(tagpath,namespaces={"dcp":dcp})
     
@@ -869,13 +869,13 @@ def removequotesifable(arg):
 
 
 def getnonprocessparent(foundelement):
-    # Find the first non-dcp:process parent of the specified element
+    # Find the first non-lip:process parent of the specified element
     # and return the node itself and the path from foundelement to 
     # that node. 
     #
-    # This used to be  useful because dcp:process relative ETXPaths are relative
-    # to the first non-process parent of the dcp:process tag. 
-    # So you take the location of the dcp:process tag, 
+    # This used to be  useful because lip:process relative ETXPaths are relative
+    # to the first non-process parent of the lip:process tag. 
+    # So you take the location of the lip:process tag, 
     # append the path returned by this function, 
     # and append the relative etxpath, 
     # and finally canonicalize the result
@@ -926,12 +926,12 @@ def suggest(docdict,processdict,processdictbyhrefc,processdictbyusedelement,elem
                             sys.stderr.write("Warning: Could not find process path %s in URL %s\n" % (processhrefc.gethumanfragment(),processfilehrefc.absurl()))
                             continue
                         assert(len(foundelement)==1)  # This would be triggered by a hash collision. Should be separately diagnosed in processing. 
-                        # foundelement[0] is the dcp:process tag
+                        # foundelement[0] is the lip:process tag
                     
                         
-                        inputfilehrefc=href_context.fromxml(xmldocu,find_process_value_or_ancestor(foundelement[0],"dcp:inputfile"))
-                        action=find_process_value_or_ancestor_text(foundelement[0],"dcp:action",default="")
-                        prxhrefc=href_context.fromxml(xmldocu,find_process_value_or_ancestor(foundelement[0],"dcp:wascontrolledby/dcp:prxfile"))
+                        inputfilehrefc=href_context.fromxml(xmldocu,find_process_value_or_ancestor(foundelement[0],"lip:inputfile"))
+                        action=find_process_value_or_ancestor_text(foundelement[0],"lip:action",default="")
+                        prxhrefc=href_context.fromxml(xmldocu,find_process_value_or_ancestor(foundelement[0],"lip:wascontrolledby/lip:prxfile"))
 
 
                     
@@ -1009,7 +1009,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
     # docdict, processdict, processdictbyhrefc, processdictbyusedelement, elementdict, and global messagelists should be empty. They will be filled
     # 
     # docdict: cached dictionary by fragless hrefc of xmldoc documents
-    # processdict: cached dictionary by uuid of (hrefcs to dcp:process elements, [list of (element hrefc,uuid_or_mtime)],messagelists,parent_process_uuid_or_None)   ... parent process is implicit WasControlledBy
+    # processdict: cached dictionary by uuid of (hrefcs to lip:process elements, [list of (element hrefc,uuid_or_mtime)],messagelists,parent_process_uuid_or_None)   ... parent process is implicit WasControlledBy
     # processdictbyhrefc: dictionary by hrefc of uuids for processdict
     # processdictbyusedelement: dictionary by (element hrefc,uuid_or_mtime) of [list of uuids for processes that used that element ]
     # elementdict dictionary by (hrefc,uuid_or_mtime) tuples that we have processed of ([list of process uuids],messagelists)
@@ -1070,7 +1070,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
 
 
     if element_hrefc in processdictbyhrefc:
-        return # already processed this dcp:process element
+        return # already processed this lip:process element
         
     # sys.stderr.write("element_hrefc="+str(element_hrefc)+"\n")
     filehrefc=element_hrefc.fragless()
@@ -1133,7 +1133,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
             elementdict[(element_hrefc,refuuids_or_mtime)][1]["error"].append("Object %s not unique referred via %s." % (element_hrefc.humanurl(),history_stack))
             pass
         elif foundelement[0].tag==DCP+"process":
-            # dcp:process tag ! 
+            # lip:process tag ! 
             
 
             if not "uuid" in foundelement[0].attrib:
@@ -1160,10 +1160,10 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                 processdict[uuid]=(element_hrefc,[],copy.deepcopy(messagelisttemplate),parent_uuid)
                 processdictbyhrefc[element_hrefc]=uuid # mark that we have done this
                 
-                for usedtag in foundelement[0].xpath("dcp:used",namespaces={"dcp": dcp}):
+                for usedtag in foundelement[0].xpath("lip:used",namespaces={"dcp": dcp}):
                     if not "type" in usedtag.attrib:
                         # add error message to message list
-                        processdict[uuid][2]["error"].append("dcp:used tag %s does not have a type attribute" % (href_context.fromelement(xmldocu,usedtag).humanurl()))
+                        processdict[uuid][2]["error"].append("lip:used tag %s does not have a type attribute" % (href_context.fromelement(xmldocu,usedtag).humanurl()))
                         continue
                     
                     # Extract common attributes
@@ -1179,7 +1179,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                     elif usedtag.attrib["type"]=="href" or usedtag.attrib["type"]=="fileetxpath":
                         # Reference to a href
 
-                        # Context of the href is the parent of the nested dcp:process nodes, but these are all absolute within the document now anyway
+                        # Context of the href is the parent of the nested lip:process nodes, but these are all absolute within the document now anyway
                         #(context_node,append_path)=getnonprocessparent(foundelement[0])
                             
                         # print "For newetxpath, element_etxpath=",element_etxpath
@@ -1225,7 +1225,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                         pass
                     else:
                         # add error message to message list
-                        processdict[uuid][2]["error"].append("dcp:used tag %s does has unknown type attribute %s" % (href_context.fromelement(xmldocu,usedtag),usedtag.attrib["type"]))
+                        processdict[uuid][2]["error"].append("lip:used tag %s does has unknown type attribute %s" % (href_context.fromelement(xmldocu,usedtag),usedtag.attrib["type"]))
                         pass
                         
                     pass
@@ -1236,12 +1236,12 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
         else:
 
             # no specific tag. Look for recorded provenance
-            uuidstring=str(xmldocu.getattr(foundelement[0],"dcp:wasgeneratedby","",namespaces={"dcp": dcp}))
+            uuidstring=str(xmldocu.getattr(foundelement[0],"lip:wasgeneratedby","",namespaces={"dcp": dcp}))
             if refuuids_or_mtime is not None and refuuids_or_mtime != uuidstring:
-                # refuuids_or_mtime is what we were lead to believe (by the calling dcp:process) generated this element
+                # refuuids_or_mtime is what we were lead to believe (by the calling lip:process) generated this element
                 # uuidstring is what actually generated this element
 
-                # it is the calling dcp:process, really, that has a problem
+                # it is the calling lip:process, really, that has a problem
                 # !!! Should diagnose this better by looking up the two process elements !!!
                 # create elementdict entry right away so we can put the error message into it
                 elementdict[(element_hrefc,refuuids_or_mtime)]=([],copy.deepcopy(messagelisttemplate)) # mark that we have done this, but mark the referred element as that is the real provenance
@@ -1280,14 +1280,14 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                         pass
                     if process_el_hrefc is None:
                         # store error message in elementdict messagelist
-                        elementdict[(element_hrefc,uuidstring)][1]["error"].append("Could not find dcp:process element for uuid %s when looking up %s (possibly specified in %s)" % (uuid,element_hrefc.humanurl(),referrer_hrefc.humanurl()))
+                        elementdict[(element_hrefc,uuidstring)][1]["error"].append("Could not find lip:process element for uuid %s when looking up %s (possibly specified in %s)" % (uuid,element_hrefc.humanurl(),referrer_hrefc.humanurl()))
                         continue
 
                     elementdict[(element_hrefc,uuidstring)][0].append(uuid[5:]) # add this link to list for this element
 
                     new_history_stack_process=new_history_stack+"/"+process_el_hrefc.humanurl()
 
-                    # recursive call to handle dcp:process element
+                    # recursive call to handle lip:process element
                     # print "recursive call for process element"
                     checkprovenance(new_history_stack_process,process_el_hrefc,None,nsmap=nsmap,referrer_hrefc=element_hrefc,warnlevel=warnlevel,docdict=docdict,processdict=processdict,processdictbyhrefc=processdictbyhrefc,processdictbyusedelement=processdictbyusedelement,elementdict=elementdict,globalmessagelists=globalmessagelists)
                     
@@ -1348,7 +1348,7 @@ junk="""
                 refuuid="object_not_unique"
                 pass
             else:
-                refuuid=refdoc.getattr(foundrefelement[0],"dcp:wasgeneratedby","",namespaces={"dcp": dcp})
+                refuuid=refdoc.getattr(foundrefelement[0],"lip:wasgeneratedby","",namespaces={"dcp": dcp})
                 pass
             pass
 """   

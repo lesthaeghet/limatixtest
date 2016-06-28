@@ -651,7 +651,7 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
         output.should_be_rwlocked_once()
 
         rootprocess_el=output.restorepath(rootprocesspath)
-        # Create dcp:process element that contains dcp:used tags listing all referenced elements
+        # Create lip:process element that contains lip:used tags listing all referenced elements
         element=output.restorepath(elementpath)
         # print "Reference location=%s" % (canonicalize_path.create_canonical_etxpath(output.filename,output.doc,rootprocess_el.getparent()))
         # print "Target location=%s" % (canonicalize_path.create_canonical_etxpath(output.filename,output.doc,element))
@@ -661,12 +661,12 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
         process_el=provenance.writeprocessprovenance(output,rootprocesspath,stepprocesspath,referenced_elements)
         
         # write timestamps
-        provenance.write_timestamp(output,process_el,"dcp:starttimestamp",el_starttime)
-        provenance.write_timestamp(output,process_el,"dcp:finishtimestamp")
+        provenance.write_timestamp(output,process_el,"lip:starttimestamp",el_starttime)
+        provenance.write_timestamp(output,process_el,"lip:finishtimestamp")
         provenance.write_process_info(output,process_el)  # We always write process info to ensure uniqueness of our UUID. It would be better to merge with parent elements before calculating UUID.
         provenance.write_process_log(output,process_el,status,errcapt.getvalue())
 
-        provenance.write_target(output,process_el,output.filehref.value())  # dcp:target -- target of this particular iteration (ETXPath)
+        provenance.write_target(output,process_el,output.filehref.value())  # lip:target -- target of this particular iteration (ETXPath)
     
         # Generate uuid
         process_uuid=provenance.set_hash(output,rootprocess_el,process_el)
@@ -740,7 +740,7 @@ def procsteppython(scripthref,pycode_el,prxdoc,output,steptag,scripttag,rootproc
         pass
     # *** should Save module.__version__ and other version parameters with provenance!!!
 
-    # create <dcp:process> tag for this step 
+    # create <lip:process> tag for this step 
     
     # output lock should be locked exactly once by caller
     output.should_be_rwlocked_once()
@@ -750,13 +750,13 @@ def procsteppython(scripthref,pycode_el,prxdoc,output,steptag,scripttag,rootproc
 
 
 
-    stepprocess_el=output.addelement(rootprocess_el,"dcp:process")
-    provenance.write_timestamp(output,stepprocess_el,"dcp:starttimestamp")
+    stepprocess_el=output.addelement(rootprocess_el,"lip:process")
+    provenance.write_timestamp(output,stepprocess_el,"lip:starttimestamp")
     
     action=processtrak_prxdoc.getstepname(prxdoc,steptag)
     provenance.write_action(output,stepprocess_el,action)
     for module in (set(sys.modules.keys()) & modules):  # go through modules
-        provenance.reference_pymodule(output,stepprocess_el,"dcp:used",rootprocess_el.getparent(),module,warnlevel="none")
+        provenance.reference_pymodule(output,stepprocess_el,"lip:used",rootprocess_el.getparent(),module,warnlevel="none")
         pass
 
     provenance.write_process_info(output,stepprocess_el) # ensure uniqueness prior to uuid generation
@@ -804,7 +804,7 @@ def procsteppython(scripthref,pycode_el,prxdoc,output,steptag,scripttag,rootproc
 
     # output.lock_rw()
     stepprocess_el=output.restorepath(stepprocesspath)
-    provenance.write_timestamp(output,stepprocess_el,"dcp:finishtimestamp")
+    provenance.write_timestamp(output,stepprocess_el,"lip:finishtimestamp")
     # output.unlock_rw()
     
 
