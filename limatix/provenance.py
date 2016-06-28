@@ -958,7 +958,7 @@ def suggest(docdict,processdict,processdictbyhrefc,processdictbyusedelement,elem
 
         print("prxfile_hrefc=%s" % (prxfile_hrefc.humanurl()))
 
-        prxfile_doc=xmldoc.xmldoc.loadhref(dc_value.hrefvalue(prxfile_hrefc),nsmap={"prx":"http://limatix.org/datacollect/processinginstructions","xlink":"http://www.w3.org/1999/xlink"})
+        prxfile_doc=xmldoc.xmldoc.loadhref(dc_value.hrefvalue(prxfile_hrefc),nsmap={"prx":"http://limatix.org/processtrak/processinginstructions","xlink":"http://www.w3.org/1999/xlink"})
         prxfile_steps=prxfile_doc.xpath("prx:step")
         prxfile_inputfiles=prxfile_doc.xpath("prx:inputfile")
         for step in prxfile_steps:

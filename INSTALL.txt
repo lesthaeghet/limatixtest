@@ -30,6 +30,6 @@ To install into Python site-packages
   python setup.py install_data
 
 Note that the install_data step also installs some useful files
-into $(PREFIX)/share/datacollect2 where $(PREFIX) is the Python
+into $(PREFIX)/share/limatix where $(PREFIX) is the Python
 installation prefix. These include sample checklists, configuration
 files, documentation, and processtrak steps.

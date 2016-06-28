@@ -68,7 +68,7 @@ outputnsmap={
 
 
 prx_nsmap={
-    "prx": "http://limatix.org/datacollect/processinginstructions",
+    "prx": "http://limatix.org/processtrak/processinginstructions",
     "dcv": "http://limatix.org/dcvalue",
     "xlink": "http://www.w3.org/1999/xlink",
 };

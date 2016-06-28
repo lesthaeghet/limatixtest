@@ -83,7 +83,7 @@ class textgraphicstep(gtk.HBox):
         
         #self.searchdirs=[]
 
-        self.set_property("image","")
+        self.set_property("image",None)
         self.set_property("description","")
         self.set_property("width",0)
 
@@ -98,10 +98,15 @@ class textgraphicstep(gtk.HBox):
         pass
 
     def set_image(self,hrefval):
+        #print("set_image1: %s" % (str(hrefval)))
         self.myprops["image"]=hrefval
         if hrefval is None or hrefval.isblank(): #  or len(self.searchdirs)==0:
             return
-        
+
+        #if str(hrefval)=="/usr/share/limatix/checklists/":
+        #    import pdb as pythondb
+        #    pythondb.set_trace()
+        #print("set_image2: %s" % (str(hrefval)))
 
         path=hrefval.getpath() # absolute path or relative to our current directory
         
@@ -110,6 +115,7 @@ class textgraphicstep(gtk.HBox):
                 
             pass
         else : 
+            #print("set_image3: %s" % (str(hrefval)))
             rawpixbuf = gdk.pixbuf_new_from_file(path)
             pass
         

@@ -162,7 +162,7 @@ Flags:
   --gtk3              Use GTK3 if gui elements required
   --steps             Don't do anything; just list available steps
   --files             Don't do anything; just list available files 
-    """ % (sys.argv[0],steppath[1]))
+    """ % (sys.argv[0],processtrak_procstep.steppath[1]))
     pass
 
 if __name__=="__main__":

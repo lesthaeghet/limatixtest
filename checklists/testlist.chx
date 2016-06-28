@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<checklist xmlns="http://thermal.cnde.iastate.edu/checklist" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns:dc="http://limatix.org/datacollect" dc:done_is_save_measurement="true" xmlns:xlink="http://www.w3.org/1999/xlink">
+<checklist xmlns="http://limatix.org/checklist" xmlns:chx="http://limatix.org/checklist" xmlns:dc="http://limatix.org/datacollect" dc:done_is_save_measurement="true" xmlns:xlink="http://www.w3.org/1999/xlink">
   <clinfo>testlist_V1._3/23/16</clinfo>
   <cltitle>Test checklist</cltitle>
   <rationale>This is an example checklist. It has the dc:done_is_save_measurement attribute set to "true" in its root &lt;checklist&gt; tag. That makes it a

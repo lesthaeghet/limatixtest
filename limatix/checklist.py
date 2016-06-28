@@ -254,7 +254,7 @@ syncedparam = lambda param: xmldoc.synced(param)
 
 def get_step(name):
     matches=[]
-    for entrypoint in pkg_resources.iter_entry_points("datacollect2.step"):
+    for entrypoint in pkg_resources.iter_entry_points("limatix.checklist.step"):
         if entrypoint.name==name:
             matches.append(entrypoint)
             pass
@@ -263,7 +263,7 @@ def get_step(name):
         raise ValueError("Step %s not provided by any installed Python module or package.\nStep must be configured using setuptools with entry_points={\"limatix.step\": \"%s = <importable Python module>\"" % (name,name))
     
     elif len(matches) > 1:
-        sys.stderr.write("datacollect2 checklist: step %s is provided by multiple modules (%s). Using %s\n" % (name,str([entrypoint.module_name for entrypoint in matches]),matches[0].module_name))
+        sys.stderr.write("Limatix checklist: step %s is provided by multiple modules (%s). Using %s\n" % (name,str([entrypoint.module_name for entrypoint in matches]),matches[0].module_name))
         pass
     
     stepmodule=matches[0].load()

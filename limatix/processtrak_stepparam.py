@@ -50,10 +50,10 @@ def evaluate_from_element(xmldocu,element,typename):
         pass
     elif typename in literal_python_typedict:
         return literal_python_typedict(ast.literal_eval(xmldocu.gettext(element)))
-    elif typename+"value" in dir(dcv) and issubclass(getattr(dcv,typename+"value"),dcv.value):
-        return getattr(dcv,typename+"value").fromxml(xmldocu,element)
     elif typename is None:
         return element
+    elif typename+"value" in dir(dcv) and issubclass(getattr(dcv,typename+"value"),dcv.value):
+        return getattr(dcv,typename+"value").fromxml(xmldocu,element)
     elif typename=="doc":
         return xmldocu
 
