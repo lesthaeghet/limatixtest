@@ -207,9 +207,9 @@ def dc_xmlfilter(filename,dest,xpath,filterparams,filterfunc,*filterfuncargs,**f
     # extract provenance at start, if desired
     # if provenance use is specified (i.e. not None and not False)...
     if filterparams.Provenance is not None and not(isinstance(filterparams.Provenance,bool) and not filterparams.Provenance):
-        oldprovenance=dc_xmlgrab([(doc,[doc.getroot()])],"dcp:provenance")
+        oldprovenance=dc_xmlgrab([(doc,[doc.getroot()])],"lip:provenance")
         if countresults(oldprovenance) > 0:
-            assert(countresults(oldprovenance)==1)  # only one root dcp:provenance tag allowed!
+            assert(countresults(oldprovenance)==1)  # only one root lip:provenance tag allowed!
             oldprovenance=oldprovenance[0][1][0]  # get first and only provenance element off of list
             pass
         else : 

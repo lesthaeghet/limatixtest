@@ -8,32 +8,32 @@
        
   1. Provenance model -
     a. We define artifacts (data) and processes. Artifacts are regular tags
-       in the XML that may have "dcp:wasgeneratedby" attributes indicating 
+       in the XML that may have "lip:wasgeneratedby" attributes indicating 
        the UUIDs of the processes that generated them. Processes are defined 
-       by separate <dcp:process> tags (and descendents of such tags) that 
+       by separate <lip:process> tags (and descendents of such tags) that 
        define the processes and subprocesses that have been applied 
-       to the data. The <dcp:process> tags contain <dcp:used> tags which
+       to the data. The <lip:process> tags contain <lip:used> tags which
        specify other tags and files which were referenced by the process
        or subprocess. 
     
-    b. The hierarchy of process domains, <dcp:process> tags and subprocess
-       domains, which are <dcp:process> tags within <dcp:process> tags. 
+    b. The hierarchy of process domains, <lip:process> tags and subprocess
+       domains, which are <lip:process> tags within <lip:process> tags. 
        These domains correspond to processing steps.
        Processes can have sub-processes - for example steps in a larger process
        or application of a filter to each element in a sequence. All 
-       <dcp:process> tags SHOULD be direct children  of the main tag 
-       of an XML file, or be descendents of those <dcp:process> direct children, 
+       <lip:process> tags SHOULD be direct children  of the main tag 
+       of an XML file, or be descendents of those <lip:process> direct children, 
        although if an XML file is constructed from multiple XML files, that 
-       may lead to the <dcp:process> elements being deeper. 
+       may lead to the <lip:process> elements being deeper. 
 
 
-    c. Each <dcp:process> can reference tags <dcp:used> that were accessed
-       during the process. Can also reference source code with <dcp:used>.
-       The <dcp:used> tag should usually have a "usedwasgeneratedby" attribute
-       with the contents of the "dcp:wasgeneratedby" attribute of the target 
+    c. Each <lip:process> can reference tags <lip:used> that were accessed
+       during the process. Can also reference source code with <lip:used>.
+       The <lip:used> tag should usually have a "usedwasgeneratedby" attribute
+       with the contents of the "lip:wasgeneratedby" attribute of the target 
        (uuid reference) or the file mtime. This is necessary so that we can
        detect if the target gets overwritten by another process. Please note
-       that <dcp:used> references the target tag itself, but NOT its children
+       that <lip:used> references the target tag itself, but NOT its children
        (except for immediate text nodes as children)
 
     d. Data dependent on provenance domains that have been obsoleted (i.e. if 
@@ -41,33 +41,33 @@
        automatically marked as bad by viewer tools - and these bad data 
        should be highlighted  by the tools !!!
 
-    e. The dcp:wasgeneratedby attributes of a regular tag defines the process 
+    e. The lip:wasgeneratedby attributes of a regular tag defines the process 
        domain(s) which generated that tag and its associated text, BUT MAKE 
-       NO IMPLICATION ABOUT THE TAG'S CHILDREN. The dcp:wasgeneratedby 
-       attribute refers by UUID to one or more dcp:process 
-       elements of the referring tag or dcp:process siblings of one of its 
-       parents, or to a dcp:process child of such a dcp:process element. 
-       The dcp:wasgeneratedby attribute is semicolon-separated and 
+       NO IMPLICATION ABOUT THE TAG'S CHILDREN. The lip:wasgeneratedby 
+       attribute refers by UUID to one or more lip:process 
+       elements of the referring tag or lip:process siblings of one of its 
+       parents, or to a lip:process child of such a lip:process element. 
+       The lip:wasgeneratedby attribute is semicolon-separated and 
        of the form "uuid=abcd12345;uuid=3591adb;"
 
-    f. dcp:process elements may be nested representing sub-processes within
+    f. lip:process elements may be nested representing sub-processes within
        larger processes. This is an implicit WasControlledBy contest
-       (In the future may be able to use dcp:contains or explicit WasControlledBy
+       (In the future may be able to use lip:contains or explicit WasControlledBy
        similar as a more flexible way to define such containment). Note
-       that since <dcp:process> elements are distinguished by uuid and
-       uuid is created by hashing a serialization, each <dcp:process> element
+       that since <lip:process> elements are distinguished by uuid and
+       uuid is created by hashing a serialization, each <lip:process> element
        needs, prior to serialization, enough content so as to make 
        its serialization unique and prevent hash collisions. Adding in a 
        timestamp and hostname/process info generally helps with this. 
 
     g. Distinguish between the provenance of an artifact tag and the total provenance of the 
-       tag and everything inside it. The dcp:provenance attributes and dcp:used tags
+       tag and everything inside it. The lip:provenance attributes and lip:used tags
        refer to artifact xml tags at the most granular possible level, treating 
        contained tags as independent of their parents. You can separately think about
        "total provenance" of a tag with its descendents, which would be the union 
        of the provenance of tag and descendents. 
 
-    h. dcp:process elements contain dcp:used[type=pymodule] tags listing
+    h. lip:process elements contain lip:used[type=pymodule] tags listing
      the versions of all loaded modules.
 
     i. One of the big challenges is in referring to tags in a consistent way within an 
@@ -116,14 +116,14 @@
 
  A provenance location can be referred to with (in order of decreasing
  preference) 
-  1. a relative Path - relative to the parent of the highest <dcp:process> 
-     ancestor of the <dcp:process>  we are processing
+  1. a relative Path - relative to the parent of the highest <lip:process> 
+     ancestor of the <lip:process>  we are processing
   2. an absolute Path -  relative to the filesystem root, and probably 
      canonicalized. 
   These Paths can be referred to either -  and equivalently - through
   (a) Simplified Clark-notation XPaths - with file/dir references through db:file 
       and db:dir elements, hereafter referred to as ETXPaths
-  (b) File paths, - if relative, we must be processing a <dcp:process>
+  (b) File paths, - if relative, we must be processing a <lip:process>
       element that is within the root node of a file - plus an XPath 
       relative to the root of that file, unless we are referring to the
       entire file. 
@@ -134,57 +134,57 @@
        
   -->
 
-  <!-- Note that dcp:wasgeneratedby is an attribute of data (Artifact)
+  <!-- Note that lip:wasgeneratedby is an attribute of data (Artifact)
        nodes that refers to a specific process by uuid. 
        The format is "uuid=019843ab395f;" and multiple semicolon-delimited
        UUIDs are permitted, which would indicate multiple sources -->
   
-  <xs:complexType name="dcp:processtype">
-    <!-- <dcp:process> elements are the basis of a provenance specifcation. This is also used for nested sub-processes-->
+  <xs:complexType name="lip:processtype">
+    <!-- <lip:process> elements are the basis of a provenance specifcation. This is also used for nested sub-processes-->
 
     <!-- the uuid is a hex string that would usually be a hash of the contents of this provenance element or sub-domain combined with its path. See comments above about hashing and uniqueness -->
     <xs:attribute name="uuid" type="xs:hexBinary"/>
 
-    <!-- <dcp:used> says the inputs and python modules this process relied on -->
-    <xs:element name="dcp:used" type="dcp:usedtype" minOccurs="0"/>
+    <!-- <lip:used> says the inputs and python modules this process relied on -->
+    <xs:element name="lip:used" type="lip:usedtype" minOccurs="0"/>
     
-    <!-- <dcp:wascontrolledby> specifies the controlling prxfile of a process root -->
-    <xs:element name="dcp:wascontrolledby" type="dcp:wascontrolledbytype" minOccurs="0"/>
+    <!-- <lip:wascontrolledby> specifies the controlling prxfile of a process root -->
+    <xs:element name="lip:wascontrolledby" type="lip:wascontrolledbytype" minOccurs="0"/>
 
-    <!-- dcp:starttimestamp - when the process started -->
-    <xs:element name="dcp:starttimestamp" type="xs:datetime" minOccurs="0"/>
+    <!-- lip:starttimestamp - when the process started -->
+    <xs:element name="lip:starttimestamp" type="xs:datetime" minOccurs="0"/>
 
-    <!-- dcp:hostname - Computer that executed the process, plus pid/uid/username info as attributes -->
-    <xs:element name="dcp:hostname" type="dcp:hostnametype" minOccurs="0"/>
+    <!-- lip:hostname - Computer that executed the process, plus pid/uid/username info as attributes -->
+    <xs:element name="lip:hostname" type="lip:hostnametype" minOccurs="0"/>
 
-    <!-- dcp:argv - Parameters from process execution -->
-    <xs:element name="dcp:argv" type="xs:string" minOccurs="0"/>
+    <!-- lip:argv - Parameters from process execution -->
+    <xs:element name="lip:argv" type="xs:string" minOccurs="0"/>
 
-    <!-- dcp:action - indicates what the process or sub-process did -->
-    <xs:element name="dcp:action" type="xs:string" minOccurs="0"/>
+    <!-- lip:action - indicates what the process or sub-process did -->
+    <xs:element name="lip:action" type="xs:string" minOccurs="0"/>
 
-    <!-- dcp:target - indicates Clark-notation ETXPath of the target element
+    <!-- lip:target - indicates Clark-notation ETXPath of the target element
 	              of this subprocess. Path relative to parent of highest 
-		      dcp:process ancestor -->
-    <xs:element name="dcp:target" type="xs:string" minOccurs="0"/>
+		      lip:process ancestor -->
+    <xs:element name="lip:target" type="xs:string" minOccurs="0"/>
 
-    <!-- A <dcp:process> element can contain the stdout/stderrlog of 
+    <!-- A <lip:process> element can contain the stdout/stderrlog of 
     its execution. This tag also has a status attribute which indicates 
     whether or not the process seemed to execute successfully -->
-    <xs:element name="dcp:log" type="dcp:logtype" minOccurs="0"/>
+    <xs:element name="lip:log" type="lip:logtype" minOccurs="0"/>
 
-    <!-- A <dcp:process> element can define nested sub-processes. 
+    <!-- A <lip:process> element can define nested sub-processes. 
 	 This provides an implicit wascontrolledby context
     -->
 
-    <xs:element name="process" type="dcp:provenancetype" minOccurs="0"/>
+    <xs:element name="process" type="lip:provenancetype" minOccurs="0"/>
 
   </xs:complexType>
 
-  <!-- dcp:log tag stores the stdout/stderr log from running the 
+  <!-- lip:log tag stores the stdout/stderr log from running the 
        process. It also has a "status" attribute which can either
        be "success" or "exception"
-  <xs:complexType name="dcp:logtype">
+  <xs:complexType name="lip:logtype">
     <xs:simpleContent>
       <xs:extension base="xs:string">
 	<xs:attribute name="status" type="xs:string"/> 	
@@ -193,13 +193,13 @@
   </xs:complexType>
 
  
-  <xs:complexType  name="dcp:usedtype">
-    <!-- <dcp:used> indicates that the current process
+  <xs:complexType  name="lip:usedtype">
+    <!-- <lip:used> indicates that the current process
          used a particular object -->
     <xs:simpleContent>
-      <!-- The content of <dcp:used> is just the clark-notation relative ETXPath of 
+      <!-- The content of <lip:used> is just the clark-notation relative ETXPath of 
       the element we are referring to. Please note that it is relative to the parent 
-      of our highest dcp:process ancestor. Alternative it is the Python module name
+      of our highest lip:process ancestor. Alternative it is the Python module name
       for type=="pymodule". -->
       <xs:extension base="xs:string">
 	<!-- type attribute is "etxpath" "fileetxpath" or "pymodule" -->
@@ -235,12 +235,12 @@
   </xs:complexType>
 
 
-  <xs:complexType  name="dcp:hostnametype">
-    <!-- <dcp:hostname> indicates that the current process was run on a 
+  <xs:complexType  name="lip:hostnametype">
+    <!-- <lip:hostname> indicates that the current process was run on a 
 	 particular host with a particular process id, by a particular user
          -->
     <xs:simpleContent>
-      <!-- The content of <dcp:hostname> is just the hostname (preferably fqdn) -->
+      <!-- The content of <lip:hostname> is just the hostname (preferably fqdn) -->
       <xs:extension base="xs:string">
 	<xs:attribute name="pid"/> 
 	<xs:attribute name="uid"/> 
@@ -249,15 +249,15 @@
     </xs:simpleContent>
   </xs:complexType>
 <!--
-    <xs:element name="wasderivedfrom" type="dcp:wasderivedfromtype" minOccurs="0"/>
-    <xs:element name="treewasderivedfrom" type="dcp:wasderivedfromtype" minOccurs="0"/>
+    <xs:element name="wasderivedfrom" type="lip:wasderivedfromtype" minOccurs="0"/>
+    <xs:element name="treewasderivedfrom" type="lip:wasderivedfromtype" minOccurs="0"/>
 -->
-    <!-- or <dcp:wasgeneratedby> ... but this is not very meaningful -->
-    <!-- <xs:element name="wasgeneratedby" type="dcp:wasgeneratedbytype" minOccurs="0"/> -->
+    <!-- or <lip:wasgeneratedby> ... but this is not very meaningful -->
+    <!-- <xs:element name="wasgeneratedby" type="lip:wasgeneratedbytype" minOccurs="0"/> -->
 
-    <!-- or <dcp:wastriggeredby> 
-    <xs:element name="wastriggeredby" type="dcp:wastriggeredbytype" minOccurs="0"/>
-    <xs:element name="treewastriggeredby" type="dcp:wastriggeredbytype" minOccurs="0"/>
+    <!-- or <lip:wastriggeredby> 
+    <xs:element name="wastriggeredby" type="lip:wastriggeredbytype" minOccurs="0"/>
+    <xs:element name="treewastriggeredby" type="lip:wastriggeredbytype" minOccurs="0"/>
     -->
 
 </xs:schema>

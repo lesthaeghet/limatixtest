@@ -132,10 +132,10 @@ from limatix import processtrak_procstep
 #       operates on a subset of the usual tags. (see the -f option, below)
 #    k. As the filter executes,  all elements referenced and all elements
 #       created/modified are tracked so the former can be listed as 
-#       <dcp:used> in the <dcp:process> domain and the latter can reference
-#       the <dcp:process> domain by uuid. 
-#    l. The execution of the filter creates a new <dcp:process> domain within
-#       the <dcp:process> domain for the execution of the processtrak program.
+#       <lip:used> in the <lip:process> domain and the latter can reference
+#       the <lip:process> domain by uuid. 
+#    l. The execution of the filter creates a new <lip:process> domain within
+#       the <lip:process> domain for the execution of the processtrak program.
 #       Additional sub-process domains are created for each element processed
 #       by the filter. 
 #    m. Once file locking support is implemented in xmldoc, critical regions

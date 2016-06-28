@@ -143,13 +143,13 @@ and make sure this file is in the same directory
 
   <xsl:template match="*" mode="copy-with-ids">
     <xsl:element name="{name()}">
-      <xsl:attribute name="dcp:vprovid"><xsl:value-of select="generate-id()"/></xsl:attribute>
+      <xsl:attribute name="lip:vprovid"><xsl:value-of select="generate-id()"/></xsl:attribute>
       <xsl:apply-templates select="@*|node()" mode="copy-with-ids"/>
     </xsl:element>
   </xsl:template>  
 
   
-  <xsl:template mode="xml-to-string" match="@dcp:wasgeneratedby|@usedwasgeneratedby">
+  <xsl:template mode="xml-to-string" match="@lip:wasgeneratedby|@usedwasgeneratedby">
     <xsl:value-of select="' '"/><html:a>
       <xsl:attribute name="href">#<xsl:value-of select="."/></xsl:attribute>
       <xsl:value-of select="name()"/>="<xsl:value-of select="."/>"</html:a> </xsl:template>
@@ -180,7 +180,7 @@ and make sure this file is in the same directory
     <xsl:value-of select="' '"/><xsl:value-of select="name()"/>="<xsl:value-of select="."/>"</xsl:template>
   <xsl:template mode="xml-to-string" match="text()"><xsl:value-of select="."/></xsl:template>
 
-  <xsl:template mode="xml-to-string" match="dcp:process"><html:a><xsl:attribute name="name">uuid=<xsl:value-of select="@uuid"/>;</xsl:attribute>&lt;<xsl:value-of select="name()"/><xsl:apply-templates mode="xml-to-string" select="@*"/>&gt;</html:a><xsl:apply-templates mode="xml-to-string" select="*|text()"/>&lt;/<xsl:value-of select="name()"/>&gt;</xsl:template>
+  <xsl:template mode="xml-to-string" match="lip:process"><html:a><xsl:attribute name="name">uuid=<xsl:value-of select="@uuid"/>;</xsl:attribute>&lt;<xsl:value-of select="name()"/><xsl:apply-templates mode="xml-to-string" select="@*"/>&gt;</html:a><xsl:apply-templates mode="xml-to-string" select="*|text()"/>&lt;/<xsl:value-of select="name()"/>&gt;</xsl:template>
 
   
   <xsl:template mode="xml-to-string" match="*"><html:a><xsl:attribute name="name">xsltid=<xsl:value-of select="generate-id()"/></xsl:attribute>&lt;<xsl:value-of select="name()"/><xsl:apply-templates mode="xml-to-string" select="@*"/>&gt;</html:a><xsl:apply-templates mode="xml-to-string" select="*|text()"/>&lt;/<xsl:value-of select="name()"/>&gt;</xsl:template>
