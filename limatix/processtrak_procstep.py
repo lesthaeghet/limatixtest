@@ -83,7 +83,7 @@ except IOError:
     pass
 
 
-steppath=[".",os.path.join(__install_prefix__,"share","datacollect2","dcp_steps")]
+steppath=[".",os.path.join(__install_prefix__,"share","datacollect2","pt_steps")]
 
 
 def find_script_in_path(contexthref,scriptname):
