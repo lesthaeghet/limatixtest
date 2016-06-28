@@ -13,9 +13,9 @@ from dbus.mainloop.glib import DBusGMainLoop
 
 __pychecker__="no-import"
 
-xpathnamespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://limatix.org/dcvalue"}
+xpathnamespaces={"dc":"http://limatix.org/datacollect","dcv":"http://limatix.org/dcvalue"}
 
-bus_name="edu.iastate.cnde.thermal.datacollect2" # bus name / server
+bus_name="org.limatix.datacollect2" # bus name / server
 
 class dc_dbus_paramserver(dbus.service.Object):
     paramdb = None
@@ -47,11 +47,11 @@ class dc_dbus_paramserver(dbus.service.Object):
             pass
 
         bus_name_obj=dbus.service.BusName(bus_name,sessionbus)  
-        dbus.service.Object.__init__(self,bus_name_obj,"/edu/iastate/cnde/thermal/datacollect2/paramdb2")
+        dbus.service.Object.__init__(self,bus_name_obj,"/org.limatix/datacollect2/paramdb2")
         
         pass
 
-    @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='s', out_signature='sddsss')
+    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='s', out_signature='sddsss')
     def paramlookup(self,paramname):
         # print "got lookup; paramname=%s" % (paramname)
 
@@ -92,7 +92,7 @@ class dc_dbus_paramserver(dbus.service.Object):
         pass
 
 
-    @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
+    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
     def paramlookupunits(self,paramname,unitreq):
         # parameter lookup & unit conversion to unitreq
         
@@ -132,7 +132,7 @@ class dc_dbus_paramserver(dbus.service.Object):
         
 
 
-    @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
+    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
     def requestvalxml(self,paramname,paramxml):
         # print "got lookup; paramname=%s" % (paramname)
 
@@ -155,7 +155,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://limatix.org/datacollect\" dc:error/>","None","")
         pass
 
-    @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='sds', out_signature='sddsss')
+    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='sds', out_signature='sddsss')
     def requestvalunits(self,paramname,value,units):
         # print "got lookup; paramname=%s" % (paramname)
 
@@ -179,7 +179,7 @@ class dc_dbus_paramserver(dbus.service.Object):
         pass
 
 
-    @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
+    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
     def requestvalstr(self,paramname,paramstr):
         # print "got lookup; paramname=%s" % (paramname)
 
@@ -203,7 +203,7 @@ class dc_dbus_paramserver(dbus.service.Object):
 
     # Function to return a list of paramter names
     # Allows remote callers to discover what parameters are available
-    @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='', out_signature='asas')
+    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='', out_signature='asas')
     def getparamlist(self):
         try:
             paramlist = self.paramdb.keys()
@@ -219,7 +219,7 @@ class dc_dbus_paramserver(dbus.service.Object):
 
     # Function to check whether a parameter exists
     # Will return true if parameter exists - false if it doesn't
-    @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='s', out_signature='b')
+    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='s', out_signature='b')
     def paramexists(self, paramname):
         if paramname in self.paramdb:
             return True
@@ -228,7 +228,7 @@ class dc_dbus_paramserver(dbus.service.Object):
 
     # call automeas() with a <automeas> tag containing parameters/values
     # returns empty string for success, otherwise error message
-    @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='ss', out_signature='s')
+    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='s')
     def automeas(self,idstr,xmlsegment):
         try :
             idnum=int(idstr)

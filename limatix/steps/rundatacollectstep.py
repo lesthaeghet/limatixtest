@@ -106,7 +106,7 @@ from .. import dc_value
 
 __pychecker__="no-import no-argsused"
 
-xpathnamespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://limatix.org/dcvalue"}
+xpathnamespaces={"dc":"http://limatix.org/datacollect","dcv":"http://limatix.org/dcvalue"}
 
 
 # TODO : Should add an "abort script" button and status field
