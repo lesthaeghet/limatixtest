@@ -33,7 +33,7 @@ except ImportError:
 #from .canonicalize_path import href_context
 from . import canonicalize_path
 
-from . import dc_provenance as provenance
+from . import provenance as provenance
 # from . import xmldoc
 
 import dg_units  # note: main program should call dg_units.units_config("insert_basic_units")

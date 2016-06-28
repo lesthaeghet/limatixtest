@@ -23,7 +23,7 @@ import dg_timestamp
 from lxml import etree 
 
 import xmldoc 
-import dc_provenance
+import provenance
 
 import numpy
 
@@ -218,18 +218,18 @@ def dc_xmlfilter(filename,dest,xpath,filterparams,filterfunc,*filterfuncargs,**f
         
         if isinstance(filterparams.Provenance,bool):
             # no provenance provided... create one
-            filterparams.Provenance=dc_provenance.provenance()
+            filterparams.Provenance=provenance.provenance()
             pass
         
         if filterparams.Provenance.wasderivedfrom is None:
-            filterparams.Provenance.wasderivedfrom=dc_provenance.prov_wasderivedfrom.fromfileinfo(filename,None,inputfileinfo,oldprovenance)
+            filterparams.Provenance.wasderivedfrom=provenance.prov_wasderivedfrom.fromfileinfo(filename,None,inputfileinfo,oldprovenance)
             pass
         
         if filterparams.Provenance.wasgeneratedby is None:
             if "__main__" in sys.modules and hasattr(sys.modules["__main__"],"__file__"):
                 sourcefile=inspect.getsourcefile(sys.modules["__main__"])
                 sourcefileinfo=os.stat(sourcefile)
-                filterparams.Provenance.wasgeneratedby=dc_provenance.prov_wasgeneratedby.fromfileinfo(sourcefile,None,sourcefileinfo)
+                filterparams.Provenance.wasgeneratedby=provenance.prov_wasgeneratedby.fromfileinfo(sourcefile,None,sourcefileinfo)
                 pass
             pass
         
@@ -237,7 +237,7 @@ def dc_xmlfilter(filename,dest,xpath,filterparams,filterfunc,*filterfuncargs,**f
         
         # Provenance.wascontrolledby -- must be pre-filled if we want to have perfby
         if filterparams.Provenance.wascontrolledby is None:
-            filterparams.Provenance.wascontrolledby=dc_provenance.prov_wascontrolledby.fromnow()
+            filterparams.Provenance.wascontrolledby=provenance.prov_wascontrolledby.fromnow()
             pass
         
         pass

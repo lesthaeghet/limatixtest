@@ -542,7 +542,7 @@ def elementgenerated(xmldocu,element):
 
             hrefc=href_context.fromelement(xmldocu,element)
 
-            # print("dc_provenance.elementgenerated(%s)" % hrefc.humanurl())
+            # print("provenance.elementgenerated(%s)" % hrefc.humanurl())
             
             ourdb[-1][0].add(hrefc)
             ourdb[-1][2][id(element)]=(element,hrefc)

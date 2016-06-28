@@ -107,7 +107,7 @@ from limatix.canonicalize_path import etxpath2human
 #sys.path.append(os.path.join(installeddir,"lib/"))
 
 from limatix import dc_value as dcv
-from limatix import dc_provenance as provenance
+from limatix import provenance as provenance
 from limatix import xmldoc
 from limatix import processtrak_prxdoc
 from limatix import processtrak_common

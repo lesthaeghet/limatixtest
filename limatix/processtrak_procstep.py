@@ -57,7 +57,7 @@ from . import canonicalize_path
 from .canonicalize_path import etxpath2human
 
 from . import dc_value as dcv
-from . import dc_provenance as provenance
+from . import provenance as provenance
 from . import xmldoc
 from . import processtrak_prxdoc
 from . import processtrak_stepparam

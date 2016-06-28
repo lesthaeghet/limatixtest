@@ -44,7 +44,7 @@ else:
     
     
 try: 
-    from . import dc_provenance as provenance
+    from . import provenance as provenance
     pass
 except ImportError:
     sys.stderr.write("xmldoc: Warning provenance support not available\n")
