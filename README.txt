@@ -32,7 +32,7 @@ Primary Libraries
 dc_value     -- value classes that support units and serialize to XML
 xmldoc       -- representation of an XML document such as an experiment log,
                 with routines to add and extract data.
-dc_provenance -- Provenance tracking within XML documents
+provenance -- Provenance tracking within XML documents
 paramdb2     -- Database of parameters to be written to experiment log
 
 

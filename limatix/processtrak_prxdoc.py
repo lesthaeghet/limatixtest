@@ -3,9 +3,9 @@ import sys
 from lxml import etree
 
 # This stuff is separate primarily because it is imported
-# by dc_provenance... this small collection is lightweight
+# by provenance... this small collection is lightweight
 # and doesn't try to import dc_value (which can't be imported
-# within the header of dc_provenance without a dependency loop)
+# within the header of provenance without a dependency loop)
 
 
 def findstep(prxdoc,stepname):
