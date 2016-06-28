@@ -59,9 +59,9 @@ from .canonicalize_path import etxpath2human
 from . import dc_value as dcv
 from . import dc_provenance as provenance
 from . import xmldoc
-from . import dc_process_prxdoc
-from . import dc_process_stepparam
-from . import dc_process_common
+from . import processtrak_prxdoc
+from . import processtrak_stepparam
+from . import processtrak_common
 
 
 try:
@@ -78,7 +78,7 @@ try:
     __install_prefix__=resource_string(__name__, 'install_prefix.txt').decode('utf-8')
     pass
 except IOError: 
-    sys.stderr.write("dc_process: error reading install_prefix.txt. Assuming /usr/local.\n")
+    sys.stderr.write("processtrak: error reading install_prefix.txt. Assuming /usr/local.\n")
     __install_prefix__="/usr/local"
     pass
 
@@ -373,7 +373,7 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
             pass
 
         if not ":" in name and None in output.nsmap:
-            sys.stderr.write("dc_process.applyresultdict() WARNING: Results from dc_process\nsteps should always specify the XML namespace of result tags\nwhen a default namespace is set. Otherwise they get placed in\nthe default namespace, but not replaced on the next run.\n")
+            sys.stderr.write("dc_process.applyresultdict() WARNING: Results from processtrak\nsteps should always specify the XML namespace of result tags\nwhen a default namespace is set. Otherwise they get placed in\nthe default namespace, but not replaced on the next run.\n")
             pass
 
 
@@ -469,10 +469,10 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
                 # returns XML element for auto-params or xpaths
                 # returns dc_value for fixed numeric params
                 # returns string for fixed string params
-                argkw[argname]=dc_process_stepparam.evaluate_params(params,argname,None,output,element)
+                argkw[argname]=processtrak_stepparam.evaluate_params(params,argname,None,output,element)
                 pass
             elif argnamebase in params:
-                argkw[argname]=dc_process_stepparam.evaluate_params(params,argnamebase,argnametype,output,element)
+                argkw[argname]=processtrak_stepparam.evaluate_params(params,argnamebase,argnametype,output,element)
                 
             elif argname=="_xmldoc":  # _xmldoc parameter gets output XML document
                 argkw[argname]=output         # supply output XML document
@@ -495,7 +495,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             else :
                 # Try to extract it from a document tag
                 try : 
-                    argkw[argname]=dc_process_stepparam.findparam(prxnsmap,output,element,argname)
+                    argkw[argname]=processtrak_stepparam.findparam(prxnsmap,output,element,argname)
                     pass
                 except NameError:
                     # if there is a default, use that
@@ -530,7 +530,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
                 pass
             else: 
                 resultdict=procsteppython_do_run(stepglobals,execfunc,argkw,ipythonmodelist,action,scripthref,pycode_text,pycode_lineno)
-                # print("dc_process: print_current_used() after do_run of %s" % (str(execfunc)))
+                # print("processtrak: print_current_used() after do_run of %s" % (str(execfunc)))
                 # provenance.print_current_used()
                 
             
@@ -555,7 +555,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
     except:
         raise
     finally:
-        # print("dc_process: print_current_used()")
+        # print("processtrak: print_current_used()")
         # provenance.print_current_used()
 
         (modified_elements,referenced_elements)=provenance.finishtrackprovenance()
@@ -593,7 +593,7 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
 
 
     if len(elements)==0:
-        sys.stderr.write("Warning: step %s: no matching elements for output href%s\n" % (dc_process_prxdoc.getstepname(prxdoc,steptag),output.get_filehref().absurl()))
+        sys.stderr.write("Warning: step %s: no matching elements for output href%s\n" % (processtrak_prxdoc.getstepname(prxdoc,steptag),output.get_filehref().absurl()))
         pass
     
 
@@ -753,7 +753,7 @@ def procsteppython(scripthref,pycode_el,prxdoc,output,steptag,scripttag,rootproc
     stepprocess_el=output.addelement(rootprocess_el,"dcp:process")
     provenance.write_timestamp(output,stepprocess_el,"dcp:starttimestamp")
     
-    action=dc_process_prxdoc.getstepname(prxdoc,steptag)
+    action=processtrak_prxdoc.getstepname(prxdoc,steptag)
     provenance.write_action(output,stepprocess_el,action)
     for module in (set(sys.modules.keys()) & modules):  # go through modules
         provenance.reference_pymodule(output,stepprocess_el,"dcp:used",rootprocess_el.getparent(),module,warnlevel="none")
@@ -924,7 +924,7 @@ def procstep(prxdoc,out,steptag,filters,overall_starttime,debugmode,stdouthandle
 
     for paramel in prxdoc.xpathcontext(steptag,"prx:param|prx:script/prx:param"):
         paramname=prxdoc.getattr(paramel,"name")
-        param=dc_process_stepparam.stepparam(name=paramname,prxdoc=prxdoc,element=paramel)
+        param=processtrak_stepparam.stepparam(name=paramname,prxdoc=prxdoc,element=paramel)
 
         if not param.name in params:
             params[param.name]=[]
@@ -933,7 +933,7 @@ def procstep(prxdoc,out,steptag,filters,overall_starttime,debugmode,stdouthandle
         
         pass
 
-    dc_process_common.open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=None) # procsteppython/procstepmatlab are called with output locked exactly once
+    processtrak_common.open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=None) # procsteppython/procstepmatlab are called with output locked exactly once
     try : 
         if pycode_el is not None or scripthref.get_bare_unquoted_filename().endswith(".py"):
             procsteppython(scripthref,pycode_el,prxdoc,out.output,steptag,scripttag,out.processpath,initelementmatch,initelementmatch_nsmap,elementmatch,elementmatch_nsmap,params,filters,out.inputfilehref,debugmode,stdouthandler,stderrhandler,ipythonmodelist)
