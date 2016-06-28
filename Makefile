@@ -33,7 +33,7 @@ PYSUBDIRS=widgets steps
 CHXSUBDIRS=checklists
 
 
-SUBDIRS=dcp_steps  #matlab
+SUBDIRS=pt_steps  #matlab
 
 
 
