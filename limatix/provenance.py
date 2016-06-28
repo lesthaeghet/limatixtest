@@ -73,8 +73,8 @@ if not hasattr(builtins,"basestring"):
 __pychecker__="no-import"
 
 
-DCP="{http://limatix.org/provenance}"
-dcp="http://limatix.org/provenance"
+LIP="{http://limatix.org/provenance}"
+lip="http://limatix.org/provenance"
 
 DC="{http://limatix.org/datacollect}"
 dc="http://limatix.org/datacollect"
@@ -298,11 +298,11 @@ def add_generatedby_to_tree(xmldocu,treeroot,skipel,uuid):
     for descendent in iterelementsbutskip(treeroot,skipel): #  iterate through descendents, but ignore the provenance tag structure we just created. 
         # print "descendent=%s" % (str(descendent))
         oldwgb=""
-        if DCP+"wasgeneratedby" in descendent.attrib:
-            oldwgb=descendent.attrib[DCP+"wasgeneratedby"]
+        if LIP+"wasgeneratedby" in descendent.attrib:
+            oldwgb=descendent.attrib[LIP+"wasgeneratedby"]
             pass
         
-        descendent.attrib[DCP+"wasgeneratedby"]=oldwgb + "uuid="+uuid+";"
+        descendent.attrib[LIP+"wasgeneratedby"]=oldwgb + "uuid="+uuid+";"
         pass
     pass
 
@@ -428,7 +428,7 @@ def remove_current_reference(generated_reference_set,used_reference_set,element_
                 pass
 
             uuids=""
-            uuidsname=DCP+"wasgeneratedby"
+            uuidsname=LIP+"wasgeneratedby"
             if uuidsname in element.attrib:
                 uuids=element.attrib[uuidsname]
                 pass
@@ -565,7 +565,7 @@ def xmldocelementaccessed(xmldocu,element):
             hrefc=href_context.fromlxmldocelement(xmldocu.filehref.value(),xmldocu.doc,element)
 
             uuids=""
-            uuidsname=DCP+"wasgeneratedby"
+            uuidsname=LIP+"wasgeneratedby"
             if uuidsname in element.attrib:
                 uuids=element.attrib[uuidsname]
                 pass
@@ -590,7 +590,7 @@ def elementaccessed(filehrefc,doc,element):
             hrefc=href_context.fromlxmldocelement(filehrefc,doc,element)
 
             uuids=""
-            uuidsname=DCP+"wasgeneratedby"
+            uuidsname=LIP+"wasgeneratedby"
             if uuidsname in element.attrib:
                 uuids=element.attrib[uuidsname]
                 pass
@@ -701,8 +701,8 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
         # xmldocu.setattr(foundelement[0],"lip:wasgeneratedby",oldwgb+"uuid="+process_uuid+";")
 
         # read out "lip:wasgeneratedby" attribute of foundelement[0]
-        if DCP+"wasgeneratedby" in foundelement[0].attrib:
-            oldwgb=foundelement[0].attrib[DCP+"wasgeneratedby"]
+        if LIP+"wasgeneratedby" in foundelement[0].attrib:
+            oldwgb=foundelement[0].attrib[LIP+"wasgeneratedby"]
             pass
         else:
             oldwgb=""
@@ -710,7 +710,7 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
 
         
         # rewrite "lip:wasgeneratedby" tag with this process uuid attached
-        foundelement[0].attrib[DCP+"wasgeneratedby"]=oldwgb+"uuid="+process_uuid+";"
+        foundelement[0].attrib[LIP+"wasgeneratedby"]=oldwgb+"uuid="+process_uuid+";"
         
         pass
     pass
@@ -728,7 +728,7 @@ def find_process_el(xmldocu,processdict,element,uuidcontent):
     process=None
 
     while process is None:
-        processlist=workelement.xpath("lip:process",namespaces={"lip":dcp})
+        processlist=workelement.xpath("lip:process",namespaces={"lip":lip})
         for processtag in processlist:
             # if "uuid" in processtag.attrib: 
             #     print "%s vs %s" % (processtag.attrib["uuid"],uuidcontent)
@@ -736,7 +736,7 @@ def find_process_el(xmldocu,processdict,element,uuidcontent):
             if "uuid" in processtag.attrib and processtag.attrib["uuid"]==uuidcontent:
                 process=processtag # Match!
                 break
-            processsublist=processtag.xpath(".//lip:process[@uuid=\"%s\"]" % (uuidcontent),namespaces={"lip": dcp})
+            processsublist=processtag.xpath(".//lip:process[@uuid=\"%s\"]" % (uuidcontent),namespaces={"lip": lip})
             # print "sublist constraint: .//lip:process[@uuid=\"%s\"]" % (uuidcontent)
             # print "len(processsublist)=%d" % (len(processsublist))
             if len(processsublist) > 1: 
@@ -769,11 +769,11 @@ def checkallprovenance(xmldocu):
                         "none": []}
     
     treeroot=xmldocu.doc.getroot()
-    for descendent in iterelementsbutskip(treeroot,DCP+"process"):
+    for descendent in iterelementsbutskip(treeroot,LIP+"process"):
 
         refuuids_or_mtime=None
-        if DCP+"wasgeneratedby" in descendent.attrib: 
-            refuuids_or_mtime=str(descendent.attrib[DCP+"wasgeneratedby"])
+        if LIP+"wasgeneratedby" in descendent.attrib: 
+            refuuids_or_mtime=str(descendent.attrib[LIP+"wasgeneratedby"])
             pass
         else : 
             globalmessagelists["warning"].append("Element %s does not have lip:wasgenerateby provenance" % (href_context.fromelement(xmldocu,descendent).humanurl()))
@@ -806,12 +806,12 @@ def checkallprovenance(xmldocu):
 def find_process_value_or_ancestor(process_el,tagpath,default=AttributeError("Could not find tag")):
     # tag should use lip: prefix
     # print "tag:",tag
-    gottags=process_el.xpath(tagpath,namespaces={"lip":dcp})
+    gottags=process_el.xpath(tagpath,namespaces={"lip":lip})
     
     if len(gottags)==0: 
         parent=process_el.getparent()
 
-        if parent.tag==DCP+"process":
+        if parent.tag==LIP+"process":
             return find_process_value_or_ancestor(parent,tagpath,default=default)
         
         if isinstance(default,BaseException):
@@ -882,7 +882,7 @@ def getnonprocessparent(foundelement):
     
     context_node=foundelement.getparent()
     append_path=".."
-    while context_node.tag==DCP+"process":
+    while context_node.tag==LIP+"process":
         context_node=context_node.getparent()
         append_path+="/.."
         pass
@@ -1132,7 +1132,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
             # add error to messagelists
             elementdict[(element_hrefc,refuuids_or_mtime)][1]["error"].append("Object %s not unique referred via %s." % (element_hrefc.humanurl(),history_stack))
             pass
-        elif foundelement[0].tag==DCP+"process":
+        elif foundelement[0].tag==LIP+"process":
             # lip:process tag ! 
             
 
@@ -1145,7 +1145,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                 
                 parent_uuid=None
                 parenttag=foundelement[0].getparent()
-                if parenttag.tag==DCP+"process":
+                if parenttag.tag==LIP+"process":
                     if "uuid" in parenttag.attrib: 
                         parent_uuid=parenttag.attrib["uuid"]
                         pass
@@ -1160,7 +1160,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                 processdict[uuid]=(element_hrefc,[],copy.deepcopy(messagelisttemplate),parent_uuid)
                 processdictbyhrefc[element_hrefc]=uuid # mark that we have done this
                 
-                for usedtag in foundelement[0].xpath("lip:used",namespaces={"lip": dcp}):
+                for usedtag in foundelement[0].xpath("lip:used",namespaces={"lip": lip}):
                     if not "type" in usedtag.attrib:
                         # add error message to message list
                         processdict[uuid][2]["error"].append("lip:used tag %s does not have a type attribute" % (href_context.fromelement(xmldocu,usedtag).humanurl()))
@@ -1236,7 +1236,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
         else:
 
             # no specific tag. Look for recorded provenance
-            uuidstring=str(xmldocu.getattr(foundelement[0],"lip:wasgeneratedby","",namespaces={"lip": dcp}))
+            uuidstring=str(xmldocu.getattr(foundelement[0],"lip:wasgeneratedby","",namespaces={"lip": lip}))
             if refuuids_or_mtime is not None and refuuids_or_mtime != uuidstring:
                 # refuuids_or_mtime is what we were lead to believe (by the calling lip:process) generated this element
                 # uuidstring is what actually generated this element
@@ -1348,7 +1348,7 @@ junk="""
                 refuuid="object_not_unique"
                 pass
             else:
-                refuuid=refdoc.getattr(foundrefelement[0],"lip:wasgeneratedby","",namespaces={"lip": dcp})
+                refuuid=refdoc.getattr(foundrefelement[0],"lip:wasgeneratedby","",namespaces={"lip": lip})
                 pass
             pass
 """   

@@ -8,7 +8,7 @@ import sys
 import glob
 
 share_checklist_files=glob.glob("checklists/*")
-dcp_steps_files=glob.glob("pt_steps/*")
+pt_steps_files=glob.glob("pt_steps/*")
 conf_files=glob.glob("conf/*")
 doc_files=glob.glob("doc/*")
 xslt_files=glob.glob("xslt/*")
@@ -93,7 +93,7 @@ setup(name="limatix",
       package_dir={"limatix.canonicalize_path": "limatix/canonicalize_path/canonicalize_path"},
       cmdclass={"install_lib": install_lib_save_prefix},
       data_files=[ ("share/limatix/checklists",share_checklist_files),
-                   ("share/limatix/dcp_steps",pt_steps_files),
+                   ("share/limatix/pt_steps",pt_steps_files),
                    ("share/limatix/conf",conf_files),
                    ("share/limatix/doc",doc_files),
                    ("share/limatix/xslt",xslt_files),
