@@ -66,7 +66,7 @@ def dc_requestval(name,dcvalueobj):
 
     proxy=sessionbus.get_object(bus_name,bus_object)
 
-    reqxmlrep=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}"+name,nsmap={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://thermal.cnde.iastate.edu/dcvalue"})
+    reqxmlrep=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}"+name,nsmap={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://limatix.org/dcvalue"})
     dcvalueobj.xmlrepr(None,reqxmlrep)
     reqxmlstr=etree.tostring(reqxmlrep,encoding="utf-8")
 

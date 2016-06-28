@@ -76,7 +76,7 @@ from . import checklistdbwin
 
 from . import ricohcamera
 
-chx_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://thermal.cnde.iastate.edu/checklist"}
+chx_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://limatix.org/checklist"}
 
 if hasattr(gtk,"ResponseType") and hasattr(gtk.ResponseType,"OK"):
     # gtk3
@@ -544,7 +544,7 @@ class explogwindow(gtk.Window):
                 # add xlink:href attribute
                 #self.explog.setattr(parentel,"xlink:href",urllib.pathname2url(parentchecklistpath))
                 self.explog.setattr(parentel,"xlink:href",parentchecklisturl)
-                self.explog.setattr(parentel,"xlink:arcrole","http://thermal.cnde.iastate.edu/linktoparent")
+                self.explog.setattr(parentel,"xlink:arcrole","http://limatix.org/linktoparent")
                 pass
             finally: 
                 self.explog.unlock_rw()

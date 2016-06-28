@@ -106,7 +106,7 @@ from .. import dc_value
 
 __pychecker__="no-import no-argsused"
 
-xpathnamespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://thermal.cnde.iastate.edu/dcvalue"}
+xpathnamespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://limatix.org/dcvalue"}
 
 
 # TODO : Should add an "abort script" button and status field
@@ -415,10 +415,10 @@ class rundatacollectstep(gtk.HBox):
                     #sys.stderr.write("corrupt or changing files: self.plfparsed=%s; self.xlgparsed=%s\n" % (str(self.plfparsed),str(self.xlgparsed)))
                     pass
                 else : 
-                    plfchecked=self.plfparsed.xpath('count(/chx:checklist/chx:checkitem[@checked="true"])',namespaces={'chx':'http://thermal.cnde.iastate.edu/checklist'})
-                    plftotal=self.plfparsed.xpath('count(/chx:checklist/chx:checkitem)',namespaces={'chx':'http://thermal.cnde.iastate.edu/checklist'})
+                    plfchecked=self.plfparsed.xpath('count(/chx:checklist/chx:checkitem[@checked="true"])',namespaces={'chx':'http://limatix.org/checklist'})
+                    plftotal=self.plfparsed.xpath('count(/chx:checklist/chx:checkitem)',namespaces={'chx':'http://limatix.org/checklist'})
 
-                    xlgmeas=self.xlgparsed.xpath('count(/dc:experiment/dc:measurement)',namespaces={'dc':'http://thermal.cnde.iastate.edu/datacollect'})
+                    xlgmeas=self.xlgparsed.xpath('count(/dc:experiment/dc:measurement)',namespaces={'dc':'http://limatix.org/datacollect'})
                     
                     status="%d/%d steps; %d meas." % (plfchecked,plftotal,xlgmeas)
                     pass

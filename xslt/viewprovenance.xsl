@@ -18,7 +18,7 @@ and make sure this file is in the same directory
 <xsl:stylesheet version="1.0"
 		xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 		xmlns:html="http://www.w3.org/1999/xhtml"
-		xmlns:dcp="http://thermal.cnde.iastate.edu/datacollect/provenance"
+		xmlns:dcp="http://limatix.org/provenance"
 		xmlns:xlink="http://www.w3.org/1999/xlink">
   
   <xsl:output method="xml" media-type="application/xhtml+xml" encoding="utf-8"/>
@@ -109,7 +109,7 @@ and make sure this file is in the same directory
 	    
 	    
 	    var pointednode=xmlcopydocument.evaluate(xpath1exp,xmlcopydocument,function(nspre) { return nsmap[nspre] || documentnsresolver(nspre) || null;},XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;
-	    var pointednodeid=pointednode.getAttributeNS("http://thermal.cnde.iastate.edu/datacollect/provenance","vprovid");
+	    var pointednodeid=pointednode.getAttributeNS("http://limatix.org/provenance","vprovid");
 	    
 	    anchor.setAttribute("href","#xsltid="+pointednodeid);
 	    

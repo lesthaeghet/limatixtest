@@ -161,7 +161,7 @@ class runcheckliststep(gtk.HBox):
         #import pdb as pythondb
         #pythondb.set_trace()
         
-        self.private_paramdb.addparam("subchecklists",dc_value.xmltreevalue,build=lambda param: xmldoc.synced(param,tag_index_paths_override={"{http://thermal.cnde.iastate.edu/datacollect}checklist":"@{http://www.w3.org/1999/xlink}href"}),hide_from_meas=True)
+        self.private_paramdb.addparam("subchecklists",dc_value.xmltreevalue,build=lambda param: xmldoc.synced(param,tag_index_paths_override={"{http://limatix.org/datacollect}checklist":"@{http://www.w3.org/1999/xlink}href"}),hide_from_meas=True)
 
             
         # register our private paramdb with checklistdb
@@ -170,7 +170,7 @@ class runcheckliststep(gtk.HBox):
         self.checklist.xmldoc.lock_ro()
         try:
             xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
-            self.checklists_element_etxpath=canonicalize_path.getelementetxpath(self.checklist.xmldoc.doc,xmltag)+"/{http://thermal.cnde.iastate.edu/checklist}subchecklists"
+            self.checklists_element_etxpath=canonicalize_path.getelementetxpath(self.checklist.xmldoc.doc,xmltag)+"/{http://limatix.org/checklist}subchecklists"
             pass
         finally:
             self.checklist.xmldoc.unlock_ro()
@@ -305,7 +305,7 @@ class runcheckliststep(gtk.HBox):
         
         contexthref=self.checklist.xmldoc.getcontexthref()
 
-        checklistsdoc=self.private_paramdb["subchecklists"].dcvalue.get_xmldoc(nsmap={"dc": "http://thermal.cnde.iastate.edu/datacollect","xlink":"http://www.w3.org/1999/xlink"},contexthref=contexthref)  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
+        checklistsdoc=self.private_paramdb["subchecklists"].dcvalue.get_xmldoc(nsmap={"dc": "http://limatix.org/datacollect","xlink":"http://www.w3.org/1999/xlink"},contexthref=contexthref)  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
         
         if checklistsdoc is not None and checklistdb.checklist_in_param(possiblesubchecklist.xmldoc.get_filehref(),checklistsdoc):
             

@@ -52,7 +52,7 @@ if not hasattr(builtins,"basestring"):
 __pychecker__="no-argsused no-override"
 
 
-DCV="{http://thermal.cnde.iastate.edu/dcvalue}"
+DCV="{http://limatix.org/dcvalue}"
 
 # *** IMPORTANT *** 
 # Need to add distinction between strings and identifiers, and deal with escaping, etc. 
@@ -375,7 +375,7 @@ class xmltreevalue(value):
             sourcecontext=self.__xmldoc.getcontexthref()
             targetcontext=xmldocu.getcontexthref()
 
-            # if self.__xmldoc.getroot().tag=="http://thermal.cnde.iastate.edu/checklist}subchecklists":
+            # if self.__xmldoc.getroot().tag=="http://limatix.org/checklist}subchecklists":
             #     sys.stderr.write("xmltreevalue.xmlrepr: tag=%s; sourcecontext=%s; targetcontext=%s\n" % (self.__xmldoc.getroot().tag,sourcecontext.absurl(),targetcontext.absurl()))
             #     sys.stderr.write("xmltreevalue=%s\n" % (str(self)))
             #     pass

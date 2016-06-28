@@ -101,7 +101,7 @@ class dbus_camera(object):
                 parser=etree.XMLParser(remove_blank_text=True)
                 XMLtree=etree.parse(pmdpath,parser=parser)
 
-                reqfilenamexpath=XMLtree.xpath("string(/dc:photometadata/dc:reqfilenamexpath)",namespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect"})
+                reqfilenamexpath=XMLtree.xpath("string(/dc:photometadata/dc:reqfilenamexpath)",namespaces={"dc":"http://limatix.org/datacollect"})
                 
                 self.explogwindow.explog.lock_ro()
                 try : 
@@ -136,7 +136,7 @@ class dbus_camera(object):
                         raise ValueError("Can not find unused filename")
                     pass
                 
-                photofilenameel=XMLtree.xpath("/dc:photometadata/dc:photofilename",namespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect"})[0]
+                photofilenameel=XMLtree.xpath("/dc:photometadata/dc:photofilename",namespaces={"dc":"http://limatix.org/datacollect"})[0]
                 photofilenameel.text=os.path.split(filepath)[1]
                 
                 shutil.move(photopath,filepath)
@@ -147,7 +147,7 @@ class dbus_camera(object):
                 outfh.close()
                                 
                 # Add photo into paramdb element specified by dc:paramname element in XMLtree
-                paramname=XMLtree.xpath("/dc:photometadata/dc:paramname",namespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect"})[0].text
+                paramname=XMLtree.xpath("/dc:photometadata/dc:paramname",namespaces={"dc":"http://limatix.org/datacollect"})[0].text
                 self.explogwindow.paramdb[paramname].requestval_sync(self.explogwindow.paramdb[paramname].dcvalue.copyandappend(dc_value.hrefvalue.from_rel_or_abs_path(".",filepath)))
                 
 

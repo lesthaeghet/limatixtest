@@ -49,13 +49,13 @@ from limatix import canonicalize_path
 from limatix import paramdbfile
 
 
-x2d_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://thermal.cnde.iastate.edu/checklist"}
+x2d_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://limatix.org/checklist"}
 
 positionals=[]
 argc=1
 
 xlg2dpd_xsl=r"""<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dcv="http://thermal.cnde.iastate.edu/dcvalue" xmlns:chx="http://thermal.cnde.iastate.edu/checklist">
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dcv="http://thermal.cnde.iastate.edu/dcvalue" xmlns:chx="http://limatix.org/checklist">
   <xsl:output method="xml"/>
 
   <xsl:template match="dc:experiment">

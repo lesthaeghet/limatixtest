@@ -160,7 +160,7 @@ class etree_paramdb_ext(object): # etree extension class for paramdb that define
     def __init__(self,paramdb):
         self._paramdb=paramdb
         functions=('param','paramdb','formatintegermindigits')
-        self.extensions=etree.Extension(self,functions,ns='http://thermal.cnde.iastate.edu/datacollect')
+        self.extensions=etree.Extension(self,functions,ns='http://limatix.org/datacollect')
         pass
     
     def param(self,context,name):
@@ -468,7 +468,7 @@ def optionscontroller_xmlfile(param, filestring, fileparams, xpath, xpathparams,
     #   For Example:  ['specimen', ('pressure', 'psi'), 'perfby']
     # fileparams and xpathparams MUST ALWAYS be lists
     # Example Usage for Flaw Index in Specimen Database:
-    #   optionscontroller_xmlfile(param, os.path.join('/databrowse/specimens', '%s.sdb'), ['specimen'], 'specimen:flawparameters', [], attribute='index', namespaces={'specimen':'http://thermal.cnde.iastate.edu/specimen'})
+    #   optionscontroller_xmlfile(param, os.path.join('/databrowse/specimens', '%s.sdb'), ['specimen'], 'specimen:flawparameters', [], attribute='index', namespaces={'specimen':'http://limatix.org/specimen'})
     if dbl is None: 
         # specimen database not available.... allow manual control
         return simplecontroller(param)
@@ -1532,7 +1532,7 @@ def autocontroller_xmlfile(param, filestring, fileparams, xpath, xpathparams, na
     #   For Example:  ['specimen', ('pressure', 'psi'), 'perfby']
     # fileparams and xpathparams MUST ALWAYS be lists
     # Example Usage for Specimen Database:
-    #   autocontroller_xmlfile(param, os.path.join('/databrowse/specimens', '%s.sdb'), ['specimen'], 'specimen:geometry/specimen:dimension[@direction="length"]', [], namespaces={'specimen':'http://thermal.cnde.iastate.edu/specimen'})
+    #   autocontroller_xmlfile(param, os.path.join('/databrowse/specimens', '%s.sdb'), ['specimen'], 'specimen:geometry/specimen:dimension[@direction="length"]', [], namespaces={'specimen':'http://limatix.org/specimen'})
     if dbl is None: 
         # specimen database not available.... allow manual control
         return simplecontroller(param)
@@ -1549,7 +1549,7 @@ def autocontroller_specimendb(param, specimenparam, dblocation, valuexpath):
         return simplecontroller(param)
         pass
     else : 
-        return autocontroller_xmlfile_class(param, os.path.join(dblocation, '%s.sdb'), [specimenparam], valuexpath, [], namespaces={'specimen':'http://thermal.cnde.iastate.edu/specimen'})
+        return autocontroller_xmlfile_class(param, os.path.join(dblocation, '%s.sdb'), [specimenparam], valuexpath, [], namespaces={'specimen':'http://limatix.org/specimen'})
     pass
 
 # DEPRECATED!!!  Do Not Use This Controller - Provided Only for Temporary Backwards Compatility - Will Be Removed
@@ -1560,7 +1560,7 @@ def autocontroller_xducerdb(param, xducerparam, dblocation, valuexpath):
         return simplecontroller(param)
         pass
     else :
-        return autocontroller_xmlfile_class(param, os.path.join(dblocation, '%s.tdb'), [xducerparam], valuexpath, [], namespaces={'transducer':'http://thermal.cnde.iastate.edu/transducer'})
+        return autocontroller_xmlfile_class(param, os.path.join(dblocation, '%s.tdb'), [xducerparam], valuexpath, [], namespaces={'transducer':'http://limatix.org/transducer'})
     pass
 
 class autocontroller_averagedwfm(autocontrollerbase):

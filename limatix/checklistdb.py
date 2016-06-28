@@ -33,9 +33,9 @@ from . import dc_value
 __pychecker__="no-argsused no-import"
 
 cdb_nsmap={
-    "dc": "http://thermal.cnde.iastate.edu/datacollect",
-    "chx": "http://thermal.cnde.iastate.edu/checklist",
-    "dcv": "http://thermal.cnde.iastate.edu/dcvalue",
+    "dc": "http://limatix.org/datacollect",
+    "chx": "http://limatix.org/checklist",
+    "dcv": "http://limatix.org/dcvalue",
     "xlink":"http://www.w3.org/1999/xlink",
 }
 
@@ -775,7 +775,7 @@ def newchecklistnotify(checklist,is_plan=False):
 #        canonname=canonicalize_path.canonicalize_path(filename)
 #        pass
 #
-#    checklistsdoc=paramdb[clparamname].dcvalue.get_xmldoc(nsmap={"dc": "http://thermal.cnde.iastate.edu/datacollect","xlink":"http://www.w3.org/1999/xlink"})  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
+#    checklistsdoc=paramdb[clparamname].dcvalue.get_xmldoc(nsmap={"dc": "http://limatix.org/datacollect","xlink":"http://www.w3.org/1999/xlink"})  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
 #
 #    gotclentry=checklist_in_param(checklist,contextdir,checklistsdoc)
 #
@@ -843,7 +843,7 @@ def newchecklistnotify(checklist,is_plan=False):
 #        canonname=canonicalize_path.canonicalize_path(filename)
 #        pass
 
-#    checklistsdoc=paramdb[clparamname].dcvalue.get_xmldoc(nsmap={"dc": "http://thermal.cnde.iastate.edu/datacollect","xlink":"http://www.w3.org/1999/xlink"})  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
+#    checklistsdoc=paramdb[clparamname].dcvalue.get_xmldoc(nsmap={"dc": "http://limatix.org/datacollect","xlink":"http://www.w3.org/1999/xlink"})  # should be a <dc:checklists> tag containing <dc:checklist> tags. 
 
 #    if oldname is not None and checklistsdoc is not None:
 #        # find and remove preexisting elements within the checklist param that reference this file

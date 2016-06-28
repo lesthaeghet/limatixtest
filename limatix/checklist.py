@@ -167,7 +167,7 @@ def escapestring(s):
     pass
 
 xml2pangoxslt=r"""<?xml version="1.0"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0" xmlns:exsl="http://exslt.org/common" extension-element-prefixes="exsl" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns:html="http://www.w3.org/1999/xhtml">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0" xmlns:exsl="http://exslt.org/common" extension-element-prefixes="exsl" xmlns:chx="http://limatix.org/checklist" xmlns:html="http://www.w3.org/1999/xhtml">
 <xsl:output method="xml" encoding="utf-8"/>
 
 <!-- normalize spaces in text nodes -->
@@ -397,11 +397,11 @@ class checklist(object):
             initializefromunfilled=True
             ## absolutize all relative xlink:href links
             ##self.xmldoc.setcontextdir(os.path.split(origfilename)[0]) # ,force_abs_href=True)
-            self.xmldoc.merge_namespace("chx","http://thermal.cnde.iastate.edu/checklist")
-            self.xmldoc.merge_namespace("dc","http://thermal.cnde.iastate.edu/datacollect")
-            self.xmldoc.suggest_namespace_rootnode(None,"http://thermal.cnde.iastate.edu/checklist")
-            self.xmldoc.suggest_namespace_rootnode("chx","http://thermal.cnde.iastate.edu/checklist")
-            self.xmldoc.suggest_namespace_rootnode("dc","http://thermal.cnde.iastate.edu/datacollect")
+            self.xmldoc.merge_namespace("chx","http://limatix.org/checklist")
+            self.xmldoc.merge_namespace("dc","http://limatix.org/datacollect")
+            self.xmldoc.suggest_namespace_rootnode(None,"http://limatix.org/checklist")
+            self.xmldoc.suggest_namespace_rootnode("chx","http://limatix.org/checklist")
+            self.xmldoc.suggest_namespace_rootnode("dc","http://limatix.org/datacollect")
    
             #self.xmldoc.setattr(".", "origfilename", origfilename)
             unfilled_elements=self.xmldoc.xpath("chx:origunfilled")
@@ -440,8 +440,8 @@ class checklist(object):
                 #pythondb.set_trace()
                 ErrorDialog("Error Loading Checklist",exctype,excvalue,tback)
                 pass
-            self.xmldoc.merge_namespace("chx","http://thermal.cnde.iastate.edu/checklist")
-            self.xmldoc.merge_namespace("dc","http://thermal.cnde.iastate.edu/datacollect")
+            self.xmldoc.merge_namespace("chx","http://limatix.org/checklist")
+            self.xmldoc.merge_namespace("dc","http://limatix.org/datacollect")
 
             unfilled_elements=self.xmldoc.xpath("chx:origunfilled")
             if len(unfilled_elements) > 0:
@@ -997,7 +997,7 @@ class checklist(object):
 
             parenthref.xmlrepr(self.xmldoc,parenttag)
             # sys.stderr.write("checklist.set_parent(): parenthref=%s; xlink:href=%s\n" % (parenthref.absurl(),self.xmldoc.getattr(parenttag,"xlink:href")))
-            self.xmldoc.setattr(parenttag,"xlink:arcrole","http://thermal.cnde.iastate.edu/linktoparent")
+            self.xmldoc.setattr(parenttag,"xlink:arcrole","http://limatix.org/linktoparent")
 
             pass
         finally: 

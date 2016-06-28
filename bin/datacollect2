@@ -277,10 +277,10 @@ paramdb.addparam("perfby",stringv,build=lambda param: xmldoc.synced(param))
 # paramdb.addparam("date",stringv,build=lambda param: xmldoc.synced(param))
 #paramdb.addparam("date",datesetv,build=lambda param: xmldoc.synced_accumulating_dates(param))
 paramdb.addparam("date",accumulatingdatesetv,build=lambda param: xmldoc.synced(param))
-paramdb.addparam("checklists",xmltreev,build=lambda param: xmldoc.synced(param,tag_index_paths_override={"{http://thermal.cnde.iastate.edu/datacollect}checklist":"@{http://www.w3.org/1999/xlink}href"}),hide_from_meas=True)
+paramdb.addparam("checklists",xmltreev,build=lambda param: xmldoc.synced(param,tag_index_paths_override={"{http://limatix.org/datacollect}checklist":"@{http://www.w3.org/1999/xlink}href"}),hide_from_meas=True)
 checklistdb.register_paramdb(paramdb,"checklists",None,False)
 
-paramdb.addparam("plans",xmltreev,build=lambda param: xmldoc.synced(param,tag_index_paths_override={"{http://thermal.cnde.iastate.edu/datacollect}checklist":"@{http://www.w3.org/1999/xlink}href"}),hide_from_meas=True)
+paramdb.addparam("plans",xmltreev,build=lambda param: xmldoc.synced(param,tag_index_paths_override={"{http://limatix.org/datacollect}checklist":"@{http://www.w3.org/1999/xlink}href"}),hide_from_meas=True)
 checklistdb.register_paramdb(paramdb,"plans",None,True)
 
 
