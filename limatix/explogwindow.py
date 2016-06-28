@@ -76,7 +76,7 @@ from . import checklistdbwin
 
 from . import ricohcamera
 
-chx_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://thermal.cnde.iastate.edu/dcvalue", "chx": "http://limatix.org/checklist"}
+chx_nsmap={ "dc": "http://limatix.org/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://limatix.org/dcvalue", "chx": "http://limatix.org/checklist"}
 
 if hasattr(gtk,"ResponseType") and hasattr(gtk.ResponseType,"OK"):
     # gtk3

@@ -1,7 +1,7 @@
 <html xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml">
-  <head><title>Datacollect2</title></head>
+  <head><title>Limatix</title></head>
   <body>
-    <h1>Datacollect2</h1>
+    <h1>Limatix</h1>
     <h2>Introduction</h2>
     <p>
       The practice of experimental academic research has recently gotten
@@ -51,6 +51,7 @@
       represented in a checklist, helping to provide further context
       (and providing a concrete outlet for experiment planning).
     </p>
+    <h3>Datacollect2</h3>
     <p>
       Datacollect2 is a system for checklist-based experiment logging
       -- it is a tool for recording what you are doing and what you
@@ -99,6 +100,7 @@
       data analysis and processing steps while keeping the intermediate
       results well-organized.
     </p>
+    <h3>ProcessTrak</h3>
     <p>
       The basic idea of <tt>processtrak</tt> is that you define
       analysis and processing steps which transform the original
@@ -731,7 +733,7 @@
       of the structure of a ".prx" file. 
     </p>
     <p>
-      dc_process is currently run from the command line. <tt>dc_process prx_file.prx --steps</tt> will list the runnable steps. Then you can run a step with, for example, <tt> processtrak prx_file.prx -s first_step</tt>. The first time you execute a step, it will copy the original experiment log (.xlg) to a "processed experiment log" (.xlp). All further operations will be on the processed .xlp file so that the original experiment log remains untouched.
+      processtrak is currently run from the command line. <tt>processtrak prx_file.prx --steps</tt> will list the runnable steps. Then you can run a step with, for example, <tt> processtrak prx_file.prx -s first_step</tt>. The first time you execute a step, it will copy the original experiment log (.xlg) to a "processed experiment log" (.xlp). All further operations will be on the processed .xlp file so that the original experiment log remains untouched.
     </p>
     <p>
       The processing steps are Python scripts that can be embedded in the .prx file or be referenced as external .py files. The processing script itself is defined as a function called "run" which is called once per matching XML element in the processed experiment log, and takes specially named arguments:
@@ -745,7 +747,7 @@
       <tr><td>The name of a sub-element of the XML element being operated on. If the sub-element is in a namespace then an underscore replaces the colon separating the namespace prefix. Optionally the name can have "_list" at the end. It can also have one or more of  "_text", "_href", "_hreffullpath", or "_numericvalue" appended to the element name.</td><td>
 	  Passes the value of the specifed element. If "_list" then it will be wrapped in a list. If "_text" then a Python string of the element text. If "_href" then a <tt>datacollect2.dc_value.hrefvalue</tt>. If "_hreffullpath" then a string representing the filesystem path of the href. If "_numericvalue" then a <tt>datacollect2.dc_value.numericunitsvalue</tt>.</td></tr>
     </table>
-    See the attached slides <a href="dc_process.pdf">processtrak.pdf</a> for more information. 
+    See the attached slides <a href="processtrak.pdf">processtrak.pdf</a> for more information. 
     <h2>Appendix: Checklist/plan step classes</h2>
     <h3>button</h3>
     <p>

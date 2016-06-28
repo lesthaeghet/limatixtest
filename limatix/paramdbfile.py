@@ -26,7 +26,7 @@ from . import dc_value
 from . import canonicalize_path
 from . import checklistdb
 
-paramdbfile_nsmap={ "dc": "http://thermal.cnde.iastate.edu/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://limatix.org/dcvalue"}
+paramdbfile_nsmap={ "dc": "http://limatix.org/datacollect", "xlink": "http://www.w3.org/1999/xlink", "dcv":"http://limatix.org/dcvalue"}
 
 # Replaced by canonicalize_path.rel_or_abs_path
 #def determine_path(reffile,destfile):

@@ -18,9 +18,9 @@ from lxml import etree
 
 # import gobject
 
-bus_name="edu.iastate.cnde.thermal.datacollect2" # bus name / server
-bus_object="/edu/iastate/cnde/thermal/datacollect2/paramdb2" # object
-bus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2" # interface... like a Java interface
+bus_name="org.limatix.datacollect2" # bus name / server
+bus_object="/org/limatix/datacollect2/paramdb2" # object
+bus_interface="org.limatix.datacollect2.paramdb2" # interface... like a Java interface
 
 
 def dc_param(name):
@@ -66,7 +66,7 @@ def dc_requestval(name,dcvalueobj):
 
     proxy=sessionbus.get_object(bus_name,bus_object)
 
-    reqxmlrep=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}"+name,nsmap={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://limatix.org/dcvalue"})
+    reqxmlrep=etree.Element("{http://limatix.org/datacollect}"+name,nsmap={"dc":"http://limatix.org/datacollect","dcv":"http://limatix.org/dcvalue"})
     dcvalueobj.xmlrepr(None,reqxmlrep)
     reqxmlstr=etree.tostring(reqxmlrep,encoding="utf-8")
 
