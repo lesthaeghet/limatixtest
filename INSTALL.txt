@@ -16,11 +16,11 @@ Recommended:
   datacollect2-qautils (not used directly, but documents checklist
                         format/structure and can render checklists as PDF)
   ipython (with PySide qt4 bindings) for interactive debugging of 
-          dcprocess scripts
+          processtrak scripts
   matplotlib (with qt4 support) for use with ipython for interactive
-             debugging of dcprocess scripts
+             debugging of processtrak scripts
 
-datacollect2 is built with Python setuptools. 
+Limatix is built with Python setuptools. 
 
 To build from source package:
   python setup.py build
