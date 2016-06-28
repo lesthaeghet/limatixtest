@@ -63,7 +63,7 @@ from . import processtrak_prxdoc
 
 
 outputnsmap={
-    "dcp": "http://limatix.org/provenance",
+    "lip": "http://limatix.org/provenance",
 }
 
 
@@ -211,8 +211,8 @@ def output_ensure_namespaces(output,prxdoc,justcopied):
     try: 
         if justcopied:
             # sys.stderr.write("Merging dcp namespace!\n")
-            output.merge_namespace("dcp","http://limatix.org/provenance")
-            output.suggest_namespace_rootnode("dcp","http://limatix.org/provenance")
+            output.merge_namespace("lip","http://limatix.org/provenance")
+            output.suggest_namespace_rootnode("lip","http://limatix.org/provenance")
             #sys.stderr.write("nsmap=%s\n" % (output.doc.getroot().nsmap))
             pass
         

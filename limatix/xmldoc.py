@@ -535,7 +535,7 @@ class xmldoc(object):
                     "dc": "http://limatix.org/datacollect",
                     "dcv": "http://limatix.org/dcvalue",
                     "chx": "http://limatix.org/checklist",
-                    "dcp": "http://limatix.org/provenance",
+                    "lip": "http://limatix.org/provenance",
                     "dbvar": "http://limatix.org/databrowse/variable",
                     "dbdir": "http://limatix.org/databrowse/dir",
                     "sp":"http://limatix.org/spatial",

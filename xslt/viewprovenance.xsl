@@ -18,7 +18,7 @@ and make sure this file is in the same directory
 <xsl:stylesheet version="1.0"
 		xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 		xmlns:html="http://www.w3.org/1999/xhtml"
-		xmlns:dcp="http://limatix.org/provenance"
+		"lip"="http://limatix.org/provenance"
 		xmlns:xlink="http://www.w3.org/1999/xlink">
   
   <xsl:output method="xml" media-type="application/xhtml+xml" encoding="utf-8"/>
