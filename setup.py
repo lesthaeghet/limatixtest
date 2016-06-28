@@ -15,15 +15,15 @@ xslt_files=glob.glob("xslt/*")
 root_files=["README.txt","INSTALL.txt"]
 #limatix_widgets_glade_catalogs_package_files=["*.xml"]
 limatix_widgets_package_files=["*.glade","glade_catalogs/*"]
-limatix_steps_package_files=["*.glade"]
+limatix_checklist_steps_package_files=["*.glade"]
 limatix_package_files=["*.glade"]
 
 canonicalize_path_config_files=["limatix/canonicalize_path/canonical_paths.conf.example","limatix/canonicalize_path/tag_index_paths.conf.example"]
 canonicalize_path_package_files=["canonical_paths.conf","tag_index_paths.conf"]
 
-limatix_step_paths=glob.glob("limatix/steps/*.py")
-limatix_step_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in limatix_step_paths if not path.endswith("__init__.py")]
-limatix_step_entrypoints = [ '%s = limatix.steps.%s' % (stepname,stepname) for stepname in limatix_step_names]
+limatix_checklist_step_paths=glob.glob("limatix/steps/*.py")
+limatix_checklist_step_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in limatix_checklist_step_paths if not path.endswith("__init__.py")]
+limatix_checklist_step_entrypoints = [ '%s = limatix.steps.%s' % (stepname,stepname) for stepname in limatix_checklist_step_names]
 
 limatix_widget_paths=glob.glob("limatix/widgets/*.py")
 limatix_widget_names=[ os.path.splitext(os.path.split(path)[1])[0] for path in limatix_widget_paths if not path.endswith("__init__.py")]
@@ -101,11 +101,11 @@ setup(name="limatix",
                    ("etc/canonicalize_path",canonicalize_path_config_files)],
       package_data={"limatix.canonicalize_path": canonicalize_path_package_files, 
                     "limatix.widgets": limatix_widgets_package_files,
-                    "limatix.steps": limatix_steps_package_files,
+                    "limatix.steps": limatix_checklist_steps_package_files,
                     "limatix": limatix_package_files},
       scripts=["bin/datacollect2",
                "bin/dc_checklist",
-               "bin/dc_checkprovenance",
+               "bin/pt_checkprovenance",
                "bin/dc_chx2chf",
                "bin/dc_glade",
                "bin/dc_gui",
@@ -113,7 +113,7 @@ setup(name="limatix",
                "bin/processtrak",
                "bin/dc_ricohphoto",
                "bin/dc_xlg2dpd",],
-      entry_points={"limatix.step": limatix_step_entrypoints,
+      entry_points={"limatix.checklist.step": limatix_checklist_step_entrypoints,
                     "limatix.widget": limatix_widget_entrypoints})
 
 

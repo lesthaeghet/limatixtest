@@ -444,7 +444,7 @@ class xmldoc(object):
         
         
 
-        return xmldoc.frometree(newetree,nsmap=nsmap,readonly=readonly,contexthref=xmldocu.getcontexthref(),debug=debug,force_abs_href=force_abs_href)
+        return xmldoc.frometree(newetree,nsmap=nsmap,readonly=readonly,contexthref=contexthref,debug=debug,force_abs_href=force_abs_href)
     
     
     @classmethod
@@ -3365,6 +3365,10 @@ class synced(object):
             while retry:
                 retry=False
 
+                #if xmlpath=="dc:summary/dc:expnotes":
+                #    import pdb as pythondb
+                #    pythondb.set_trace()
+                    
                 xmldocobj.lock_rw()
                 try :
                     if autocreate_parentxpath is not None:
@@ -3688,6 +3692,11 @@ class synced(object):
     def xmlresync(self,xmldocobj,xmlpath,ETxmlpath,logfunc=None,initialload=False):
         # NOTE: xmldocobj MUST be locked (or must be in the process of being locked)!!!
 
+        #if xmlpath=="dc:summary/dc:dest":
+        #    import pdb as pythondb
+        #    pythondb.set_trace()
+        #    pass
+
         #sys.stderr.write("xmlresync: %s doc=%s xp=%s etxp=%s in_synchronize=%s\n" % (xmldocobj.filename,str(xmldocobj.doc),xmlpath,ETxmlpath,str(self.in_synchronize)))
         # make sure xmldocobj is in our list
         # print "this document: ", xmldocobj,xmlpath,logfunc
@@ -3702,6 +3711,10 @@ class synced(object):
 
         # it is actually _get_dcvalue_from_file that guarantees that
         # referenced nodes actually exist in the file...
+        # if xmlpath=="dc:summary/dc:dest":
+        #    import pdb as pythondb
+        #    pythondb.set_trace()
+        #    pass
         newval=self._get_dcvalue_from_file(xmldocobj,xmlpath,ETxmlpath)
  
         

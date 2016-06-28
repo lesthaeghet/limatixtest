@@ -97,7 +97,7 @@ from pkg_resources import resource_string
 
 
 __install_prefix__=resource_string(__name__, 'install_prefix.txt').decode('utf-8')
-__data_prefix__=os.path.join(__install_prefix__,'share','datacollect2')
+__data_prefix__=os.path.join(__install_prefix__,'share','limatix')
 
 
 class dummy(object):
@@ -299,6 +299,10 @@ class explogwindow(gtk.Window):
         self.paramdb["perfby"].controller.adddoc(self.explog,"dc:summary/dc:perfby")
         self.paramdb["date"].controller.adddoc(self.explog,"dc:summary/dc:date")
         self.paramdb["dest"].controller.adddoc(self.explog,"dc:summary/dc:dest")
+
+        # import pdb as pythondb
+        # pythondb.set_trace()
+
         self.paramdb["expnotes"].controller.adddoc(self.explog,"dc:summary/dc:expnotes")
         self.paramdb["goal"].controller.adddoc(self.explog,"dc:summary/dc:goal")
         self.paramdb["expphotos"].controller.adddoc(self.explog,"dc:summary/dc:expphotos")
@@ -403,7 +407,6 @@ class explogwindow(gtk.Window):
         (fbase,ext)=posixpath.splitext(filepart)
 
         
-        
         self.paramdb["dest"].requestval_sync(dcv.hrefvalue(quote(fbase+"_files/"),contexthref=contexthref))
         
         physdir=self.paramdb["dest"].dcvalue.getpath()
@@ -435,7 +438,12 @@ class explogwindow(gtk.Window):
         fname=newexplogchooser.get_filename()
         newexplogchooser.destroy()
 
-        href=dcv.hrefvalue(pathname2url(fname))
+        # create context from fname and directory
+        (direc,filename)=os.path.split(fname)
+
+        href=dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc+os.path.sep)))
+
+
         
         if result==RESPONSE_OK:
             self.new_explog(href)
@@ -676,8 +684,10 @@ class explogwindow(gtk.Window):
                 confighrefs=None
                 pass
             
+            # create context from fname and directory
+            (direc,filename)=os.path.split(fname)
             
-            self.open_explog(dcv.hrefvalue(pathname2url(fname)),confighrefs=confighrefs)
+            self.open_explog(dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc+os.path.sep))),confighrefs=confighrefs)
             pass
         pass
 

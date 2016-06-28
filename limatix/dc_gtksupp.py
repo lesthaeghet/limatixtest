@@ -135,18 +135,18 @@ def dc_initialize_widgets(objdict,guistate):
 
 def import_widgets():
 
-    # Import all widgets registered with "datacollect2.widget" entry points
+    # Import all widgets registered with "limatix.widget" entry points
 
     # This way when we load in a .glade interface description 
     # that uses one of these widgets, it will load. 
 
-    for entrypoint in pkg_resources.iter_entry_points("datacollect2.widget"):
+    for entrypoint in pkg_resources.iter_entry_points("limatix.widget"):
         try:
             entrypoint.load()
             pass
         except: 
             (exctype,excvalue)=sys.exc_info()[:2]
-            sys.stderr.write("Exception loading datacollect2 widget: %s: %s; widget will not be available." % (exctype.__name__,str(excvalue)))
+            sys.stderr.write("Exception loading limatix widget plugin: %s: %s; widget will not be available." % (exctype.__name__,str(excvalue)))
             traceback.print_exc()
             pass
         pass
