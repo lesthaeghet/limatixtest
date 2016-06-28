@@ -37,7 +37,7 @@ SUBDIRS=dcp_steps  #matlab
 
 
 
-PROGS=dc_checklist dc_glade datacollect2 dc_paramdb2 dc_ricohphoto dc_process dc_checkprovenance dc_xlg2dpd dc_chx2chf dc_getpath
+PROGS=dc_checklist dc_glade datacollect2 dc_paramdb2 dc_ricohphoto processtrak dc_checkprovenance dc_xlg2dpd dc_chx2chf dc_getpath
 
 
 all:

@@ -12,7 +12,7 @@
       help us work more consistenly, reduce errors, and automatically
       record the structure of our experiments along with our results and
       our data. A companion tool,
-      <tt>dc_process</tt> helps define consistent and repeatable
+      <tt>processtrak</tt> helps define consistent and repeatable
       analysis processes, and a separate companion
       package <tt>databrowse</tt> provides a web-based interface to
       data repositories.
@@ -94,13 +94,13 @@
       from experiment logs. An internal class
       library <tt>dc_value</tt> provides representations of numbers
       with physical units, cross-references, and more.  The processing
-      tool, <tt>dc_process</tt>, is distributed along with
+      tool, <tt>processtrak</tt>, is distributed along with
       Datacollect2. It provides a framework for defining
       data analysis and processing steps while keeping the intermediate
       results well-organized.
     </p>
     <p>
-      The basic idea of <tt>dc_process</tt> is that you define
+      The basic idea of <tt>processtrak</tt> is that you define
       analysis and processing steps which transform the original
       experiment log (<tt>.xlg</tt> file) into a processed experiment
       log (<tt>.xlp</tt> file). The processed experiment log starts
@@ -108,7 +108,7 @@
       modified.  Each processing step then operates on the processed
       log, adding additional information, perhaps generating processed
       data files from the originals. Processing steps can be rerun as
-      needed and during debugging. <tt>dc_process</tt>
+      needed and during debugging. <tt>processtrak</tt>
       uses <em>provenance tracking</em> to help verify consistency of
       the generated output.
 
@@ -713,9 +713,9 @@
       </li>
     </ol>
     
-    <h2>dc_process</h2>
+    <h2>processtrak</h2>
     <p>
-      dc_process is a tool for defining step-by-step processing procedures
+      processtrak is a tool for defining step-by-step processing procedures
       for data analysis. It helps avoid the unbounded need for confusing
       arrays of intermediate files by storing as much information
       in a single processed experiment log that is updated by each
@@ -731,7 +731,7 @@
       of the structure of a ".prx" file. 
     </p>
     <p>
-      dc_process is currently run from the command line. <tt>dc_process prx_file.prx --steps</tt> will list the runnable steps. Then you can run a step with, for example, <tt> dc_process prx_file.prx -s first_step</tt>. The first time you execute a step, it will copy the original experiment log (.xlg) to a "processed experiment log" (.xlp). All further operations will be on the processed .xlp file so that the original experiment log remains untouched.
+      dc_process is currently run from the command line. <tt>dc_process prx_file.prx --steps</tt> will list the runnable steps. Then you can run a step with, for example, <tt> processtrak prx_file.prx -s first_step</tt>. The first time you execute a step, it will copy the original experiment log (.xlg) to a "processed experiment log" (.xlp). All further operations will be on the processed .xlp file so that the original experiment log remains untouched.
     </p>
     <p>
       The processing steps are Python scripts that can be embedded in the .prx file or be referenced as external .py files. The processing script itself is defined as a function called "run" which is called once per matching XML element in the processed experiment log, and takes specially named arguments:
@@ -745,7 +745,7 @@
       <tr><td>The name of a sub-element of the XML element being operated on. If the sub-element is in a namespace then an underscore replaces the colon separating the namespace prefix. Optionally the name can have "_list" at the end. It can also have one or more of  "_text", "_href", "_hreffullpath", or "_numericvalue" appended to the element name.</td><td>
 	  Passes the value of the specifed element. If "_list" then it will be wrapped in a list. If "_text" then a Python string of the element text. If "_href" then a <tt>datacollect2.dc_value.hrefvalue</tt>. If "_hreffullpath" then a string representing the filesystem path of the href. If "_numericvalue" then a <tt>datacollect2.dc_value.numericunitsvalue</tt>.</td></tr>
     </table>
-    See the attached slides <a href="dc_process.pdf">dc_process.pdf</a> for more information. 
+    See the attached slides <a href="dc_process.pdf">processtrak.pdf</a> for more information. 
     <h2>Appendix: Checklist/plan step classes</h2>
     <h3>button</h3>
     <p>

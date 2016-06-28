@@ -23,7 +23,7 @@ from . import canonicalize_path
 from .canonicalize_path import href_context
 
 # from . import xmldoc  # remove to eliminate circular reference
-from .import dc_process_prxdoc
+from .import processtrak_prxdoc
 
 from lxml import etree
 # from pytz import reference
@@ -962,11 +962,11 @@ def suggest(docdict,processdict,processdictbyhrefc,processdictbyusedelement,elem
         prxfile_steps=prxfile_doc.xpath("prx:step")
         prxfile_inputfiles=prxfile_doc.xpath("prx:inputfile")
         for step in prxfile_steps:
-            stepaction=dc_process_prxdoc.getstepname(prxfile_doc,step)
+            stepaction=processtrak_prxdoc.getstepname(prxfile_doc,step)
             refdinputhrefcs=[inputfilehrefc for (inputfilehrefc,action) in suggestions_by_prxfile[prxfile_hrefc] if action==stepaction]
             for refdinputhrefc in refdinputhrefcs:
                 suggestions_by_prxfile[prxfile_hrefc].remove((refdinputhrefc,stepaction))
-                # dc_process takes <inputfile> tag of prxfile
+                # processtrak takes <inputfile> tag of prxfile
                 # Search for match between refdinputfile and the inputfiles specified in prx document
                 foundinputfile=False
                 for prxinputfile_el in prxfile_inputfiles:
@@ -985,7 +985,7 @@ def suggest(docdict,processdict,processdictbyhrefc,processdictbyusedelement,elem
 
                     if prxinputfile_hrefc==refdinputhrefc:
                         foundinputfile=True
-                        suggestions.add(("Rerun step %s on file %s." % (stepaction,prxinputfile_hrefc.humanurl()),"dc_process -s %s -f %s %s" % (addquotesifnecessary(stepaction),addquotesifnecessary(prxinputfile_hrefc.getpath()),addquotesifnecessary(prxfile_hrefc.getpath()))))
+                        suggestions.add(("Rerun step %s on file %s." % (stepaction,prxinputfile_hrefc.humanurl()),"processtrak -s %s -f %s %s" % (addquotesifnecessary(stepaction),addquotesifnecessary(prxinputfile_hrefc.getpath()),addquotesifnecessary(prxfile_hrefc.getpath()))))
                         break
                         
                     pass

@@ -7,7 +7,7 @@ orig_sys_exit=sys.exit # keep a copy of real sys.exit, because ipython messes it
 
 # set up stdout/stderr forwarders as FIRST step before other modules get loaded
 
-from limatix.dc_process_stdiocapture import stdiohandler
+from limatix.processtrak_stdiocapture import stdiohandler
 
 stdouthandler=stdiohandler(sys.stdout,None)
 sys.stdout=stdouthandler
@@ -109,9 +109,9 @@ from limatix.canonicalize_path import etxpath2human
 from limatix import dc_value as dcv
 from limatix import dc_provenance as provenance
 from limatix import xmldoc
-from limatix import dc_process_prxdoc
-from limatix import dc_process_common
-from limatix import dc_process_procstep
+from limatix import processtrak_prxdoc
+from limatix import processtrak_common
+from limatix import processtrak_procstep
 
 
 # Concept
@@ -135,7 +135,7 @@ from limatix import dc_process_procstep
 #       <dcp:used> in the <dcp:process> domain and the latter can reference
 #       the <dcp:process> domain by uuid. 
 #    l. The execution of the filter creates a new <dcp:process> domain within
-#       the <dcp:process> domain for the execution of the dc_process program.
+#       the <dcp:process> domain for the execution of the processtrak program.
 #       Additional sub-process domains are created for each element processed
 #       by the filter. 
 #    m. Once file locking support is implemented in xmldoc, critical regions
@@ -247,7 +247,7 @@ if __name__=="__main__":
 
     
     # prxdoc is loaded into memory once, so we don't use locking on it. 
-    prxdoc=xmldoc.xmldoc.loadhref(prxfilehref,nsmap=dc_process_common.prx_nsmap,readonly=True,use_locking=False,debug=True)  #!!!*** Should turn debug mode off eventually... it will speed things up
+    prxdoc=xmldoc.xmldoc.loadhref(prxfilehref,nsmap=processtrak_common.prx_nsmap,readonly=True,use_locking=False,debug=True)  #!!!*** Should turn debug mode off eventually... it will speed things up
     # prxdoc.merge_namespace("prx",)
     assert(prxdoc.gettag(prxdoc.getroot())=="prx:processinginstructions")
 
@@ -265,7 +265,7 @@ if __name__=="__main__":
         steps=prxdoc.xpath("prx:step")
         pass
     else: # Convert list of step names into list of step elements
-        steps=[ dc_process_prxdoc.findstep(prxdoc,stepname) for stepname in stepnames ]
+        steps=[ processtrak_prxdoc.findstep(prxdoc,stepname) for stepname in stepnames ]
         pass
 
     if liststeps: 
@@ -273,7 +273,7 @@ if __name__=="__main__":
         print("List of steps for -s option")
         print("---------------------------")
         for step_el in steps:
-            print(dc_process_prxdoc.getstepname(prxdoc,step_el))
+            print(processtrak_prxdoc.getstepname(prxdoc,step_el))
             pass
 
         sys.exit(0)
@@ -336,11 +336,11 @@ if __name__=="__main__":
     
     
     # Build dictionary by input file of output files
-    outputdict=dc_process_common.build_outputdict(prxdoc,useinputfiles_with_hrefs)
+    outputdict=processtrak_common.build_outputdict(prxdoc,useinputfiles_with_hrefs)
 
     
     # Run the specified steps, on the specified files
-    dc_process_common.outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist)    
+    processtrak_common.outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist)    
 
     
     pass

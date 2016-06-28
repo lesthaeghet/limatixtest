@@ -58,7 +58,7 @@ from .canonicalize_path import etxpath2human
 from . import dc_value as dcv
 from . import dc_provenance as provenance
 from . import xmldoc
-from . import dc_process_prxdoc
+from . import processtrak_prxdoc
 
 
 
@@ -385,7 +385,7 @@ def build_outputdict(prxdoc,useinputfiles_with_hrefs):
 
 def outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist):
     # delayed import to avoid circular reference
-    from limatix import dc_process_procstep
+    from limatix import processtrak_procstep
     
     # Run the specified steps, on the specified files
 
@@ -398,11 +398,11 @@ def outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debug
 
     # Run each step on each input file 
     for step in steps:
-        print("\nProcessing step %s" % (dc_process_prxdoc.getstepname(prxdoc,step)))
+        print("\nProcessing step %s" % (processtrak_prxdoc.getstepname(prxdoc,step)))
         for inputfilehref in outputdict:
-            # print("\nProcessing step %s on URL %s." % (dc_process_prxdoc.getstepname(prxdoc,step),output.get_filehref().absurl())) 
+            # print("\nProcessing step %s on URL %s." % (processtrak_prxdoc.getstepname(prxdoc,step),output.get_filehref().absurl())) 
 
-            dc_process_procstep.procstep(prxdoc,outputdict[inputfilehref],step,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist)
+            processtrak_procstep.procstep(prxdoc,outputdict[inputfilehref],step,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist)
             pass
         pass
 

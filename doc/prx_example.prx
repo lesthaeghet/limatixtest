@@ -19,7 +19,7 @@
   <step name="pullparams" descr="Pull in parameters from other files">
     <!-- Note: if you don't provide a step name, it uses the script name, 
 	 with extension and path removed -->
-    <script xlink:href="pullparams.py" function="run">     <!-- Note: You can explicitly specify the function to run (default is "rununlocked" or "run". If the name ends with "unlocked" then the function will be run with the xlp file unlocked.  You can reference an explicit path, by specifying the script with xlink:href, or  ask dc_process to search its script path by using "name" to specify the script. -->
+    <script xlink:href="pullparams.py" function="run">     <!-- Note: You can explicitly specify the function to run (default is "rununlocked" or "run". If the name ends with "unlocked" then the function will be run with the xlp file unlocked.  You can reference an explicit path, by specifying the script with xlink:href, or  ask processtrak to search its script path by using "name" to specify the script. -->
       <elementmatch>xpath_condition_override</elementmatch>
       <parameter name="foo">
 	<!-- Can supply a condition. It is an xpath, evaluated in the context of the node 
