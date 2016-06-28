@@ -15,9 +15,9 @@ else :
 import dc_value
 
 namespaces={
-        "dc": "http://thermal.cnde.iastate.edu/datacollect",
-        "dcv": "http://thermal.cnde.iastate.edu/dcvalue",
-        "chx": "http://thermal.cnde.iastate.edu/checklist",
+        "dc": "http://limatix.org/datacollect",
+        "dcv": "http://limatix.org/dcvalue",
+        "chx": "http://limatix.org/checklist",
         }
 
 def simplifytag(tagname):
@@ -69,10 +69,10 @@ class viewautoexp(gtk.Window):
             firsttag=meastags[0]
             for element in firsttag:
                 tags.append(element.tag)
-                if "{http://thermal.cnde.iastate.edu/dcvalue}units" in element.attrib:
+                if "{http://limatix.org/dcvalue}units" in element.attrib:
                     types.append(gobject.TYPE_FLOAT)
                     #types.append(float)
-                    units.append(element.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"])
+                    units.append(element.attrib["{http://limatix.org/dcvalue}units"])
                     titles.append("%s (%s)" % (doubleunderscores(simplifytag(element.tag)),doubleunderscores(units[-1])))
                     # print "title: %s (%s)" % (element.tag,units[-1])
                     pass

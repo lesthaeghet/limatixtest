@@ -76,19 +76,19 @@ class explog(xmldoc.xmldoc):
             meastag=self.addelement(root,"dc:measurement")
 
         
-            # meastag=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}measurement")
+            # meastag=etree.Element("{http://limatix.org/datacollect}measurement")
             paramlist=self.paramdb.keys()
             
             # write out measnum element
             measnumel=self.addsimpleelement(meastag,"dc:measnum",(measnum,))
             
-            # measnumel=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}measnum")
+            # measnumel=etree.Element("{http://limatix.org/datacollect}measnum")
             # measnumel.text=str(self.get_measnum())
             # meastag.append(measnumel)
             
             # write out measrecordtimestamp element
             meastimestampel=self.addsimpleelement(meastag,"dc:recordmeastimestamp",(dg_timestamp.roundtosecond(dg_timestamp.now()).isoformat(),))        
-            # meastimestampel=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}recordmeastimestamp")
+            # meastimestampel=etree.Element("{http://limatix.org/datacollect}recordmeastimestamp")
             # meastimestampel.text=dg_timestamp.roundtosecond(dg_timestamp.now()).isoformat()
             # meastag.append(meastimestampel)
 
@@ -96,7 +96,7 @@ class explog(xmldoc.xmldoc):
             if clinfo is not None:
                 clinfotag=self.addsimpleelement(meastag,"chx:clinfo",(clinfo,))
 
-                # clinfotag=etree.Element("{http://thermal.cnde.iastate.edu/checklist}clinfo")
+                # clinfotag=etree.Element("{http://limatix.org/checklist}clinfo")
                 # clinfotag.text=clinfo
                 # meastag.append(clinfotag)
                 
@@ -105,7 +105,7 @@ class explog(xmldoc.xmldoc):
             if cltitle is not None:
                 cltitletag=self.addsimpleelement(meastag,"chx:cltitle",(cltitle,))
                     
-                # cltitletag=etree.Element("{http://thermal.cnde.iastate.edu/checklist}cltitle")
+                # cltitletag=etree.Element("{http://limatix.org/checklist}cltitle")
                 # cltitletag.text=cltitle
                 # meastag.append(cltitletag)
 
@@ -119,7 +119,7 @@ class explog(xmldoc.xmldoc):
                         paramtag=self.addelement(meastag,"dc:"+paramname)
                         self.paramdb[paramname].dcvalue.xmlrepr(self,paramtag,defunits=self.paramdb[paramname].defunits) # xml_attribute=self.paramdb[paramname].xml_attribute)
                     
-                        # paramtag=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}"+paramname)                
+                        # paramtag=etree.Element("{http://limatix.org/datacollect}"+paramname)                
                         # self.paramdb[paramname].dcvalue.xmlrepr(self,paramtag,defunits=self.paramdb[paramname].defunits)
                         # meastag.append(paramtag)
                         pass

@@ -81,12 +81,12 @@ thisdir=os.path.split(sys.modules[dummy.__module__].__file__)[0]
 
 
 
-DC='{http://thermal.cnde.iastate.edu/datacollect}'
+DC='{http://limatix.org/datacollect}'
 
 xpathnamespaces={ 
-    #'chx': 'http://thermal.cnde.iastate.edu/checklist',
-    'dc': 'http://thermal.cnde.iastate.edu/datacollect',
-    #'dcv': 'http://thermal.cnde.iastate.edu/dcvalue',
+    #'chx': 'http://limatix.org/checklist',
+    'dc': 'http://limatix.org/datacollect',
+    #'dcv': 'http://limatix.org/dcvalue',
     }
 
 

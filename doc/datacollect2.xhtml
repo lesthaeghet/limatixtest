@@ -274,7 +274,7 @@
     </p>
     <pre>
 &lt;?xml version='1.0' encoding='UTF-8'?&gt;
-&lt;dc:experiment xmlns:dc="http://thermal.cnde.iastate.edu/datacollect"
+&lt;dc:experiment xmlns:dc="http://limatix.org/datacollect"
 	       xmlns:xlink="http://www.w3.org/1999/xlink"&gt;
   &lt;dc:summary&gt;
     &lt;dc:specimen&gt;A53-1394Q&lt;/dc:specimen&gt;
@@ -322,10 +322,10 @@
       <tt>xlink:</tt>. While the namespace values look like URLs, the URLs are
       never accessed directly, just used as unique identifiers. A
       namespace declaration with no prefix, e.g.
-      <tt>xmlns="http://thermal.cnde.iastate.edu/checklist"</tt>
+      <tt>xmlns="http://limatix.org/checklist"</tt>
       defines the <em>default namespace</em> that applies to tags that have no prefix.
       Within that definition, a <tt>&lt;checkitem&gt;</tt> tag
-      would be interpreted in the <tt>http://thermal.cnde.iastate.edu/checklist</tt> namespace even though it doesn't have a prefix. 
+      would be interpreted in the <tt>http://limatix.org/checklist</tt> namespace even though it doesn't have a prefix. 
     </p>
     <p>
       A segment of text in an XML document is known as a <em>text node</em>. Text nodes, elements, comments, and <em>processing instructions</em> (which we will not discuss in detail) are collectively known as <em>nodes</em>
@@ -338,7 +338,7 @@
       as <tt>xlink:arcrole</tt>, which is used to specify how the
       cross reference should be interpreted. For example, within
       Datacollect2 we use an <tt>xlink:arcrole</tt>
-      of <tt>http://thermal.cnde.iastate.edu/linktoparent</tt> to
+      of <tt>http://limatix.org/linktoparent</tt> to
       represent a reverse cross reference to the parent of a document.
     </p>
     <p>
@@ -401,7 +401,7 @@
     </p>
     <pre>
 &lt;?xml version='1.0' encoding='UTF-8'?&gt;
-&lt;dc:experiment xmlns:dc="http://thermal.cnde.iastate.edu/datacollect"
+&lt;dc:experiment xmlns:dc="http://limatix.org/datacollect"
 	       xmlns:xlink="http://www.w3.org/1999/xlink"&gt;
   &lt;dc:summary&gt;
     &lt;dc:specimen&gt;A53-1394Q&lt;/dc:specimen&gt;
@@ -470,7 +470,7 @@
       steps:
     </p>
     <pre>
-&lt;chx:checklist xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns:xlink="http://www.w3.org/1999/xlink" filled="false" done="false" done_is_save_measurement="true"&gt;
+&lt;chx:checklist xmlns:chx="http://limatix.org/checklist" xmlns:xlink="http://www.w3.org/1999/xlink" filled="false" done="false" done_is_save_measurement="true"&gt;
   &lt;chx:clinfo&gt;identification_and_version_of_this_checklist&lt;/chx:clinfo&gt;
   &lt;chx:cltitle&gt;Title of this checklist&lt;/chx:cltitle&gt;
   &lt;chx:specimen&gt;12-12345&lt;/chx:specimen&gt;
@@ -1171,14 +1171,14 @@
       <tr><td>nsmap</td><td>Dictionary for namespace prefix mapping to use when reading/writing elements. If provided as None, the following mapping will be used:
 	  <table>
 	    <tr><th>Prefix</th><th>Namespace URI</th></tr>
-	    <tr><td>(None)</td><td>http://thermal.cnde.iastate.edu/datacollect</td></tr>
-	    <tr><td>dc</td><td>http://thermal.cnde.iastate.edu/datacollect</td></tr>
-            <tr><td>dcv</td><td>http://thermal.cnde.iastate.edu/dcvalue</td></tr>
-            <tr><td>chx</td><td>http://thermal.cnde.iastate.edu/checklist</td></tr>
-            <tr><td>dcp</td><td>http://thermal.cnde.iastate.edu/datacollect/provenance</td></tr>
-	    <tr><td>dbvar</td><td>http://thermal.cnde.iastate.edu/databrowse/variable</td></tr>
-	    <tr><td>dbdir</td><td>http://thermal.cnde.iastate.edu/databrowse/dir</td></tr>
-	    <tr><td>sp</td><td>http://thermal.cnde.iastate.edu/spatial</td></tr>
+	    <tr><td>(None)</td><td>http://limatix.org/datacollect</td></tr>
+	    <tr><td>dc</td><td>http://limatix.org/datacollect</td></tr>
+            <tr><td>dcv</td><td>http://limatix.org/dcvalue</td></tr>
+            <tr><td>chx</td><td>http://limatix.org/checklist</td></tr>
+            <tr><td>dcp</td><td>http://limatix.org/provenance</td></tr>
+	    <tr><td>dbvar</td><td>http://limatix.org/databrowse/variable</td></tr>
+	    <tr><td>dbdir</td><td>http://limatix.org/databrowse/dir</td></tr>
+	    <tr><td>sp</td><td>http://limatix.org/spatial</td></tr>
             <tr><td>xlink</td><td>http://www.w3.org/1999/xlink</td></tr>
  	  </table>
 	  Note that datacollect2.dc_value.hrefvalues will not work if the xlink: prefix is not as defined above. Likewise datacollect2.dc_value.complexunitsvalue and datacollect2.dc_value.numericunitsvalue will not work unless the dcv: prefix is as defined above.

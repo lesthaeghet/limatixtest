@@ -83,7 +83,7 @@ class install_lib_save_prefix(install_lib):
 setup(name="limatix",
       description="Automated data collection",
       author="Stephen D. Holland",
-      # url="http://thermal.cnde.iastate.edu/dataguzzler",
+      # url="http://limatix.org/dataguzzler",
       zip_safe=False,
       packages=["limatix",
                 "limatix.steps",

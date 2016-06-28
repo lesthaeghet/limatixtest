@@ -6,7 +6,7 @@ import gobject
 import viewautoexp
 
 
-xmldat=r"""<dc:measurement xmlns:dcv="http://thermal.cnde.iastate.edu/dcvalue" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns="http://thermal.cnde.iastate.edu/datacollect" title="Run the python script">
+xmldat=r"""<dc:measurement xmlns:dcv="http://thermal.cnde.iastate.edu/dcvalue" xmlns:dc="http://thermal.cnde.iastate.edu/datacollect" xmlns:chx="http://thermal.cnde.iastate.edu/checklist" xmlns="http://limatix.org/datacollect" title="Run the python script">
   <dc:autoexp>
       <dc:automeas>
         <dc:XPos dcv:units="mm">23.0</dc:XPos>

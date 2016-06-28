@@ -129,7 +129,7 @@ class paramdb2_wrapper(object):
       	paramdb=paramdb: autocontroller_xmlfile(param, 
       	'/databrowse/specimens/%s.sdb', ['specimen'], 
       	"specimen:geometry/specimen:dimension[@direction='length'][1]/.", 
-      	[], namespaces={'specimen':'http://thermal.cnde.iastate.edu/specimen'}),
+      	[], namespaces={'specimen':'http://limatix.org/specimen'}),
 		non_settable=True) ''')
       >>> pdbobj.run()
 

@@ -487,9 +487,9 @@ class xmldoc(object):
                      datacollect is used. Example with a subset of 
                      the default: 
                        {
-                         None: "http://thermal.cnde.iastate.edu/datacollect",
-                         "dc": "http://thermal.cnde.iastate.edu/datacollect",
-                         "chx": "http://thermal.cnde.iastate.edu/checklist",
+                         None: "http://limatix.org/datacollect",
+                         "dc": "http://limatix.org/datacollect",
+                         "chx": "http://limatix.org/checklist",
                        }
                      NOTE: Unless you supply nsmap={}, when loading an 
                      existing document, the default nsmap will automatically
@@ -531,14 +531,14 @@ class xmldoc(object):
 
         # attrlist is a list of (name,value) tuples for attributes
         if nsmap is None: 
-            nsmap={ None: "http://thermal.cnde.iastate.edu/datacollect",
-                    "dc": "http://thermal.cnde.iastate.edu/datacollect",
-                    "dcv": "http://thermal.cnde.iastate.edu/dcvalue",
-                    "chx": "http://thermal.cnde.iastate.edu/checklist",
-                    "dcp": "http://thermal.cnde.iastate.edu/datacollect/provenance",
-                    "dbvar": "http://thermal.cnde.iastate.edu/databrowse/variable",
-                    "dbdir": "http://thermal.cnde.iastate.edu/databrowse/dir",
-                    "sp":"http://thermal.cnde.iastate.edu/spatial",
+            nsmap={ None: "http://limatix.org/datacollect",
+                    "dc": "http://limatix.org/datacollect",
+                    "dcv": "http://limatix.org/dcvalue",
+                    "chx": "http://limatix.org/checklist",
+                    "dcp": "http://limatix.org/provenance",
+                    "dbvar": "http://limatix.org/databrowse/variable",
+                    "dbdir": "http://limatix.org/databrowse/dir",
+                    "sp":"http://limatix.org/spatial",
                     "xlink": "http://www.w3.org/1999/xlink",
 
                     }
@@ -2005,8 +2005,8 @@ class xmldoc(object):
                 
                 if not(isinstance(nodeset[cnt],basestring)):
                     # A node, not a string
-                    if "{http://thermal.cnde.iastate.edu/dcvalue}units" in nodeset[cnt].attrib:
-                        thisresultunits=dgu.parseunits(nodeset[cnt].attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"])
+                    if "{http://limatix.org/dcvalue}units" in nodeset[cnt].attrib:
+                        thisresultunits=dgu.parseunits(nodeset[cnt].attrib["{http://limatix.org/dcvalue}units"])
                         pass
                     elif "units" in nodeset[cnt].attrib:
                         thisresultunits=dgu.parseunits(nodeset[cnt].attrib["units"])
@@ -2373,7 +2373,7 @@ class xmldoc(object):
 
             # add "units" attribute if present
             if len(valueunits) > 1 and valueunits[1] is not None:
-                newnode.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]=valueunits[1]
+                newnode.attrib["{http://limatix.org/dcvalue}units"]=valueunits[1]
                 pass
             newnode.text=unicode(valueunits[0])
             parent.append(newnode);
@@ -3709,7 +3709,7 @@ class synced(object):
         # print xmlpath
 
         # if "units" in xmlel.attrib:
-        #     units=xmlel.attrib["{http://thermal.cnde.iastate.edu/dcvalue}units"]
+        #     units=xmlel.attrib["{http://limatix.org/dcvalue}units"]
         #     
         #     if self.controlparam.defunits is not None:
         #         newval=self.controlparam.paramtype(newvalue,units=units,defunits=self.controlparam.defunits)          

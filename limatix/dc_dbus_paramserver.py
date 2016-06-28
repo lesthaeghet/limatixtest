@@ -13,7 +13,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 
 __pychecker__="no-import"
 
-xpathnamespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://thermal.cnde.iastate.edu/dcvalue"}
+xpathnamespaces={"dc":"http://thermal.cnde.iastate.edu/datacollect","dcv":"http://limatix.org/dcvalue"}
 
 bus_name="edu.iastate.cnde.thermal.datacollect2" # bus name / server
 
@@ -78,7 +78,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             
             assert(classname[-5:]=="value")
             classdescr=classname[:-5]
-            xmlobj=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}%s" % (str(paramname)),nsmap=xpathnamespaces)
+            xmlobj=etree.Element("{http://limatix.org/datacollect}%s" % (str(paramname)),nsmap=xpathnamespaces)
 
             dcvalue.xmlrepr(None,xmlobj)
 
@@ -88,7 +88,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             (exctype,excvalue)=sys.exc_info()[:2]
             print("ERROR %s %s" % (str(exctype.__name__),str(excvalue)))
             traceback.print_exc()
-            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://thermal.cnde.iastate.edu/datacollect\" dc:error/>","None","")
+            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://limatix.org/datacollect\" dc:error/>","None","")
         pass
 
 
@@ -116,7 +116,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             
             assert(classname[-5:]=="value")
             classdescr=classname[:-5]
-            xmlobj=etree.Element("{http://thermal.cnde.iastate.edu/datacollect}%s" % (str(paramname)),nsmap=xpathnamespaces)
+            xmlobj=etree.Element("{http://limatix.org/datacollect}%s" % (str(paramname)),nsmap=xpathnamespaces)
             
             dcvalue.xmlrepr(None,xmlobj)
             
@@ -126,7 +126,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             (exctype,excvalue)=sys.exc_info()[:2]
             print("ERROR %s %s" % (str(exctype.__name__),str(excvalue)))
             traceback.print_exc()
-            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://thermal.cnde.iastate.edu/datacollect\" dc:error/>","None","")
+            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://limatix.org/datacollect\" dc:error/>","None","")
         pass
     
         
@@ -152,7 +152,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             (exctype,excvalue)=sys.exc_info()[:2]
             print("ERROR %s %s" % (str(exctype.__name__),str(excvalue)))
             traceback.print_exc()
-            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://thermal.cnde.iastate.edu/datacollect\" dc:error/>","None","")
+            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://limatix.org/datacollect\" dc:error/>","None","")
         pass
 
     @dbus.service.method(dbus_interface="edu.iastate.cnde.thermal.datacollect2.paramdb2",in_signature='sds', out_signature='sddsss')
@@ -175,7 +175,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             (exctype,excvalue)=sys.exc_info()[:2]
             print("ERROR %s %s" % (str(exctype.__name__),str(excvalue)))
             traceback.print_exc()
-            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://thermal.cnde.iastate.edu/datacollect\" dc:error/>","None","")
+            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://limatix.org/datacollect\" dc:error/>","None","")
         pass
 
 
@@ -198,7 +198,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             (exctype,excvalue)=sys.exc_info()[:2]
             print("ERROR %s %s" % (str(exctype.__name__),str(excvalue)))
             traceback.print_exc()
-            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://thermal.cnde.iastate.edu/datacollect\" dc:error/>","None","")
+            return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://limatix.org/datacollect\" dc:error/>","None","")
         pass
 
     # Function to return a list of paramter names
@@ -250,7 +250,7 @@ class dc_dbus_paramserver(dbus.service.Object):
                                 autoexp=autoexps[0]
                                 pass
                             else :
-                                autoexp=etree.Element('{http://thermal.cnde.iastate.edu/datacollect}autoexp',nsmap=xpathnamespaces)
+                                autoexp=etree.Element('{http://limatix.org/datacollect}autoexp',nsmap=xpathnamespaces)
                                 xmltag.append(autoexp)
                                 pass
 
