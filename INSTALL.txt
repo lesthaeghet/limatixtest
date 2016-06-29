@@ -6,7 +6,6 @@ Prerequisites:
   gtk2 and pygtk2 (on python2;  required to use GUI components)
   gtk3 and python bindings (on python3;  required to use GUI components)
   setuptools (often distributed with operating system or Python distribution)
-  dataguzzler-lib
 
 
 Recommended:

@@ -16,10 +16,14 @@ else :
 
     pass
 
-import dbus
-import dbus.mainloop
-import dbus.mainloop.glib
-
+try: 
+    import dbus
+    import dbus.mainloop
+    import dbus.mainloop.glib
+except ImportError:
+    dbus=None
+    sys.stderr.write("Error importing dbus; dbus_camera support will not be available\n")
+    pass
 
 import xml.sax.saxutils
 
@@ -49,6 +53,10 @@ class dbus_camera(object):
     explogwindow=None  # explogwindow -- None for ricohphoto program
 
     def __init__(self,hashhistory,explogwindow=None):
+
+        if dbus is None:
+            # import failed
+            return 
         
         self.hashhistory=hashhistory
         self.explogwindow=explogwindow

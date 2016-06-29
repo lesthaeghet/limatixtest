@@ -1,3 +1,4 @@
+
 # TODO:Use hash history and an extra dbus signal to pop up a dialog
 # when a photo is received
 

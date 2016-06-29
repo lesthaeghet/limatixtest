@@ -2,13 +2,24 @@
 import sys
 
 from lxml import etree
-import numpy as np
 import traceback
 
-import dbus
-import dbus.service
+try: 
+    import dbus
+    import dbus.service
+    
+    from dbus.mainloop.glib import DBusGMainLoop
 
-from dbus.mainloop.glib import DBusGMainLoop
+    dbus=None
+    dbus_service_Object=dbus.service.Object
+    dbus_service_method=dbus.service.method
+    pass
+except ImportError:
+    sys.stderr.write("Error importing dbus; remote procedure calls will not be available\n")
+    dbus_service_Object=object
+    pass
+
+    
 # import gobject
 
 __pychecker__="no-import"
@@ -17,12 +28,18 @@ xpathnamespaces={"dc":"http://limatix.org/datacollect","dcv":"http://limatix.org
 
 bus_name="org.limatix.datacollect2" # bus name / server
 
-class dc_dbus_paramserver(dbus.service.Object):
+class dc_dbus_paramserver(dbus_service_Object):
     paramdb = None
     dbusloop = None
     checklists = None
 
     def __init__(self,paramdb,checklists=None):
+
+
+        if dbus is None:
+            # import failed
+            return 
+        
         # checklists is an optional list of checklists 
         # currently being executed... used to match ID's for 
         # adding xml automeas entries.
@@ -51,7 +68,7 @@ class dc_dbus_paramserver(dbus.service.Object):
         
         pass
 
-    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='s', out_signature='sddsss')
+    @dbus_service_method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='s', out_signature='sddsss')
     def paramlookup(self,paramname):
         # print "got lookup; paramname=%s" % (paramname)
 
@@ -92,7 +109,7 @@ class dc_dbus_paramserver(dbus.service.Object):
         pass
 
 
-    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
+    @dbus_service_method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
     def paramlookupunits(self,paramname,unitreq):
         # parameter lookup & unit conversion to unitreq
         
@@ -132,7 +149,7 @@ class dc_dbus_paramserver(dbus.service.Object):
         
 
 
-    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
+    @dbus_service_method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
     def requestvalxml(self,paramname,paramxml):
         # print "got lookup; paramname=%s" % (paramname)
 
@@ -155,7 +172,7 @@ class dc_dbus_paramserver(dbus.service.Object):
             return ("ERROR %s %s" % (str(exctype.__name__),str(excvalue)),np.nan,np.nan,"<xmlns:dc=\"http://limatix.org/datacollect\" dc:error/>","None","")
         pass
 
-    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='sds', out_signature='sddsss')
+    @dbus_service_method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='sds', out_signature='sddsss')
     def requestvalunits(self,paramname,value,units):
         # print "got lookup; paramname=%s" % (paramname)
 
@@ -179,7 +196,7 @@ class dc_dbus_paramserver(dbus.service.Object):
         pass
 
 
-    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
+    @dbus_service_method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='sddsss')
     def requestvalstr(self,paramname,paramstr):
         # print "got lookup; paramname=%s" % (paramname)
 
@@ -203,7 +220,7 @@ class dc_dbus_paramserver(dbus.service.Object):
 
     # Function to return a list of paramter names
     # Allows remote callers to discover what parameters are available
-    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='', out_signature='asas')
+    @dbus_service_method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='', out_signature='asas')
     def getparamlist(self):
         try:
             paramlist = self.paramdb.keys()
@@ -219,7 +236,7 @@ class dc_dbus_paramserver(dbus.service.Object):
 
     # Function to check whether a parameter exists
     # Will return true if parameter exists - false if it doesn't
-    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='s', out_signature='b')
+    @dbus_service_method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='s', out_signature='b')
     def paramexists(self, paramname):
         if paramname in self.paramdb:
             return True
@@ -228,7 +245,7 @@ class dc_dbus_paramserver(dbus.service.Object):
 
     # call automeas() with a <automeas> tag containing parameters/values
     # returns empty string for success, otherwise error message
-    @dbus.service.method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='s')
+    @dbus_service_method(dbus_interface="org.limatix.datacollect2.paramdb2",in_signature='ss', out_signature='s')
     def automeas(self,idstr,xmlsegment):
         try :
             idnum=int(idstr)
