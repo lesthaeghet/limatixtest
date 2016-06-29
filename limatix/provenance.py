@@ -17,7 +17,7 @@ import hashlib
 import csv
 import string
 
-import dg_timestamp
+from . import timestamp as lm_timestamp
 from . import canonicalize_path
 
 from .canonicalize_path import href_context
@@ -116,7 +116,7 @@ def determinehostname():
 def write_timestamp(doc,process_el,tagname,timestamp=None):
     starttime_el=doc.addelement(process_el,tagname)
     if timestamp is None: 
-        timestamp=dg_timestamp.now().isoformat()
+        timestamp=lm_timestamp.now().isoformat()
         pass
     doc.settext(starttime_el,timestamp)
 
@@ -204,7 +204,7 @@ def reference_file(doc,parent,tagname,contextelement,referencehrefc,warnlevel="e
     doc.setattr(element,"type","href")
 
 
-    mtime=datetime.datetime.fromtimestamp(os.path.getmtime(hrefc.getpath()),dg_timestamp.UTC()).isoformat()
+    mtime=datetime.datetime.fromtimestamp(os.path.getmtime(hrefc.getpath()),lm_timestamp.UTC()).isoformat()
     doc.setattr(element,"mtime",mtime)
     
     if hrefc.has_fragment() and fragcanonsha256 is not None:
@@ -609,7 +609,7 @@ def fileaccessed(filehrefc):
     if our_tid in ProvenanceDB:
         ourdb=ProvenanceDB[our_tid]
         if len(ourdb) > 0:
-            mtime=datetime.datetime.fromtimestamp(os.path.getmtime(filehrefc.getpath()),dg_timestamp.UTC()).isoformat()
+            mtime=datetime.datetime.fromtimestamp(os.path.getmtime(filehrefc.getpath()),lm_timestamp.UTC()).isoformat()
 
             
             ourdb[-1][1].add((hrefc,"mtime=%s" % (mtime)))
@@ -1315,7 +1315,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
             pass
         else : 
             if refuuids_or_mtime is not None:
-                mtime=datetime.datetime.fromtimestamp(os.path.mtime(filepath),dg_timestamp.UTC()).isoformat()
+                mtime=datetime.datetime.fromtimestamp(os.path.mtime(filepath),lm_timestamp.UTC()).isoformat()
                 if mtime != refuuids_or_mtime[6:]:
                     # Add error message to elementdict messagelist
                     elementdict[(element_hrefc,refuuids_or_mtime)][1][warnlevel].append("File modification times do not match for %s: %s specified in %s vs. %s actual" % (filepath,refuuids_or_mtime,referrer_hrefc.humanurl(),mtime))

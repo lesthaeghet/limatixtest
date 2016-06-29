@@ -86,8 +86,8 @@ else :
 
 import subprocess
 import cPickle
-import dg_units
-dg_units.units_config('insert_basic_units')
+#import dg_units
+#dg_units.units_config('insert_basic_units')
 # sys.path.append('/usr/local/dataguzzler/gui2/lib')
 # import dg_io
 from dc_value import numericunitsvalue as numericunitsv

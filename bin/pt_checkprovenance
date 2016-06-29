@@ -24,9 +24,8 @@ import cProfile
 import shutil
 import datetime
 
-import dg_units
-dg_units.units_config("insert_basic_units")
-import dg_timestamp
+from limatix import lm_units
+lm_units.units_config("insert_basic_units")
 
 #class dummy(object):
 #    pass

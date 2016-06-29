@@ -48,7 +48,7 @@ else :
 import numpy as np
 from lxml import etree
 
-import dg_timestamp
+from . import timestamp as lm_timestamp
 
 from PIL import Image
 
@@ -261,7 +261,7 @@ class ricohphotorequest(gtk.Window):
         self.qrxml.append(commenttag)
         
         timestamptag=etree.Element(DC+"reqtimestamp")
-        timestamp=dg_timestamp.roundtosecond(dg_timestamp.now()).isoformat()
+        timestamp=lm_timestamp.roundtosecond(lm_timestamp.now()).isoformat()
         timestamptag.text=timestamp
         self.qrxml.append(timestamptag)
         

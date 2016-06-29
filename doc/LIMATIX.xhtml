@@ -623,6 +623,24 @@
       <tr><td>non_settable</td><td>True or False: Specify that this parameter is not generally settable by the user</td></tr>
       <tr><td>save_extension</td><td>For parameters that support a save operation, the filename extension to use when saving. </td></tr>
     </table>
+    <p>
+      The parameter database can also be accessed externally using the DBus interprocess communication (IPC) library, if DBus support is correctly installed and configured. For example:
+      <pre>
+	from limatix.dc_dbus_paramclient import dc_param
+	from limatix.dc_dbus_paramclient import dc_requestval
+	from limatix.dc_value import stringvalue
+	
+	# Read a parameter as a limatix.dc_value.value object
+	paramval=dc_param("my_parameter_name")
+	print(paramval)
+	
+	# Assign a parameter
+	actualval=dc_requestval("my_parameter_name",stringvalue("parameter_value"))
+	print(actualval)
+      </pre>
+      
+    </p>
+    
     <h2>Integration with Measurement Hardware</h2>
     <p>
       Datacollect is most powerful when integrated with digital
@@ -1042,7 +1060,7 @@
       <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
       <tr><td>numvalue</td><td>(units=None)</td><td>Return value in the specified units</td></tr>
       <tr><td>value</td><td>(units=None)</td><td>Return value in the specified units</td></tr>
-      <tr><td>units</td><td>(none)</td><td>Return dg_units instance of the specified units</td></tr>
+      <tr><td>units</td><td>(none)</td><td>Return lm_units instance of the specified units</td></tr>
       <tr><td>valuedefunits</td><td>(none)</td><td>Return value converted to specified defunits from constructor</td></tr>
       <tr><td>format</td><td>(formatstr=None,unit=None)</td><td>Return formatted value plus units based on formatstr and in specified units</td></tr>
       <tr><td>comsolstr</td><td>(none)</td><td>Return value and units using COMSOL's notation for specifying units</td></tr>
@@ -1065,7 +1083,7 @@
       <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
       <tr><td>numvalue</td><td>(units=None)</td><td>Return value in the specified units</td></tr>
       <tr><td>value</td><td>(units=None)</td><td>Return value in the specified units</td></tr>
-      <tr><td>units</td><td>(none)</td><td>Return dg_units instance of the specified units</td></tr>
+      <tr><td>units</td><td>(none)</td><td>Return lm_units instance of the specified units</td></tr>
       <tr><td>valuedefunits</td><td>(none)</td><td>Return value converted to specified defunits from constructor</td></tr>
       <tr><td>format</td><td>(formatstr=None,unit=None)</td><td>Return formatted value plus units based on formatstr and in specified units</td></tr>
       <tr><td>comsolstr</td><td>(none)</td><td>Return value and units using COMSOL's notation for specifying units</td></tr>
@@ -1479,7 +1497,7 @@
         Do NOT use xpath to convert node to number
 
         returns (resultunits, numpyarray) where resultunits is a 
-        dg_units instance. Don't forget to properly initialize dg_units!
+        lm_units instance. Don't forget to properly initialize lm_units!
 
         iscomplex:    If true, output array should be complex instead of 
                       real. 

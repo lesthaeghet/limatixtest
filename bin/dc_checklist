@@ -35,8 +35,8 @@ else :  # gtk2
     import gtk
     pass
 
-import dg_units
-dg_units.units_config("insert_basic_units")
+from limatix import lm_units
+lm_units.units_config("insert_basic_units")
 
 
 class dummy(object):

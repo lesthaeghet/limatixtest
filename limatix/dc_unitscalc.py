@@ -5,7 +5,7 @@ import sys
 import traceback
 
 # sys.path.append("/usr/local/dataguzzler/python")
-import dg_units
+import lm_units
 from dc_value import numericunitsvalue as nuv
 
 import math
@@ -179,7 +179,7 @@ def callfunc(name,arg):
 
     argsimple=arg.simplifyunits()
     asunits=argsimple.units()
-    if dg_units.compareunits(dg_units.parseunits(""),asunits) != 1.0:
+    if lm_units.compareunits(lm_units.parseunits(""),asunits) != 1.0:
         raise ValueError("Parameter to function %s is not unitless (has units of %s or %s)" % (name,str(arg.units()),str(asunits)))
 
     retval=nuv(func(argsimple.value()),"")
@@ -273,7 +273,7 @@ def evalinunitscontext(context,inp,units): # returns double
     return evalinunits(inp,units)
 
 if __name__=="__main__":
-    dg_units.units_config("insert_basic_units")
+    lm_units.units_config("insert_basic_units")
 
     pushcontext()
     value={}; # empty dictionary

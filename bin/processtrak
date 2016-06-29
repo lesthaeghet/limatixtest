@@ -73,9 +73,9 @@ except ImportError:
     from urllib.parse import urljoin
     pass
 
-import dg_units
-dg_units.units_config("insert_basic_units")
-import dg_timestamp
+from limatix import lm_units
+lm_units.units_config("insert_basic_units")
+from limatix import timestamp
 from limatix import canonicalize_path
 from limatix.canonicalize_path import etxpath2human
 
@@ -169,7 +169,7 @@ if __name__=="__main__":
 
     argv_inputfiles=set([])
 
-    overall_starttime=dg_timestamp.now().isoformat()
+    overall_starttime=timestamp.now().isoformat()
 
 
     argc=1

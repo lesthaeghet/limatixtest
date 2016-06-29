@@ -1,5 +1,5 @@
-# important: indirectly uses dg_units (through dc_value)
-# therefore main program should call dg_units.units_config("insert_basic_units")
+# important: indirectly uses lm_units (through dc_value)
+# therefore main program should call lm_units.units_config("insert_basic_units")
 
 import os
 import sys

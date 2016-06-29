@@ -51,10 +51,10 @@ from limatix.dc_gtksupp import dc_initialize_widgets
 from limatix.dc_gtksupp import import_widgets
 from limatix.dc_gtksupp import guistate as create_guistate
 
-import dg_units
+from limatix import lm_units
 
 
-dg_units.units_config("insert_basic_units")
+lm_units.units_config("insert_basic_units")
 
 if "gobject" in sys.modules:  # only for GTK2
     gobject.threads_init()

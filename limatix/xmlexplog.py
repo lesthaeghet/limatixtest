@@ -3,7 +3,7 @@ import os.path
 import sys
 import copy
 
-import dg_timestamp
+from . import timestamp
 
 from lxml import etree 
 from . import xmldoc
@@ -87,7 +87,7 @@ class explog(xmldoc.xmldoc):
             # meastag.append(measnumel)
             
             # write out measrecordtimestamp element
-            meastimestampel=self.addsimpleelement(meastag,"dc:recordmeastimestamp",(dg_timestamp.roundtosecond(dg_timestamp.now()).isoformat(),))        
+            meastimestampel=self.addsimpleelement(meastag,"dc:recordmeastimestamp",(timestamp.roundtosecond(timestamp.now()).isoformat(),))        
             # meastimestampel=etree.Element("{http://limatix.org/datacollect}recordmeastimestamp")
             # meastimestampel.text=dg_timestamp.roundtosecond(dg_timestamp.now()).isoformat()
             # meastag.append(meastimestampel)
