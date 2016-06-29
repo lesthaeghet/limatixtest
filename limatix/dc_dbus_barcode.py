@@ -3,10 +3,16 @@ import os
 import re
 from lxml import etree
 
-import dbus
-import dbus.mainloop
-import dbus.mainloop.glib
 
+try:
+    import dbus
+    import dbus.mainloop
+    import dbus.mainloop.glib
+    pass
+except ImportError:
+    dbus=None
+    pass
+    
 if "gi" in sys.modules:  # gtk3
     import gi
     gi.require_version('Gtk','3.0')
@@ -30,6 +36,9 @@ dbus_barcode_name="edu.iastate.cnde.thermal.BarcodeReader"
 dbus_barcode_path="/edu/iastate/cnde/thermal/barcode"
 dbus_barcode_signal_name="read"
 
+
+# This module supports reading data from a dbus-enabled barcode reader
+
 def destroy_widget(obj,ev):
     obj.destroy()
     pass
@@ -43,6 +52,8 @@ class dc_dbus_barcode(object):
     dbusloop=None
 
     def __init__(self,paramdb):
+        if dbus is None:  # Import failed
+            return 
         self.paramdb=paramdb
 
         self.dbusloop=dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)

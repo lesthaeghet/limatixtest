@@ -6,7 +6,7 @@ import string
 import traceback
 import types
 import re
-import numpy as np
+import math
 import collections
 
 
@@ -1257,7 +1257,7 @@ class dgcontroller_nummathparam(dgcontroller):
         
         
         try:
-            if np.isnan(newvalue.value()):
+            if math.isnan(newvalue.value()):
                 # sys.stderr.write("Issuing command: MATH:UNDEF %s\n" % (self.mathname))
                 reqid=self.controlparam.iohandlers["dgio"].issuecommand(None,"MATH:UNDEF %s" % (self.mathname),self.requestvalcallback,cbargs,self.querytype)
                 
