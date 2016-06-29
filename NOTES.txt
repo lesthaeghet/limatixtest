@@ -10,7 +10,7 @@ dg_glade command
    * Widgets need to be imported before they can be instantiated. 
 dg_gui_gtksupp.import_widgets() finds them all and imports them. 
    * Some widgets may handle values/units, so it's a good idea
-to import dg_units and call dg_units.units_config("insert_basic_units")
+to import lm_units and call lm_units.units_config("insert_basic_units")
 
 To instantiate a widget tree, build the tree with glade, then call
    (gladeobjdict,builder)=build_from_file(gladefile)

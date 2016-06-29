@@ -36,7 +36,7 @@ from . import canonicalize_path
 from . import provenance as provenance
 # from . import xmldoc
 
-import dg_units  # note: main program should call dg_units.units_config("insert_basic_units")
+import lm_units  # note: main program should call lm_units.units_config("insert_basic_units")
 
 try: 
     import builtins  # python3
@@ -852,7 +852,7 @@ class complexunitsvalue(value) :
     # unit may be unitless.
     
     def __reduce__(self):
-        # dg_units is complicated to pickle, so instead, let's just 
+        # lm_units is complicated to pickle, so instead, let's just 
         # pass this value as its actual value string and recreate it
         # as a new value object on the other side
         arg1 = self.__class__
@@ -866,16 +866,16 @@ class complexunitsvalue(value) :
                 matchobj=re.match(R""" *([\(]? *([-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?) *[+-] *([-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?[ij]?) *?[\)]?) *[[]?([^\][]*)[]]?""",val)
                 if matchobj is not None :
                     self.val=complex(matchobj.group(1))
-                    self.unit=dg_units.parseunits(matchobj.group(10))
+                    self.unit=lm_units.parseunits(matchobj.group(10))
                     pass
                 pass
             else :
                 self.val=complex(val)                
                 if isinstance(units,basestring):
-                    self.unit=dg_units.parseunits(units);
+                    self.unit=lm_units.parseunits(units);
                     pass
                 else :
-                    self.unit=dg_units.copyunits(units);
+                    self.unit=lm_units.copyunits(units);
                     pass
                 pass
             pass
@@ -887,14 +887,14 @@ class complexunitsvalue(value) :
                 pass
             else : 
                 if isinstance(units,basestring):
-                    unitstruct=dg_units.parseunits(units)
+                    unitstruct=lm_units.parseunits(units)
                     pass
                 else: 
                     unitstruct=units
                     pass
                 
                 self.val=val.value(unitstruct)
-                self.unit=dg_units.copyunits(unitstruct)
+                self.unit=lm_units.copyunits(unitstruct)
                 pass
             
             pass
@@ -902,10 +902,10 @@ class complexunitsvalue(value) :
             self.val=val;
             if units is not None:
                 if isinstance(units,basestring):
-                    self.unit=dg_units.parseunits(units);
+                    self.unit=lm_units.parseunits(units);
                     pass
                 else :
-                    self.unit=dg_units.copyunits(units);
+                    self.unit=lm_units.copyunits(units);
                     pass
                 pass
             pass
@@ -919,21 +919,21 @@ class complexunitsvalue(value) :
             pass
 
         if defunits is not None:
-            self.defunit=dg_units.parseunits(defunits);
+            self.defunit=lm_units.parseunits(defunits);
             pass
         
         if self.unit is None and self.defunit is not None:
-            self.unit=dg_units.copyunits(self.defunit);            
+            self.unit=lm_units.copyunits(self.defunit);            
             pass
         
 
         if self.unit is None:
-            self.unit=dg_units.createunits()
+            self.unit=lm_units.createunits()
             pass
         
         if self.unit is not None and self.defunit is not None :
             # print self.unit
-            unitfactor=dg_units.compareunits(self.unit,self.defunit);
+            unitfactor=lm_units.compareunits(self.unit,self.defunit);
             if unitfactor==0.0 :
                 # incompatible units
                 raise AttributeError("Incompatible units: %s %s and %s" % (self.val,str(self.unit),str(defunits)))
@@ -956,7 +956,7 @@ class complexunitsvalue(value) :
             return self.val;
         
         if isinstance(units,basestring):
-            unitstruct=dg_units.parseunits(units)
+            unitstruct=lm_units.parseunits(units)
             pass
         else :
             unitstruct=units
@@ -966,7 +966,7 @@ class complexunitsvalue(value) :
         # print type(units)
         # print type(units) is str
         # print type(self.unit)
-        unitfactor=dg_units.compareunits(self.unit,unitstruct)
+        unitfactor=lm_units.compareunits(self.unit,unitstruct)
         # print unitfactor
         if unitfactor==0.0:
             raise ValueError("Incompatible units: %s and %s" % (str(self.unit),str(unitstruct)))
@@ -974,15 +974,15 @@ class complexunitsvalue(value) :
         return self.val*unitfactor
 
     def units(self):
-        return dg_units.copyunits(self.unit)
+        return lm_units.copyunits(self.unit)
 
     def valuedefunits(self):
         return self.value(self.defunit)
 
     def format(self,formatstr=None,unit=None):
 
-        if unit is not None and not isinstance(unit,dg_units.dgu_units):
-            unit=dg_units.parseunits(unit)
+        if unit is not None and not isinstance(unit,lm_units.dgu_units):
+            unit=lm_units.parseunits(unit)
             pass
         if unit is  None:
             unit=self.defunit
@@ -1061,7 +1061,7 @@ class complexunitsvalue(value) :
 
         if defunits is not None:
             # default unit set: force this unit
-            defunit=dg_units.parseunits(defunits)
+            defunit=lm_units.parseunits(defunits)
             # print "defunits: %s defunit: %s self.val: %s self.unit: %s" % (str(defunits),str(defunit),str(self.val),str(self.unit))
             pass
         
@@ -1070,7 +1070,7 @@ class complexunitsvalue(value) :
             if not np.isnan(self.val):
                 unitfactor=0.0
                 
-                unitfactor=dg_units.compareunits(self.unit,defunit);
+                unitfactor=lm_units.compareunits(self.unit,defunit);
                 
                 if unitfactor != 0.0:
                     if self.val is not None:
@@ -1123,9 +1123,9 @@ class complexunitsvalue(value) :
     
 
     def simplifyunits(self):
-        unitcopy=dg_units.copyunits(self.unit)
-        dg_units.simplifyunits(unitcopy)
-        coefficient=dg_units.extractcoefficient(unitcopy);
+        unitcopy=lm_units.copyunits(self.unit)
+        lm_units.simplifyunits(unitcopy)
+        coefficient=lm_units.extractcoefficient(unitcopy);
 
         return complexunitsvalue(self.val*coefficient,unitcopy)
 
@@ -1135,8 +1135,8 @@ class complexunitsvalue(value) :
             unit=""
             pass
         
-        if not isinstance(unit,dg_units.dgu_units):
-            unit=dg_units.parseunits(unit)
+        if not isinstance(unit,lm_units.dgu_units):
+            unit=lm_units.parseunits(unit)
             pass
         
 
@@ -1154,8 +1154,8 @@ class complexunitsvalue(value) :
         
         # print "self.val=%s, otherval=%s" % (str(self.val),str(otherval))
         # print "self.unit=%s, otherunit=%s" % (str(self.unit),str(otherunit))
-        unitfactor=dg_units.compareunits(self.unit,otherunit)
-        unitfactor2=dg_units.compareunits(otherunit,self.unit)
+        unitfactor=lm_units.compareunits(self.unit,otherunit)
+        unitfactor2=lm_units.compareunits(otherunit,self.unit)
         if unitfactor==0.0 or unitfactor2==0.0:
             # unit mismatch
             return False
@@ -1177,8 +1177,8 @@ class complexunitsvalue(value) :
         otherval=other.value()
         otherunit=other.units()
         
-        unitfactor=dg_units.compareunits(self.unit,otherunit)
-        unitfactor2=dg_units.compareunits(otherunit,self.unit)
+        unitfactor=lm_units.compareunits(self.unit,otherunit)
+        unitfactor2=lm_units.compareunits(otherunit,self.unit)
     
         if unitfactor==0.0 or unitfactor2==0.0:
             # unit mismatch
@@ -1199,17 +1199,17 @@ class complexunitsvalue(value) :
             other=other.value("") # need unitless representation of exponent
             pass
         
-        return complexunitsvalue(self.val**other,dg_units.powerunits(self.unit,other))
+        return complexunitsvalue(self.val**other,lm_units.powerunits(self.unit,other))
 
         pass
     
     def __add__(self,other):
         if isinstance(other,numbers.Number):
-            unitfactor=dg_units.compareunits(self.unit, dg_units.createunits())            
+            unitfactor=lm_units.compareunits(self.unit, lm_units.createunits())            
             value=other
             pass        
         else :
-            unitfactor=dg_units.compareunits(self.unit, other.units())
+            unitfactor=lm_units.compareunits(self.unit, other.units())
             value=other.value()
             pass
         if unitfactor == 0.0:
@@ -1219,11 +1219,11 @@ class complexunitsvalue(value) :
 
     def __sub__(self,other):
         if isinstance(other,numbers.Number):
-            unitfactor=dg_units.compareunits(self.unit, dg_units.createunits())
+            unitfactor=lm_units.compareunits(self.unit, lm_units.createunits())
             value=other
             pass        
         else :
-            unitfactor=dg_units.compareunits(self.unit, other.units())
+            unitfactor=lm_units.compareunits(self.unit, other.units())
             value=other.value()
             pass
         
@@ -1234,7 +1234,7 @@ class complexunitsvalue(value) :
     
     def __mul__(self,other):
         if not isinstance(other,float):
-            newunits=dg_units.multiplyunits(self.unit, other.units())
+            newunits=lm_units.multiplyunits(self.unit, other.units())
             tomul=other.value();
             pass
         else :
@@ -1246,7 +1246,7 @@ class complexunitsvalue(value) :
     
     def __div__(self,other):
         if not isinstance(other,float):
-            newunits=dg_units.divideunits(self.unit, other.units())
+            newunits=lm_units.divideunits(self.unit, other.units())
             
             todiv=other.value()
             pass
@@ -1269,7 +1269,7 @@ class numericunitsvalue(value) :
     # unit may be unitless.
     
     def __reduce__(self):
-        # dg_units is complicated to pickle, so instead, let's just 
+        # lm_units is complicated to pickle, so instead, let's just 
         # pass this value as its actual value string and recreate it
         # as a new value object on the other side
         arg1 = self.__class__
@@ -1285,16 +1285,16 @@ class numericunitsvalue(value) :
                 matchobj=re.match(R""" *(([-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?)|([-+]?[iI][nN][fF])|([nN][aA][nN])) *[[]?([^\][]*)[]]?""",val);
                 if matchobj is not None :
                     self.val=float(matchobj.group(1))
-                    self.unit=dg_units.parseunits(matchobj.group(8))
+                    self.unit=lm_units.parseunits(matchobj.group(8))
                     pass
                 pass
             else :
                 self.val=float(val)                
                 if isinstance(units,basestring):
-                    self.unit=dg_units.parseunits(units);
+                    self.unit=lm_units.parseunits(units);
                     pass
                 else :
-                    self.unit=dg_units.copyunits(units);
+                    self.unit=lm_units.copyunits(units);
                     pass
                 pass
             pass
@@ -1306,14 +1306,14 @@ class numericunitsvalue(value) :
                 pass
             else : 
                 if isinstance(units,basestring):
-                    unitstruct=dg_units.parseunits(units)
+                    unitstruct=lm_units.parseunits(units)
                     pass
                 else: 
                     unitstruct=units
                     pass
                 
                 self.val=val.value(unitstruct)
-                self.unit=dg_units.copyunits(unitstruct)
+                self.unit=lm_units.copyunits(unitstruct)
                 pass
             
             pass
@@ -1321,10 +1321,10 @@ class numericunitsvalue(value) :
             self.val=val;
             if units is not None:
                 if isinstance(units,basestring):
-                    self.unit=dg_units.parseunits(units);
+                    self.unit=lm_units.parseunits(units);
                     pass
                 else :
-                    self.unit=dg_units.copyunits(units);
+                    self.unit=lm_units.copyunits(units);
                     pass
                 pass
             pass
@@ -1334,21 +1334,21 @@ class numericunitsvalue(value) :
             pass
 
         if defunits is not None:
-            self.defunit=dg_units.parseunits(defunits);
+            self.defunit=lm_units.parseunits(defunits);
             pass
         
         if self.unit is None and self.defunit is not None:
-            self.unit=dg_units.copyunits(self.defunit);            
+            self.unit=lm_units.copyunits(self.defunit);            
             pass
         
 
         if self.unit is None:
-            self.unit=dg_units.createunits()
+            self.unit=lm_units.createunits()
             pass
         
         if self.unit is not None and self.defunit is not None :
             # print self.unit
-            unitfactor=dg_units.compareunits(self.unit,self.defunit);
+            unitfactor=lm_units.compareunits(self.unit,self.defunit);
             if unitfactor==0.0 :
                 # incompatible units
                 raise AttributeError("Incompatible units: %.8g %s and %s" % (self.val,str(self.unit),str(defunits)))
@@ -1375,7 +1375,7 @@ class numericunitsvalue(value) :
             return self.val;
         
         if isinstance(units,basestring):
-            unitstruct=dg_units.parseunits(units)
+            unitstruct=lm_units.parseunits(units)
             pass
         else :
             unitstruct=units
@@ -1385,7 +1385,7 @@ class numericunitsvalue(value) :
         # print type(units)
         # print type(units) is str
         # print type(self.unit)
-        unitfactor=dg_units.compareunits(self.unit,unitstruct)
+        unitfactor=lm_units.compareunits(self.unit,unitstruct)
         # print unitfactor
         if unitfactor==0.0:
             raise ValueError("Incompatible units: %s and %s" % (str(self.unit),str(unitstruct)))
@@ -1393,15 +1393,15 @@ class numericunitsvalue(value) :
         return self.val*unitfactor
 
     def units(self):
-        return dg_units.copyunits(self.unit)
+        return lm_units.copyunits(self.unit)
 
     def valuedefunits(self):
         return self.value(self.defunit)
 
     def format(self,formatstr=None,unit=None):
 
-        if unit is not None and not isinstance(unit,dg_units.dgu_units):
-            unit=dg_units.parseunits(unit)
+        if unit is not None and not isinstance(unit,lm_units.dgu_units):
+            unit=lm_units.parseunits(unit)
             pass
         if unit is  None:
             unit=self.defunit
@@ -1479,7 +1479,7 @@ class numericunitsvalue(value) :
 
         if defunits is not None:
             # default unit set: force this unit
-            defunit=dg_units.parseunits(defunits)
+            defunit=lm_units.parseunits(defunits)
             # print "defunits: %s defunit: %s self.val: %s self.unit: %s" % (str(defunits),str(defunit),str(self.val),str(self.unit))
             pass
         
@@ -1488,7 +1488,7 @@ class numericunitsvalue(value) :
             if not math.isnan(self.val):
                 unitfactor=0.0
                 
-                unitfactor=dg_units.compareunits(self.unit,defunit);
+                unitfactor=lm_units.compareunits(self.unit,defunit);
                 
                 if unitfactor != 0.0:
                     if self.val is not None:
@@ -1539,9 +1539,9 @@ class numericunitsvalue(value) :
     
 
     def simplifyunits(self):
-        unitcopy=dg_units.copyunits(self.unit)
-        dg_units.simplifyunits(unitcopy)
-        coefficient=dg_units.extractcoefficient(unitcopy);
+        unitcopy=lm_units.copyunits(self.unit)
+        lm_units.simplifyunits(unitcopy)
+        coefficient=lm_units.extractcoefficient(unitcopy);
 
         return numericunitsvalue(self.val*coefficient,unitcopy)
 
@@ -1551,8 +1551,8 @@ class numericunitsvalue(value) :
             unit=""
             pass
         
-        if not isinstance(unit,dg_units.dgu_units):
-            unit=dg_units.parseunits(unit)
+        if not isinstance(unit,lm_units.dgu_units):
+            unit=lm_units.parseunits(unit)
             pass
         
 
@@ -1570,8 +1570,8 @@ class numericunitsvalue(value) :
         
         # print "self.val=%s, otherval=%s" % (str(self.val),str(otherval))
         # print "self.unit=%s, otherunit=%s" % (str(self.unit),str(otherunit))
-        unitfactor=dg_units.compareunits(self.unit,otherunit)
-        unitfactor2=dg_units.compareunits(otherunit,self.unit)
+        unitfactor=lm_units.compareunits(self.unit,otherunit)
+        unitfactor2=lm_units.compareunits(otherunit,self.unit)
         if unitfactor==0.0 or unitfactor2==0.0:
             # unit mismatch
             return False
@@ -1594,8 +1594,8 @@ class numericunitsvalue(value) :
         otherval=other.value()
         otherunit=other.units()
         
-        unitfactor=dg_units.compareunits(self.unit,otherunit)
-        unitfactor2=dg_units.compareunits(otherunit,self.unit)
+        unitfactor=lm_units.compareunits(self.unit,otherunit)
+        unitfactor2=lm_units.compareunits(otherunit,self.unit)
     
         if unitfactor==0.0 or unitfactor2==0.0:
             # unit mismatch
@@ -1616,17 +1616,17 @@ class numericunitsvalue(value) :
             other=other.value("") # need unitless representation of exponent
             pass
         
-        return numericunitsvalue(self.val**other,dg_units.powerunits(self.unit,other))
+        return numericunitsvalue(self.val**other,lm_units.powerunits(self.unit,other))
 
         pass
     
     def __add__(self,other):
         if isinstance(other,numbers.Number):
-            unitfactor=dg_units.compareunits(self.unit, dg_units.createunits())            
+            unitfactor=lm_units.compareunits(self.unit, lm_units.createunits())            
             value=other
             pass        
         else :
-            unitfactor=dg_units.compareunits(self.unit, other.units())
+            unitfactor=lm_units.compareunits(self.unit, other.units())
             value=other.value()
             pass
         if unitfactor == 0.0:
@@ -1636,11 +1636,11 @@ class numericunitsvalue(value) :
 
     def __sub__(self,other):
         if isinstance(other,numbers.Number):
-            unitfactor=dg_units.compareunits(self.unit, dg_units.createunits())
+            unitfactor=lm_units.compareunits(self.unit, lm_units.createunits())
             value=other
             pass        
         else :
-            unitfactor=dg_units.compareunits(self.unit, other.units())
+            unitfactor=lm_units.compareunits(self.unit, other.units())
             value=other.value()
             pass
         
@@ -1651,7 +1651,7 @@ class numericunitsvalue(value) :
     
     def __mul__(self,other):
         if not isinstance(other,float):
-            newunits=dg_units.multiplyunits(self.unit, other.units())
+            newunits=lm_units.multiplyunits(self.unit, other.units())
             tomul=other.value();
             pass
         else :
@@ -1663,7 +1663,7 @@ class numericunitsvalue(value) :
     
     def __div__(self,other):
         if not isinstance(other,float):
-            newunits=dg_units.divideunits(self.unit, other.units())
+            newunits=lm_units.divideunits(self.unit, other.units())
             
             todiv=other.value()
             pass
@@ -1687,7 +1687,7 @@ class integervalue(value) :
     # val may be None
     
     def __reduce__(self):
-        # dg_units is complicated to pickle, so instead, let's just 
+        # lm_units is complicated to pickle, so instead, let's just 
         # pass this value as its actual value string and recreate it
         # as a new value object on the other side
         arg1 = self.__class__

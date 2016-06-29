@@ -72,7 +72,7 @@ from . import checklistdb
 from . import dc2_misc
 
 
-import dg_timestamp
+from . import dg_timestamp as lm_timestamp
 
 from .dc_gtksupp import build_from_file
 from .dc_gtksupp import dc_initialize_widgets
@@ -1190,7 +1190,7 @@ class checklist(object):
 
             # generate new starttimestamp
             log=self.getlog()
-            self.xmldoc.setattr(log, "starttimestamp", dg_timestamp.roundtosecond(dg_timestamp.now()).isoformat())
+            self.xmldoc.setattr(log, "starttimestamp", lm_timestamp.roundtosecond(lm_timestamp.now()).isoformat())
             
             pass
         finally:
@@ -1227,7 +1227,7 @@ class checklist(object):
                 pass
             else :    
                 # Generate timestamp with current time
-                self.xmldoc.setattr(logentry,"timestamp",dg_timestamp.now().isoformat())
+                self.xmldoc.setattr(logentry,"timestamp",lm_timestamp.now().isoformat())
                 pass
             pass
         except:

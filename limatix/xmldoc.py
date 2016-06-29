@@ -68,7 +68,7 @@ except ImportError:
 
 import numpy as np
 
-import dg_units as dgu
+import lm_units as lmu
 
 
 from . import dc_value
@@ -1975,7 +1975,7 @@ class xmldoc(object):
         Do NOT use xpath to convert node to number
 
         returns (resultunits, numpyarray) where resultunits is a 
-        dg_units instance. Don't forget to properly initialize dg_units!
+        lm_units instance. Don't forget to properly initialize lm_units!
 
         iscomplex:    If true, output array should be complex instead of 
                       real. 
@@ -2006,19 +2006,19 @@ class xmldoc(object):
                 if not(isinstance(nodeset[cnt],basestring)):
                     # A node, not a string
                     if "{http://limatix.org/dcvalue}units" in nodeset[cnt].attrib:
-                        thisresultunits=dgu.parseunits(nodeset[cnt].attrib["{http://limatix.org/dcvalue}units"])
+                        thisresultunits=lmu.parseunits(nodeset[cnt].attrib["{http://limatix.org/dcvalue}units"])
                         pass
                     elif "units" in nodeset[cnt].attrib:
-                        thisresultunits=dgu.parseunits(nodeset[cnt].attrib["units"])
+                        thisresultunits=lmu.parseunits(nodeset[cnt].attrib["units"])
                         pass
                     else:
-                        thisresultunits=dgu.parseunits("") # presumed unitless
+                        thisresultunits=lmu.parseunits("") # presumed unitless
                         pass
                     thisresulttext=nodeset[cnt].text
                     pass
                 else :
                     # a string, not a node
-                    thisresultunits=dgu.parseunits("") # presumed unitless .... (or should we parse the text?)
+                    thisresultunits=lmu.parseunits("") # presumed unitless .... (or should we parse the text?)
                     thisresulttext=nodeset[cnt]
                     pass
 
@@ -2041,13 +2041,13 @@ class xmldoc(object):
 
                     if thisresultunits is not None and resultunits is not None:
                         # Make sure units match... extract conversion coefficient
-                        coeff=dgu.compareunits(resultunits,thisresultunits)
+                        coeff=lmu.compareunits(resultunits,thisresultunits)
                         pass
                 
                     if thisresultunits is None:
                         raise ValueError("xpathnumpy: Missing units for cnt=%d; thisresulttext=%s" % (cnt,thisresulttext))
                     if coeff==0.0:
-                        raise ValueError("Unit mismatch in array generation: %s vs. %s." % (dgu.printunits(resultunits,True),dgu.printunits(thisresultunits,True)))
+                        raise ValueError("Unit mismatch in array generation: %s vs. %s." % (lmu.printunits(resultunits,True),lmu.printunits(thisresultunits,True)))
                     pass
                 
 

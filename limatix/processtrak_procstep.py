@@ -50,9 +50,9 @@ except ImportError:
     from urllib.parse import urljoin
     pass
 
-import dg_units
+# import dg_units
 
-import dg_timestamp
+from . import timestamp
 from . import canonicalize_path
 from .canonicalize_path import etxpath2human
 
@@ -609,7 +609,7 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
         modified_elements=set([])
         referenced_elements=set([])
 
-        el_starttime=dg_timestamp.now().isoformat()
+        el_starttime=timestamp.now().isoformat()
         
         # Capture python stdio/stderr 
         errcapt=StringIO()

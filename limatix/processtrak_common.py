@@ -49,9 +49,9 @@ except ImportError:
     from urllib.parse import urljoin
     pass
 
-import dg_units
+# import lm_units
 
-import dg_timestamp
+import timestamp
 from . import canonicalize_path
 from .canonicalize_path import etxpath2human
 
@@ -264,7 +264,7 @@ def open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=None):
         process_el=out.output.addelement(outputroot,"lip:process")
         wcb_el=out.output.addelement(process_el,"lip:wascontrolledby")
         prxfile_el=provenance.reference_file(out.output,wcb_el,"lip:prxfile",outputroot,prxdoc.get_filehref().value(),"info")
-        out.output.setattr(prxfile_el,"lip:timestamp",datetime.datetime.fromtimestamp(os.path.getmtime(prxdoc.get_filehref().getpath()),dg_timestamp.UTC()).isoformat())
+        out.output.setattr(prxfile_el,"lip:timestamp",datetime.datetime.fromtimestamp(os.path.getmtime(prxdoc.get_filehref().getpath()),timestamp.UTC()).isoformat())
     
         provenance.write_timestamp(out.output,process_el,"lip:starttimestamp",overall_starttime)
         provenance.write_process_info(out.output,process_el)
@@ -313,7 +313,7 @@ def initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime):
     
     if not os.path.exists(out.outputfilehref.getpath()):
         # Need to create outputfile by copying or running inputfilter
-        cf_starttime=dg_timestamp.now().isoformat()
+        cf_starttime=timestamp.now().isoformat()
 
         canonhash=create_outputfile(prxdoc,inputfilehref,out.outputfilehref,outputdict)
 

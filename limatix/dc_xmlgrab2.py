@@ -18,7 +18,7 @@ except ImportError:
     from collections import Sequence
     pass
 
-import dg_timestamp
+from . import timestamp
 
 from lxml import etree 
 
@@ -297,7 +297,7 @@ def dc_xmlfilter(filename,dest,xpath,filterparams,filterfunc,*filterfuncargs,**f
 
         # add log entry
         processinglogtag=doc.addelement(el,"dc:processinglog")
-        processinglogtag.attrib["timestamp"]=dg_timestamp.now().isoformat()
+        processinglogtag.attrib["timestamp"]=timestamp.now().isoformat()
         processinglogtag.attrib["status"]=unicode(logstatus)
         processinglogtag.text=unicode(logtext)
         processinglogtag.attrib["script"]=os.path.split(sys.argv[0])[1]
