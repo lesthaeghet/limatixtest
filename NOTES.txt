@@ -58,3 +58,10 @@ has not been tested. In the future it should be possible to trigger it
 by various means). 
 
 
+
+For Windows version: (untested)
+Install Anaconda Python 2.7 version 32 BIT.
+Get latest pygtk all-in-one package from www.pygtk.org
+Install Anaconda . Then install PyGTK into Anaconda's environment
+Then run python setup.py install in Anaconda's environment
+

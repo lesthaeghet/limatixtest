@@ -10,12 +10,12 @@ try:
     
     from dbus.mainloop.glib import DBusGMainLoop
 
-    dbus=None
     dbus_service_Object=dbus.service.Object
     dbus_service_method=dbus.service.method
     pass
 except ImportError:
     sys.stderr.write("Error importing dbus; remote procedure calls will not be available\n")
+    dbus=None
     dbus_service_Object=object
     pass
 

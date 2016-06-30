@@ -72,7 +72,7 @@ from . import checklistdb
 from . import dc2_misc
 
 
-from . import dg_timestamp as lm_timestamp
+from . import timestamp as lm_timestamp
 
 from .dc_gtksupp import build_from_file
 from .dc_gtksupp import dc_initialize_widgets
