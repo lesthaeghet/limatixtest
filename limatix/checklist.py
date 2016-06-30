@@ -2558,14 +2558,14 @@ class checklist(object):
             # cnt=1
             
             if self.done_is_save_measurement or self.has_save_measurement_step: 
-                chklistfile="%s-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),fileext)
+                chklistfile="%.4d-%s%s" % (self.paramdb["measnum"].dcvalue.value(),filebasename,fileext)
                 chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
                 #chklistpath=os.path.join(destdir,chklistfile)
                     
                 cnt=1
                 while (href_exists(chklisthref)) :
 
-                    chklistfile="%s-%.4d-%d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),cnt,fileext)
+                    chklistfile="%.4d-%s-%d%s" % (self.paramdb["measnum"].dcvalue.value(),filebasename,cnt,fileext)
                     chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
                     #chklistpath=os.path.join(destdir,chklistfile)
                     
@@ -2596,14 +2596,14 @@ class checklist(object):
             else : 
                 # this checklist must be part_of_a_measurement
                 assert(self.part_of_a_measurement)
-                chklistfile="%s-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),fileext)
+                chklistfile="%.4d-%s%s" % (self.paramdb["measnum"].dcvalue.value(),filebasename,fileext)
                 chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
                 cnt=0
                     
                 while href_exists(chklisthref):
                     cnt+=1
                     
-                    chklistfile="%s-%.4d-%.4d%s" % (filebasename,self.paramdb["measnum"].dcvalue.value(),cnt,fileext)
+                    chklistfile="%.4d-%s-%.4d%s" % (self.paramdb["measnum"].dcvalue.value(),filebasename,cnt,fileext)
                     chklisthref=hrefv(quote(chklistfile),contexthref=desthref)
                     pass
                 
