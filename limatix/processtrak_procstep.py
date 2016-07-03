@@ -95,7 +95,7 @@ def find_script_in_path(contexthref,scriptname):
         pass
     
     if posixpath.isabs(scriptname):
-        return dcv.hrefvalue(quote(scriptname))
+        return dcv.hrefvalue(quote(scriptname),contexthref=dcv.hrefvalue("./"))
     
     if posixpath.pathsep in scriptname:
         return dcv.hrefvalue(quote(scriptname),contexthref=contexthref)
@@ -477,6 +477,9 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             elif argname=="_xmldoc":  # _xmldoc parameter gets output XML document
                 argkw[argname]=output         # supply output XML document
                 pass
+            elif argname=="_prxdoc":  # _xmldoc parameter gets output XML document
+                argkw[argname]=output         # supply output XML document
+                pass
             elif argname=="_inputfilename":  # _inputfilename parameter gets unquoted name (but not path) of input file
                 argkw[argname]=inputfilehref.get_bare_unquoted_filename()
                 pass
@@ -666,8 +669,8 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
         provenance.write_process_info(output,process_el)  # We always write process info to ensure uniqueness of our UUID. It would be better to merge with parent elements before calculating UUID.
         provenance.write_process_log(output,process_el,status,errcapt.getvalue())
 
-        provenance.write_target(output,process_el,output.filehref.value())  # lip:target -- target of this particular iteration (ETXPath)
-    
+        provenance.write_target(output,process_el,dcv.hrefvalue.fromelement(output,element).value())  # lip:target -- target of this particular iteration (ETXPath)
+        
         # Generate uuid
         process_uuid=provenance.set_hash(output,rootprocess_el,process_el)
     

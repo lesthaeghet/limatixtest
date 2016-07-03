@@ -19,7 +19,12 @@ import math
 import copy
 import traceback
 import urllib
-import pkg_resources
+try: 
+    import pkg_resources
+    pass
+except TypeError:
+    # Ignore error so we can run pychecker
+    pass
 
 try:
     # py2.x

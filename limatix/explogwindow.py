@@ -93,12 +93,21 @@ else :
 
 __pychecker__="no-argsused no-import"
 
-from pkg_resources import resource_string
+try: 
+    from pkg_resources import resource_string
+    pass
+except TypeError:
+    # work around problem running pychecker
+    pass
 
-
-__install_prefix__=resource_string(__name__, 'install_prefix.txt').decode('utf-8')
-__data_prefix__=os.path.join(__install_prefix__,'share','limatix')
-
+try: 
+    __install_prefix__=resource_string(__name__, 'install_prefix.txt').decode('utf-8')
+    __data_prefix__=os.path.join(__install_prefix__,'share','limatix')
+    pass
+except NameError:
+    # work around problem running pychecker
+    pass
+    
 
 class dummy(object):
     pass
@@ -441,7 +450,7 @@ class explogwindow(gtk.Window):
         # create context from fname and directory
         (direc,filename)=os.path.split(fname)
 
-        href=dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc+os.path.sep)))
+        href=dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc+os.path.sep),contexthref=dcv.hrefvalue("./")))
 
 
         
@@ -687,7 +696,7 @@ class explogwindow(gtk.Window):
             # create context from fname and directory
             (direc,filename)=os.path.split(fname)
             
-            self.open_explog(dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc+os.path.sep))),confighrefs=confighrefs)
+            self.open_explog(dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc+os.path.sep),contexthref=dcv.hrefvalue("./"))),confighrefs=confighrefs)
             pass
         pass
 
@@ -944,7 +953,7 @@ class explogwindow(gtk.Window):
                 # central config files are always referred to
                 # via absolute path
                 fname=canonicalize_path.canonicalize_path(fname)
-                href=dcv.hrefvalue(pathname2url(fname))
+                href=dcv.hrefvalue(pathname2url(fname),contexthref=dcv.hrefvalue("./"))
                 pass
             else:
                 # custom config files are always referred to
@@ -1255,7 +1264,7 @@ class explogwindow(gtk.Window):
                 # via absolute path
                 
                 #fname=canonicalize_path.canonicalize_path(fname)
-                fnamehref=dcv.hrefvalue(pathname2url(fname))
+                fnamehref=dcv.hrefvalue(pathname2url(fname),contexthref=dcv.hrefvalue("./"))
                 pass
             else:
                 # custom checklists are always referred to

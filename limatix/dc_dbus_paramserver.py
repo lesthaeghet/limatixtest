@@ -1,5 +1,6 @@
 
 import sys
+import numpy as np
 
 from lxml import etree
 import traceback

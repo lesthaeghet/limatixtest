@@ -67,7 +67,7 @@ def save_params(configfhrefs,guis,paramdb,fname,xmldochref,SingleSpecimen,non_se
     #contextdir=os.path.split(fname)[0]
 
     paramdoc=xmldoc.xmldoc.newdoc("dc:params",nsmap=paramdbfile_nsmap)
-    paramdoc.set_href(dc_value.hrefvalue(pathname2url(fname)),readonly=False)
+    paramdoc.set_href(dc_value.hrefvalue(pathname2url(fname),contexthref=dc_value.hrefvalue("./")),readonly=False)
     
     
     if dcc:

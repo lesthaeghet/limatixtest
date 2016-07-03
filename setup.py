@@ -113,7 +113,8 @@ setup(name="limatix",
                "bin/thermal2limatix",
                "bin/processtrak",
                "bin/dc_ricohphoto",
-               "bin/dc_xlg2dpd",],
+               "bin/dc_xlg2dpd",
+               "bin/pt_cleanup"],
       entry_points={"limatix.checklist.step": limatix_checklist_step_entrypoints,
                     "limatix.widget": limatix_widget_entrypoints})
 

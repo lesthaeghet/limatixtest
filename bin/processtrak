@@ -161,7 +161,8 @@ Flags:
   -i                  Use ipython interactive mode to execute script
   --gtk3              Use GTK3 if gui elements required
   --steps             Don't do anything; just list available steps
-  --files             Don't do anything; just list available files 
+  --files             Don't do anything; just list available files
+  --initialize        (Re-)Initialize output files ERASES CURRENT OUTPUT FILES
     """ % (sys.argv[0],processtrak_procstep.steppath[1]))
     pass
 
@@ -180,6 +181,7 @@ if __name__=="__main__":
     liststeps=False
     listfiles=False
     debugmode=False
+    initializeflag=False
     ipythonmodelist=[False] # ipythonmode is contained within a list so it is mutable by functions and these changes will be persistent
     
     while argc < len(sys.argv):
@@ -210,6 +212,9 @@ if __name__=="__main__":
         elif arg=="-i": # enable ipython qtconsole mode
             ipythonmodelist.pop()
             ipythonmodelist.append(True)
+            pass
+        elif arg=="--initialize": # (re-)initialize output files
+            initializeflag=True
             pass
         elif arg=="-d": # enable debugging mode
             debugmode=True
@@ -280,25 +285,8 @@ if __name__=="__main__":
         pass  
 
 
+    inputfiles_with_hrefs=processtrak_common.getinputfiles(prxdoc)
 
-    inputfiles=prxdoc.xpath("prx:inputfiles/prx:inputfile")
-    inputfiles_with_hrefs = [ (inputfile,dcv.hrefvalue.fromxml(prxdoc,inputfile)) for inputfile in inputfiles ]
-
-    #for inf in inputfilehrefs:
-    #    print(inf.value().contextlist)
-    #    pass
-    
-    prxoutputfile=prxdoc.xpath("prx:inputfiles/prx:outputfile")
-    if len(prxoutputfile) > 1:
-        raise ValueError("Only one outputfile corresponding to the .prx file (i.e. not inside a <prx:inputfile> tag) is permitted")
-    elif len(prxoutputfile)==1:
-        # got an output file for the .prx file
-        # This means we have to define the inputfiles segment as
-        # an inputfile... via a hypertext reference with fragment
-        inputfiles_element=prxdoc.xpathsingle("prx:inputfiles")
-        inputfiles.insert(0,inputfiles_element)
-        inputfiles_with_hrefs.insert(0,(inputfiles_element,dcv.hrefvalue.fromelement(prxdoc,inputfiles_element)))
-        pass
     
         
     if listfiles:
@@ -312,7 +300,7 @@ if __name__=="__main__":
         sys.exit(0)
         pass
 
-    if len(steps)==0:
+    if len(steps)==0 and not initializeflag:
         print("Nothing to do! (try specifying a step with -s <step> or all steps with -a);\nlist steps with --steps\n")
         sys.exit(0)
         pass
@@ -337,6 +325,14 @@ if __name__=="__main__":
     
     # Build dictionary by input file of output files
     outputdict=processtrak_common.build_outputdict(prxdoc,useinputfiles_with_hrefs)
+
+    if initializeflag:
+        # Initialize all output files 
+        for inputfilehref in outputdict:
+            processtrak_common.initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime,force=True)
+            pass
+        pass
+    
 
     
     # Run the specified steps, on the specified files

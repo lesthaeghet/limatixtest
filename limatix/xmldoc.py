@@ -68,7 +68,7 @@ except ImportError:
 
 import numpy as np
 
-import lm_units as lmu
+from . import lm_units as lmu
 
 
 from . import dc_value
@@ -349,7 +349,7 @@ class xmldoc(object):
         main constructor docs for other parameters.
         NOTE: Will merge in xmldoc default nsmap into root element 
         unless you explicitly supply nsmap={}"""
-        href=dc_value.hrefvalue(pathname2url(filename))
+        href=dc_value.hrefvalue(pathname2url(filename),contexthref=dc_value.hrefvalue("./"))
         
         return cls(href,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,debug=debug)
 
@@ -384,7 +384,7 @@ class xmldoc(object):
         
         if force_abs_href: 
             # absolutize all xlinks
-            _xlinkcontextfixuptree(newdoc.doc,contextdir,contextdir,force_abs_href=force_abs_href)
+            _xlinkcontextfixuptree(newdoc.doc,contexthref,contexthref,force_abs_href=force_abs_href)
             pass
         return newdoc
     
@@ -1590,10 +1590,14 @@ class xmldoc(object):
             pass
         pass
 
-    def remelement(self,element):
+    def remelement(self,element,nocheck=False):
         # Remove the provided element from the document
-        self.element_in_doc(element)
+        if not nocheck:
+            self.element_in_doc(element)
+            pass
+        
         element.getparent().remove(element)
+        self.modified=True
         pass
 
     def remelements(self,elementlist):
@@ -2586,7 +2590,7 @@ class xmldoc(object):
         element.getparent().remove(element)
         pass
 
-    def getattr(self,tag,attrname,defaultvalue=None,namespaces=None) :
+    def getattr(self,tag,attrname,defaultvalue=IndexError("Attribute not found"),namespaces=None) :
         """Set the attribute of the specified element or path
         Use namespace prefixes as usual. 
 
@@ -2594,7 +2598,7 @@ class xmldoc(object):
                   or None to get attributes of the main tag
         attrname: Name of attribute to get
         defaultvalue: Default value of the attribute to return. If
-                  this is None and the attribute is not set, IndexError
+                  this is not provided, IndexError
                   will be raised. 
         namespaces: Additional namespaces for attribute evaluation
         """
@@ -2620,12 +2624,11 @@ class xmldoc(object):
             
         if fullattrname in tag.attrib:
             return tag.attrib[fullattrname]
-        elif defaultvalue is not None:
+        elif isinstance(defaultvalue,BaseException):
+            raise defaultvalue
+        else:
             return defaultvalue
-        else : 
-            raise IndexError(attrname)
-                
-            
+        
         pass
 
 
@@ -3163,6 +3166,7 @@ class xmldoc(object):
 
     def element_in_doc(self,element):
         # element may be a single element or smart string  or a list of elements/smart strings,
+        # This is an assertion that the specified element is in our document
 
 
         # if self.debug and element is not None:
@@ -3236,6 +3240,29 @@ class xmldoc(object):
         pass
 
 
+    def tostring_human(self,element,noprovenance=False):
+        # Create a human readable string representation,
+        # of element without all of the pesky xmlns namepace
+        # declarations
+
+        if not noprovenance:
+            provenance.xmldocelementaccessed(self,element)
+            pass
+        
+        elementcopy=copy.deepcopy(element)
+        
+        # Define a junk parent tag to wrap the copy
+        # and take the xmlns declarations of the overall document
+        newparent=etree.Element("j",nsmap=self.getroot().nsmap)
+        newparent.append(elementcopy)
+
+        fullresponse=etree.tostring(newparent,encoding='utf-8',pretty_print=True,xml_declaration=False).decode("utf-8")
+
+        # strip out <j></j> tags
+        response=fullresponse.split('>',1)[1].rsplit('<',1)[0].strip()
+        return response
+
+    
     def tobytes(self,element=None,encoding='utf-8',pretty_print=False):
         # Convert to utf-8 bytes
         # can specify encoding=None to generate ascii (and use entities
@@ -3344,8 +3371,8 @@ class synced(object):
         # pythondb.set_trace()
 
         # worst-case fallthrough
-        #sys.stderr.write("find_a_context_href(): Fallthrough\n")
-        return dc_value.hrefvalue(".")
+        sys.stderr.write("xmldoc.find_a_context_href(): Falling through to \"./\"\n")
+        return dc_value.hrefvalue("./") # current directory!
         
     
     # adddoc: Add a document that will have a synchronized element. 
