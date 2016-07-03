@@ -36,7 +36,7 @@ from . import canonicalize_path
 from . import provenance as provenance
 # from . import xmldoc
 
-import lm_units  # note: main program should call lm_units.units_config("insert_basic_units")
+from . import lm_units  # note: main program should call lm_units.units_config("insert_basic_units")
 
 try: 
     import builtins  # python3
@@ -743,6 +743,8 @@ class hrefvalue(value):
     def get_bare_unquoted_filename(self):
         return self.href_context.get_bare_unquoted_filename()
 
+    def is_directory(self):
+        return self.href_context.is_directory()
     
     def getpath(self):
         return self.href_context.getpath()
@@ -824,8 +826,6 @@ class hrefvalue(value):
         
         return self.href_context.__eq__(other)
 
-    def canonicalize(self):
-        return self.href_context.canonicalize()
 
     @classmethod
     def fromelement(cls,xmldocu,element,tag_index_paths_override=None):

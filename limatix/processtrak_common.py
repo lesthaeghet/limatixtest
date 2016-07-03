@@ -13,6 +13,7 @@ import collections
 import ast
 import hashlib
 import binascii
+import datetime
 
 from lxml import etree
 
@@ -59,7 +60,7 @@ from . import dc_value as dcv
 from . import provenance as provenance
 from . import xmldoc
 from . import processtrak_prxdoc
-
+from . import timestamp as lm_timestamp
 
 
 outputnsmap={
@@ -69,11 +70,88 @@ outputnsmap={
 
 prx_nsmap={
     "prx": "http://limatix.org/processtrak/processinginstructions",
+    "dc": "http://limatix.org/datacollect",
     "dcv": "http://limatix.org/dcvalue",
     "xlink": "http://www.w3.org/1999/xlink",
 };
 
 
+xmlNameStartCharNums = (range(65,91) +    # From XML Spec
+                        [95] +
+                        range(97,123) +
+                        range(0xC0,0xD7) +
+                        range(0xD8,0xF7) +
+                        range(0xF8,0x300) +
+                        range(0x370,0x37E) +
+                        range(0x37F,0x2000) +
+                        range(0x200C,0x200E) +
+                        range(0x2070,0x2190) +
+                        range(0x2C00,0x2ff0) +
+                        range(0x3001,0xD800) +
+                        range(0xF900,0xFDD0) +
+                        range(0xFDF0,0xFFFE) +
+                        range(0x10000,0xF0000))
+xmlNameCharNums = (xmlNameStartCharNums +
+                   [ 45, 46 ] +
+                   range(48,58) +
+                   [ 0xB7 ] +
+                   range(0x300,0x370) +
+                   range(0x2040,2041))
+                        
+xmlNameStartCharSet = set( [ unichr(num) for num in xmlNameStartCharNums ] )
+xmlNameCharSet = set( [ unichr(num) for num in xmlNameCharNums ] )
+
+
+def convert_to_tagname(rawname):
+    out=""
+
+    if len(rawname)==0:
+        return None
+    
+    if rawname[0] in xmlNameStartCharSet:
+        out+=rawname[0]
+        pass
+    else:
+        out+='_'
+        pass
+    
+    for c in rawname[1:]:
+        if c in xmlNameCharSet:
+            out+=c
+            pass
+        else:
+            out+='_'
+            pass
+        pass
+    
+    return out
+
+
+def splitunits(titlestr):
+    # attempt to split off trailing units in parentheses
+    # allow nested parentheses
+    titlestr=titlestr.strip()
+    units=[]
+    if (titlestr.endswith(')')):
+        parencnt=1
+        for pos in range(len(titlestr)-2,0,-1):
+            if titlestr[pos]==')':
+                parencnt+=1
+                pass
+            elif titlestr[pos]=='(':
+                parencnt-=1
+                if parencnt==0:
+                    break
+                pass            
+            units.insert(0,titlestr[pos])
+            pass
+
+        if parencnt != 0:
+            # failed
+            return (titlestr,None)
+        unitstr="".join(units)
+        return (titlestr,unitstr)
+    return (titlestr,None)
 
 
 def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
@@ -83,6 +161,8 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
     if inputfilehref.has_fragment():
         # input file url has a fragment... we're only supposed
         # to extract a portion of the file
+
+        timestamp=datetime.datetime.fromtimestamp(os.path.getmtime(inputfilehref.getpath()),lm_timestamp.UTC()).isoformat()
 
         if inputfilehref.fragless()==prxdoc.get_filehref():
             inputfilecontent=prxdoc  # special case where input file is .prx file
@@ -160,8 +240,112 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
                 
         
         pass
+    elif inputfilehref.get_bare_unquoted_filename().lower().endswith(".xls") or inputfilehref.get_bare_unquoted_filename().lower().endswith(".xlsx"):
+        try:
+            import xlrd
+            import xlrd.sheet
+            
+            inputfileelement=outputdict[inputfilehref].inputfileelement
+            # Any dc: namespace elements within the inputfileelement
+            # will get placed in a dc:summary tag
+                 
+            
+            timestamp=datetime.datetime.fromtimestamp(os.path.getmtime(inputfilehref.getpath()),lm_timestamp.UTC()).isoformat()
+            spreadsheet=xlrd.open_workbook(inputfilehref.getpath())
+            sheetname=prxdoc.getattr(inputfileelement,"sheetname",spreadsheet.sheet_names()[0])
+
+            sheet=spreadsheet.sheet_by_name(sheetname)
+            titlerow=int(prxdoc.getattr(inputfileelement,"titlerow","1"))-1
+
+            # titlerow=sheet.row(titlerownum)
+            nrows=sheet.nrows
+            ncols=sheet.ncols
+
+            rawtitles = [ str(sheet.cell(titlerow,col).value).strip() for col in range(ncols) ]
+            tagnames = [ convert_to_tagname(splitunits(rawtitle)[0]) if len(rawtitle) > 0 else "blank" for rawtitle in rawtitles ]
+            unitnames = [ convert_to_tagname(splitunits(rawtitle)[1]) if len(rawtitle) > 0 else None for rawtitle in rawtitles ]
+
+            
+            
+            nsmap=copy.deepcopy(prx_nsmap)
+            nsmap["ls"] = "http://limatix.org/spreadsheet"
+
+            outdoc=xmldoc.xmldoc.newdoc("ls:sheet",nsmap=nsmap)
+
+            # Copy dc: namespace elements within inputfileelement
+            # into a dc:summary tag
+            inputfileel_children=prxdoc.children(inputfileelement)
+            summarydoc=None
+            for inputfileel_child in inputfileel_children:
+                if prxdoc.gettag(inputfileel_child).startswith("dc:"):
+                    if summarydoc is None:
+                        summarydoc=xmldoc.xmldoc.newdoc("dc:summary",nsmap=nsmap,contexthref=prxdoc.getcontexthref())
+                        pass
+                    # place in document with same context as where it came from
+                    summarydoc.doc.append(copy.deepcopy(inputfileel_child))
+                    pass
+                pass
+            if summarydoc is not None:
+                # shift summary context and then copy it into outdoc
+                summarydoc.setcontexthref(outdoc.getcontexthref())
+                outdoc.getroot().append(copy.deepcopy(summarydoc.getroot()))
+                pass
+            
+            
+            # Copy spreadsheet table
+            for row in range(titlerow+1,nrows):
+                rowel=outdoc.addelement(outdoc.getroot(),"ls:row")
+                for col in range(ncols):
+                    cell=sheet.cell(row,col)
+                    cell_type=xlrd.sheet.ctype_text.get(cell.ctype,'unknown')
+                    if cell_type=="empty":
+                        continue
+                    
+                    cellel=outdoc.addelement(rowel,"ls:"+tagnames[col])
+                    outdoc.setattr(cellel,"ls:celltype",cell_type)
+                    if cell_type=="text":
+                        outdoc.settext(cellel,cell.value)
+                        pass
+                    elif cell_type=="number":
+                        if unitnames[col] is not None:
+                            outdoc.setattr(cellel,"dcv:units",unitnames[col])
+                            pass
+                        outdoc.settext(cellel,str(cell.value)) 
+                        pass
+                    elif cell_type=="xldate":
+                        outdoc.settext(cellel,datetime.datetime(xlrd.xldate_as_tuple(cell.value,spreadsheet.datemode)).isoformat())
+                        pass
+                    elif cell_type=="bool":
+                        outdoc.settext(cellel,str(bool(cell.value)))            
+                        pass
+                    elif cell_type=="error":
+                        outdoc.settext(cellel,"ERROR %d" % (cell.value))
+                        pass
+                    else:
+                        raise ValueError("Unknown cell type %s" %(cell_type))
+                    
+                    hyperlink=sheet.hyperlink_map.get((row,col))
+                    if hyperlink is not None:
+                        # Do we need to do some kind of conversion on
+                        # hyperlink.url_or_path()
+                        hyperlink_href=dcv.hrefvalue(hyperlink.url_or_path,contexthref=inputfilehref)
+                        hyperlink_href.xmlrepr(outdoc,cellel)
+                        pass
+                    pass
+                pass
+            
+            # Write out under new file name outputfilehref
+            outdoc.set_href(outputfilehref,readonly=False)
+            outdoc.close()
+            canonhash=None  # could hash entire input file...
+            pass
+        except ImportError:
+
+            raise(ImportError("Need to install xlrd package in order to import .xls or .xlsx files"))
+        
+        pass
     else:
-        # input file url has no fragment...
+        # input file url has no fragment, not .xls or .xlsx: treat it as XML
         # extract the whole thing!
         
         # Do we have an input filter? ... stored as xlink:href in <inputfilter> tag
@@ -169,6 +353,8 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
         inputfilters=prxdoc.xpath("inputfilter")
         if len(inputfilters) > 1:
             raise ValueError("Maximum of one <inputfilter> element permitted in .prx file")
+        timestamp=datetime.datetime.fromtimestamp(os.path.getmtime(inputfilehref.getpath()),lm_timestamp.UTC()).isoformat()
+
         if len(inputfilters) > 0:
             # have an input filter
             inputfilter=inputfilters[0]
@@ -202,7 +388,7 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
             shutil.copyfile(inputfilehref.getpath(),outputfilehref.getpath())
             pass
         pass
-    return canonhash
+    return (canonhash,timestamp)
 
 
 def output_ensure_namespaces(output,prxdoc,justcopied):
@@ -243,7 +429,7 @@ def open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=None):
 
     # copyfileinfo is None (normally)
     # or if we just copied the file
-    #  copyfileinfo=(canonhash, cf_starttime)
+    #  copyfileinfo=(inputfilecanonhash, inputfiletimestamp, cf_starttime)
     
     # if we fail, we should raise an exception, leaving output unlocked
     # if success, we leave the output locked. 
@@ -279,12 +465,12 @@ def open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=None):
 
         
         if copyfileinfo is not None:
-            (canonhash, cf_starttime)=copyfileinfo
+            (inputfilecanonhash, inputfiletimestamp,cf_starttime)=copyfileinfo
             
             # Add a sub lip:process representing file copy action
             cfprocess_el=out.output.addelement(process_el,"lip:process")
             # have lip:used point to the input file we copied from 
-            provenance.reference_file(out.output,cfprocess_el,"lip:used",outputroot,out.inputfilehref.value(),warnlevel="warning",fragcanonsha256=canonhash)
+            provenance.reference_file(out.output,cfprocess_el,"lip:used",outputroot,out.inputfilehref.value(),warnlevel="warning",timestamp=inputfiletimestamp,fragcanonsha256=inputfilecanonhash)
             provenance.write_action(out.output,cfprocess_el,"_copy_input_file")
             provenance.write_timestamp(out.output,cfprocess_el,"lip:starttimestamp",cf_starttime)
             provenance.write_timestamp(out.output,cfprocess_el,"lip:finishtimestamp")
@@ -303,7 +489,7 @@ def open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=None):
     pass
 
 
-def initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime):
+def initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime,force=False):
 
 
     out=outputdict[inputfilehref]
@@ -311,14 +497,14 @@ def initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime):
     # print("\n\nProcessing input URL %s to output URL %s." % (inputfilehref.humanurl(),outputfilehref.absurl())) 
 
     
-    if not os.path.exists(out.outputfilehref.getpath()):
+    if force or not os.path.exists(out.outputfilehref.getpath()):
         # Need to create outputfile by copying or running inputfilter
         cf_starttime=timestamp.now().isoformat()
 
-        canonhash=create_outputfile(prxdoc,inputfilehref,out.outputfilehref,outputdict)
+        (inputfilecanonhash,inputfiletimestamp)=create_outputfile(prxdoc,inputfilehref,out.outputfilehref,outputdict)
 
         # Will mark provenance of each element of output file
-        open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=(canonhash, cf_starttime))   
+        open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=(inputfilecanonhash, inputfiletimestamp, cf_starttime))   
         out.output.unlock_rw()  # free output lock
         pass
     
@@ -345,6 +531,31 @@ def finalize_output_file(prxdoc,outputdict,inputfilehref):
         out.output.unlock_rw()  # free output lock
         pass
     pass
+
+def getinputfiles(prxdoc):
+    # Returns list of (inputfileelement,inputfilehref) tuples
+    
+    inputfiles=prxdoc.xpath("prx:inputfiles/prx:inputfile")
+    inputfiles_with_hrefs = [ (inputfile,dcv.hrefvalue.fromxml(prxdoc,inputfile)) for inputfile in inputfiles ]
+
+    #for inf in inputfilehrefs:
+    #    print(inf.value().contextlist)
+    #    pass
+    
+    prxoutputfile=prxdoc.xpath("prx:inputfiles/prx:outputfile")
+    if len(prxoutputfile) > 1:
+        raise ValueError("Only one outputfile corresponding to the .prx file (i.e. not inside a <prx:inputfile> tag) is permitted")
+    elif len(prxoutputfile)==1:
+        # got an output file for the .prx file
+        # This means we have to define the inputfiles segment as
+        # an inputfile... via a hypertext reference with fragment
+        inputfiles_element=prxdoc.xpathsingle("prx:inputfiles")
+        inputfiles.insert(0,inputfiles_element)
+        inputfiles_with_hrefs.insert(0,(inputfiles_element,dcv.hrefvalue.fromelement(prxdoc,inputfiles_element)))
+        pass
+
+    return inputfiles_with_hrefs
+
 
 def build_outputdict(prxdoc,useinputfiles_with_hrefs):
     outputdict=collections.OrderedDict()

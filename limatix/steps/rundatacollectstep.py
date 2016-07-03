@@ -242,23 +242,23 @@ class rundatacollectstep(gtk.HBox):
             pass
 
         if self.datacollectconfig is None:
-            self.datacollectconfig=dc_value.hrefvalue("")
+            self.datacollectconfig=dc_value.hrefvalue(None)
             pass
 
         if self.datacollectconfig2 is None:
-            self.datacollectconfig2=dc_value.hrefvalue("")
+            self.datacollectconfig2=dc_value.hrefvalue(None)
             pass
 
         if self.datacollectconfig3 is None:
-            self.datacollectconfig3=dc_value.hrefvalue("")
+            self.datacollectconfig3=dc_value.hrefvalue(None)
             pass
         
         if self.dcparamdb is None:
-            self.dcparamdb=dc_value.hrefvalue("")
+            self.dcparamdb=dc_value.hrefvalue(None)
             pass
 
         if self.planfile is None:
-            self.planfile=dc_value.hrefvalue("")
+            self.planfile=dc_value.hrefvalue(None)
             pass
 
         if self.suffix is None:
@@ -266,15 +266,15 @@ class rundatacollectstep(gtk.HBox):
             pass
 
         if self.gui is None:
-            self.gui=dc_value.hrefvalue("")
+            self.gui=dc_value.hrefvalue(None)
             pass
 
         if self.gui2 is None:
-            self.gui2=dc_value.hrefvalue("")
+            self.gui2=dc_value.hrefvalue(None)
             pass
 
         if self.gui3 is None:
-            self.gui3=dc_value.hrefvalue("")
+            self.gui3=dc_value.hrefvalue(None)
             pass
 
         if self.multispecimen is None:

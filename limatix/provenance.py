@@ -16,6 +16,7 @@ import inspect
 import hashlib
 import csv
 import string
+import collections
 
 from . import timestamp as lm_timestamp
 from . import canonicalize_path
@@ -78,6 +79,12 @@ lip="http://limatix.org/provenance"
 
 DC="{http://limatix.org/datacollect}"
 dc="http://limatix.org/datacollect"
+
+global_nsmap={
+    "dc": "http://limatix.org/datacollect",
+    "lip": "http://limatix.org/provenance",
+    "xlink":"http://www.w3.org/1999/xlink",
+    }
 
 
 def determinehostname():
@@ -181,7 +188,7 @@ def reference_pymodule(doc,parent,tagname,contextelement,module,warnlevel="none"
 
     
 
-def reference_file(doc,parent,tagname,contextelement,referencehrefc,warnlevel="error",fragcanonsha256=None):
+def reference_file(doc,parent,tagname,contextelement,referencehrefc,warnlevel="error",timestamp=None,fragcanonsha256=None):
     # filecontext_xpath is "/"+outputroot.tag
     # warnlevel should be "none" "info", "warning", or "error" and represents when the 
     # reference to this file does not match the file itself, how loud the warning
@@ -203,9 +210,10 @@ def reference_file(doc,parent,tagname,contextelement,referencehrefc,warnlevel="e
     doc.setattr(element,"warnlevel",warnlevel)
     doc.setattr(element,"type","href")
 
-
-    mtime=datetime.datetime.fromtimestamp(os.path.getmtime(hrefc.getpath()),lm_timestamp.UTC()).isoformat()
-    doc.setattr(element,"mtime",mtime)
+    if timestamp is None:
+        timestamp=datetime.datetime.fromtimestamp(os.path.getmtime(hrefc.getpath()),lm_timestamp.UTC()).isoformat()
+        pass
+    doc.setattr(element,"mtime",timestamp)
     
     if hrefc.has_fragment() and fragcanonsha256 is not None:
         doc.setattr(element,"fragcanonsha256",fragcanonsha256)
@@ -612,7 +620,7 @@ def fileaccessed(filehrefc):
             mtime=datetime.datetime.fromtimestamp(os.path.getmtime(filehrefc.getpath()),lm_timestamp.UTC()).isoformat()
 
             
-            ourdb[-1][1].add((hrefc,"mtime=%s" % (mtime)))
+            ourdb[-1][1].add((filehrefc,"mtime=%s" % (mtime)))
             # ourdb[-1][2][id(element)]=(element,hrefc)
             pass
         pass
@@ -694,7 +702,7 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
         #sys.stderr.write("foundelement=%s\n" % (str(foundelement)))
         if len(foundelement) != 1:
             msg="Non-unique result identifying provenance reference %s." % (modified_element_hrefc.humanurl())
-            msg+=" ".join("foundelement[%d]=%s" % (idx,href_context.from_element(xmldocu,foundelement[idx]).humanurl()) for idx in range(len(foundelement)))
+            msg+=" ".join("foundelement[%d]=%s" % (idx,href_context.fromelement(xmldocu,foundelement[idx]).humanurl()) for idx in range(len(foundelement)))
             raise ValueError(msg) # etree.tostring(xmldocu.doc)))
 
         # oldwgb=xmldocu.getattr(foundelement[0],"lip:wasgeneratedby","")
@@ -755,9 +763,105 @@ def find_process_el(xmldocu,processdict,element,uuidcontent):
     return href_context.fromelement(xmldocu,process)
 
 
+def findprocesstags(xmldocu,context,my_uuid,processtagbyuuid,childuuidbyuuid,processtagsnouuid):
+    processtags=xmldocu.xpathcontext(context,"lip:process",namespaces=global_nsmap)
+    if my_uuid is not None:
+        childuuidbyuuid[my_uuid]=[]
+        pass
+
+    for processtag in processtags: 
+        uuid=xmldocu.getattr(processtag,"uuid",None)
+        if uuid is None:
+            # add process tag to list of process tags without a uuid
+            # a process tag without a uuid is inherently broken
+            # and usually results from an exception during processing
+            processtagsnouuid.append(processtag)
+            pass
+        else: 
+            processtagbyuuid[uuid]=processtag
+            
+            if my_uuid is not None:
+                childuuidbyuuid[my_uuid].append(uuid)
+                pass
+        
+            findprocesstags(xmldocu,processtag,uuid,processtagbyuuid,childuuidbyuuid,processtagsnouuid)
+            pass
+        pass
+    pass
+
+
+def process_is_obsolete(processdict,processtagbyuuid,obsoleteprocesstagbyuuid,childuuidbyuuid,uuid):
+    # private
+    if uuid not in processdict:
+        # looks obsolete!
+        obsolete=True
+
+        # Are all children obsolete? 
+        for sub_uuid in childuuidbyuuid[uuid]:
+            obsolete=obsolete and process_is_obsolete(processdict,processtagbyuuid,obsoleteprocesstagbyuuid,childuuidbyuuid,sub_uuid)
+            pass
+
+        if obsolete:
+            # remove from processtagbyuuid dictionary, add to obsoleteprocesstagbyuuid
+            processtag=processtagbyuuid[uuid]
+            del processtagbyuuid[uuid]
+            obsoleteprocesstagbyuuid[uuid]=processtag
+            
+            return True
+        pass
+    return False
+
+def cleanobsoleteprovenance(xmldocu):
+    # xmldocu must be locked in memory READ-WRITE
+    # lip prefix be configured in nsmap
+    
+
+    # Check all provenance
+    (docdict,processdict,processdictbyhrefc,processdictbyusedelement,elementdict,globalmessagelists,totalmessagelists)=checkallprovenance(xmldocu)
+
+    # Obsolete provenance are any lip:process tags that don't show up in
+    # processdict and that don't have children or descendents that show up in
+    # processdict
+
+    processtagbyuuid=collections.OrderedDict()  # ordered so we go through it in parent-child order and find the tree roots correctly below
+    childuuidbyuuid={}  # dictionary of child process tag uuid by parent process tag uuid
+    processtagsnouuid=[] # list of process tags not even having a uuid
+    # Find lip:process tags and fill in uuid dictionaries
+    findprocesstags(xmldocu,xmldocu.getroot(),None,processtagbyuuid,childuuidbyuuid,processtagsnouuid)
+    
+    obsoleteprocesstagbyuuid={}  # Will move from processtagbyuuid into here as we determine tags are obsolete
+    obsolete_root_uuids=[]
+
+    for uuid in list(processtagbyuuid.keys()):
+        if uuid in processtagbyuuid:
+            # Move process and sub-processes into obsoleteprocesstagbyuuid if they are obsolete
+            if process_is_obsolete(processdict,processtagbyuuid,obsoleteprocesstagbyuuid,childuuidbyuuid,uuid):
+                # This is a root of an obsolete tree, because if we were at a branch or leaf of an obsolete tree, it would have been removed before we got here
+                obsolete_root_uuids.append(uuid)
+                pass
+            pass
+        
+        pass
+    
+    msg="Removed %d process tags containing %d total lip:provenance elements (%d remaining)" % (len(obsolete_root_uuids)+len(processtagsnouuid),len(obsoleteprocesstagbyuuid),len(processtagbyuuid))
+    for processtag in processtagsnouuid:
+        xmldocu.remelement(processtag)
+        pass
+    
+    for uuid in obsolete_root_uuids:
+        processtag=obsoleteprocesstagbyuuid[uuid]
+        xmldocu.remelement(processtag)
+        pass
+
+    return msg
+
+
 def checkallprovenance(xmldocu):
-    # xmldocu must be locked in memory 
+    # xmldocu must be in memory... i.e. either locked
+    # or read in with locking (now) disabled
     docdict={}
+
+    docdict[xmldocu.get_filehref()]=xmldocu
     processdict={}
     processdictbyhrefc={}
     processdictbyusedelement={}
@@ -1207,8 +1311,10 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                         if "usedwasgeneratedby" in usedtag.attrib:
                             uuids_or_mtime=str(usedtag.attrib["usedwasgeneratedby"])
                             pass
-
- 
+                        elif "mtime" in usedtag.attrib:
+                            uuids_or_mtime="mtime="+usedtag.attrib["mtime"]
+                            pass
+                        
                         # Mark this process as referring to this element
                         processdict[uuid][1].append((newhrefc,uuids_or_mtime))
                         if not (newhrefc,uuids_or_mtime) in processdictbyusedelement:
@@ -1305,7 +1411,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
 
         if refuuids_or_mtime is not None and not (refuuids_or_mtime.startswith("mtime=")):
             # Add error message to elementdict messagelist
-            elementdict[(element_hrefc,refuuids_or_mtime)][1]["error"].append("Attempting to specify uuid provenance %s for a file %s in proveance of %s" % (refuuids_or_mtime,filepath,element_hrefc.humanurl()))
+            elementdict[(element_hrefc,refuuids_or_mtime)][1]["error"].append("Attempting to specify uuid provenance %s for a file %s in provenance of %s" % (refuuids_or_mtime,filehrefc.humanurl(),element_hrefc.humanurl()))
             pass
 
 
@@ -1315,10 +1421,10 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
             pass
         else : 
             if refuuids_or_mtime is not None:
-                mtime=datetime.datetime.fromtimestamp(os.path.mtime(filepath),lm_timestamp.UTC()).isoformat()
-                if mtime != refuuids_or_mtime[6:]:
+                mtime=datetime.datetime.fromtimestamp(os.path.getmtime(filehrefc.getpath()),lm_timestamp.UTC()).isoformat()
+                if mtime != refuuids_or_mtime[6:].split(";")[0]:
                     # Add error message to elementdict messagelist
-                    elementdict[(element_hrefc,refuuids_or_mtime)][1][warnlevel].append("File modification times do not match for %s: %s specified in %s vs. %s actual" % (filepath,refuuids_or_mtime,referrer_hrefc.humanurl(),mtime))
+                    elementdict[(element_hrefc,refuuids_or_mtime)][1][warnlevel].append("File modification times do not match for %s, referenced in %s: %s referenced vs. %s actual" % (filehrefc.humanurl(),referrer_hrefc.humanurl(),refuuids_or_mtime,mtime))
                     pass
                 pass
             pass

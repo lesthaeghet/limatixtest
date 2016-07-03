@@ -5,7 +5,13 @@ import subprocess
 import socket
 import urllib
 import traceback
-from pkg_resources import resource_string
+
+try: 
+    from  pkg_resources import resource_string
+    pass
+except TypeError:
+    # work round problem running pychecker
+    pass
 
 from . import checklistdb
 #from . import canonicalize_path
@@ -19,7 +25,7 @@ thisdir=os.path.split(sys.modules[dummy.__module__].__file__)[0]
 try: 
     __install_prefix__=resource_string(__name__, 'install_prefix.txt').decode('utf-8')
     pass
-except IOError: 
+except (IOError,NameError): 
     sys.stderr.write("dc2_misc: error reading install_prefix.txt. Assuming /usr/local.\n")
     __install_prefix__="/usr/local"
     pass

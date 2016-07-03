@@ -698,7 +698,7 @@ class threadserializedcontroller(object):
                         pass
 
                     # Request callback in gobject mainloop
-                    gobject.timeout_add(0,self.callback,request_tuple,newvalue,cbargs)
+                    gobject.timeout_add(0,self.callback,self.pendingrequest,newvalue,cbargs)
                     pass
                 else: 
                     raise ValueError("Parameter %s is not settable" % (self.controlparam.xmlname))

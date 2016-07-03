@@ -27,6 +27,23 @@ except ImportError:
 
 import xml.sax.saxutils
 
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    pass
+
+import posixpath
+
 __pychecker__="no-argsused"
 
 from . import dc_value
@@ -124,19 +141,27 @@ class dbus_camera(object):
 
                 dest=str(self.explogwindow.paramdb["dest"].dcvalue)
 
+                basefilehref=dc_value.hrefvalue(quote(reqfilename),contexthref=dest)
                 num=1
                 exists=True
                 
                 while exists:
-                    filepath=os.path.join(dest,reqfilename % (num))
+
+                    basefilepath=basefilehref.getpath()
 
                     # abspath=os.path.abspath(filepath)
                     
-                    if not filepath.endswith(".jpg"):
+                    if not basefilepath.endswith(".jpg"):
                         raise ValueError("Invalid file extension")
+
+                    newfilename=posixpath.splitext(basefilehref.get_bare_unquoted_filename())[0]+("%.3d.jpg" % (num))
+                    newfilehref=dc_value.hrefvalue(quote(newfilename),contexthref=dest)
+                    newfilepath=newfilehref.getpath()
                     
-                    newpmdpath=os.path.splitext(filepath)[0]+".pmd"
-                    if not os.path.exists(filepath) and not os.path.exists(newpmdpath):
+                    newpmdname=posixpath.splitext(basefilehref.get_bare_unquoted_filename())[0]+("%.3d.pmd" % (num))
+                    newpmdhref=dc_value.hrefvalue(quote(newpmdname),contexthref=dest)
+                    newpmdpath=newpmdhref.getpath()
+                    if not os.path.exists(newfilepath) and not os.path.exists(newpmdpath):
                         exists=False
                         pass
                     num+=1
@@ -145,9 +170,9 @@ class dbus_camera(object):
                     pass
                 
                 photofilenameel=XMLtree.xpath("/dc:photometadata/dc:photofilename",namespaces={"dc":"http://limatix.org/datacollect"})[0]
-                photofilenameel.text=os.path.split(filepath)[1]
+                photofilenameel.text=os.path.split(newfilepath)[1]
                 
-                shutil.move(photopath,filepath)
+                shutil.move(photopath,newfilepath)
                 
                 # Write out PMD
                 outfh=open(newpmdpath,"wb")
@@ -156,11 +181,11 @@ class dbus_camera(object):
                                 
                 # Add photo into paramdb element specified by dc:paramname element in XMLtree
                 paramname=XMLtree.xpath("/dc:photometadata/dc:paramname",namespaces={"dc":"http://limatix.org/datacollect"})[0].text
-                self.explogwindow.paramdb[paramname].requestval_sync(self.explogwindow.paramdb[paramname].dcvalue.copyandappend(dc_value.hrefvalue.from_rel_or_abs_path(".",filepath)))
+                self.explogwindow.paramdb[paramname].requestval_sync(self.explogwindow.paramdb[paramname].dcvalue.copyandappend(newfilehref))
                 
-
+                                                                                                 
                 msgdialog=gtk.MessageDialog(type=gtk.MESSAGE_INFO,buttons=gtk.BUTTONS_CLOSE)
-                msgdialog.set_markup(xml.sax.saxutils.escape("Received photo %s\nhash: %s" % (os.path.split(filepath)[1],hashstr)))
+                msgdialog.set_markup(xml.sax.saxutils.escape("Received photo %s\nhash: %s" % (os.path.split(newfilepath)[1],hashstr)))
                 msgdialog.connect("response",destroy_widget)
                 msgdialog.show()
 

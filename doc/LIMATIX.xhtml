@@ -1022,7 +1022,7 @@
       the file name or path to a relative or absolute URL before creating the
       hrefvalue. Use <tt>urllib.pathname2url()</tt> (Python 2.x) or <tt>urllib.request.pathname2url()</tt> (Python &gt;= 3.0) to perform the conversion.
       If you are referencing just a file name (no path separators), you may
-      alternatively use <tt>urllib.quote()</tt> (Python 2.x) or <tt>urllib.parse.quote()</tt> (Python 3.x) to do the conversion.
+      alternatively use <tt>urllib.quote()</tt> (Python 2.x) or <tt>urllib.parse.quote()</tt> (Python 3.x) to do the conversion. <b>If the path might be relative, then you must provide the current directory as context! i.e. the additional contructor parameter contexthref=dc_value.hrefvalue("./")</b>
     </p>
     <p>
       Special methods: 
@@ -1044,6 +1044,7 @@
       <tr><td>gethumanfragment</td><td>(none)</td><td>Get URL fragment (after the #) translated to most human-readable form</td></tr>
       <tr><td>get_bare_quoted_filename</td><td>(none)</td><td>Return filename portion of URL, with special characters quoted as in a URL</td></tr>
       <tr><td>get_bare_unquoted_filename</td><td>(none)</td><td>Return filename portion of URL, not using quoting of special URL characters, as in a filename</td></tr>
+      <tr><td>isdirectory</td><td>(none)</td><td>Determine if the URL is that of a directory (i.e. ends with a slash '/')</td></tr>
       <tr><td>getpath</td><td>(none)</td><td>For FILE URL's, convert URL to a filesystem pathname and return</td></tr>
       <tr><td>fragless</td><td>(none)</td><td>Return a hrefvalue with any fragment portion of the URL removed</td></tr>
       <tr><td>leafless</td><td>(none)</td><td>Return a hrefvalue with any file part portion of the URL removed (but with trailing slash present)</td></tr>

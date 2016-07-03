@@ -492,6 +492,9 @@ def parseunits(unitstr):
     if unitstr is None:
         return units()
 
+    if unitstr.strip()=="":
+        return units()
+    
     (remaining,unitsobj)=parseunits_right(unitstr.strip())
     assert(len(remaining)==0)
 
@@ -747,13 +750,13 @@ def printunits(Comb,longflag=False):
     lastpower=0
     Coefficient=1.0
     hasdenominator=False
-    buffer=""
+    buff=""
     
     for Factor in Comb.Factors:
         if Factor.Power > 0:
             if lastpower > 0:
                 # factors separated by *
-                buffer+="*"
+                buff+="*"
                 pass
             lastpower=Factor.Power
 
@@ -765,7 +768,7 @@ def printunits(Comb,longflag=False):
                 FactorPlusCombPrefix=IsSiPrefix(math.log10(Comb.Coefficient**(1.0/Factor.Power)*Factor.Coefficient),longflag)
                 if Factor.Unit is not None and Factor.Unit.SiPrefixFlag and FactorPrefix is not None and FactorPlusCombPrefix is not None:
                     # Print combined prefix
-                    buffer+=FactorPlusCombPrefix
+                    buff+=FactorPlusCombPrefix
                     pass
                 else:
                     # accumulate Comb coefficient and print out regular prefix for factor
@@ -773,7 +776,7 @@ def printunits(Comb,longflag=False):
 
                     FactorPrefix=IsSiPrefix(math.log10(Factor.Coefficient),longflag)
                     if Factor.Unit is not None and Factor.Unit.SiPrefixFlag and FactorPrefix is not None:
-                        buffer+=FactorPrefix
+                        buff+=FactorPrefix
                         pass
                     else:
                         # Couldn't print SI prefix for Factor. Accumulate coefficient to print at end 
@@ -788,7 +791,7 @@ def printunits(Comb,longflag=False):
                 if abs(Factor.Coefficient-1.0) > 1e-8:
                     FactorPrefix=IsSiPrefix(math.log10(Factor.Coefficient),longflag)
                     if FactorPrefix is not None:
-                        buffer+=FactorPrefix
+                        buff+=FactorPrefix
                         pass
                     else:
                         # Couldn't print SI prefix for Factor. Accumulate coefficient to print at end                         
@@ -796,9 +799,9 @@ def printunits(Comb,longflag=False):
                         pass
                     pass
                 pass
-            buffer+=FactorName(Factor,longflag,True)
+            buff+=FactorName(Factor,longflag,True)
             if abs(Factor.Power-1.0) > 1e-8:
-                buffer+="^%.6g" % (Factor.Power)
+                buff+="^%.6g" % (Factor.Power)
                 pass
             
             
@@ -817,7 +820,7 @@ def printunits(Comb,longflag=False):
 
         if hasdenominator:
             # write 1 in numerator:
-            buffer+="1"
+            buff+="1"
             pass
         pass
 
@@ -826,24 +829,24 @@ def printunits(Comb,longflag=False):
     
     for Factor in Comb.Factors:
         if Factor.Power < 0:
-            buffer+="/"  # slash to pad divsors
+            buff+="/"  # slash to pad divsors
 
             # attempt to write si prefix
             if abs(Factor.Coefficient-1.0) > 1e-8:
                 FactorPrefix=IsSiPrefix(math.log10(Factor.Coefficient),longflag)
                 if Factor.Unit is not None and Factor.Unit.SiPrefixFlag and FactorPrefix is not None:
-                    buffer+=FactorPrefix
+                    buff+=FactorPrefix
                     pass
                 else:
                     Coefficient *= Factor.Coefficient**Factor.Power
                     pass
                 pass
             
-            buffer+=FactorName(Factor,longflag,False)
+            buff+=FactorName(Factor,longflag,False)
 
             # Print factor power
             if abs(Factor.Power+1.0) > 1e-8:
-                buffer+="^%.6g" % (-Factor.Power)
+                buff+="^%.6g" % (-Factor.Power)
                 pass
             
             pass
@@ -851,10 +854,10 @@ def printunits(Comb,longflag=False):
 
     # print accumulated coefficient, if any
     if abs(Coefficient-1.0) > 1e-8:
-        buffer+="*%.6e" % (Coefficient)
+        buff+="*%.6e" % (Coefficient)
         pass
 
-    return buffer
+    return buff
 
 
 # dg_units compatibility

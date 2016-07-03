@@ -100,7 +100,7 @@ class stepparam(object):
         elif isinstance(result,numbers.Number):
             return result != 0
         else: 
-            raise ValueError("test_condition: condition \"%s\" returned invalid result (type %s)" % (self.condition,result.__class__.__name__))
+            raise ValueError("test_condition: condition \"%s\" returned invalid result (type %s)" % (condition,result.__class__.__name__))
         pass
 
     def evaluateas(self,typename):
@@ -109,12 +109,13 @@ class stepparam(object):
 
 
 def evaluate_params(paramdict,name,typename,outdoc,element):
+    # not sure this is used anymore!!!
     params=paramdict[name]
     for param in params:
         if param.test_condition(outdoc,element):
             return param.evaluateas(typename)
         pass
-    raise ValueError("No value found for parameter %s for element %s" % (self.name,etxpath2human(outdoc.get_canonical_etxpath(element),outdoc.nsmap)))
+    raise ValueError("No value found for parameter %s for element %s" % (name,etxpath2human(outdoc.get_canonical_etxpath(element),outdoc.nsmap)))
 
 def findparam_concrete(prxnsmap,outdoc,element,arg_nspre,argname,argtype):
     namespaces={}

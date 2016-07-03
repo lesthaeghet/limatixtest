@@ -3,7 +3,15 @@ import os.path
 import glob
 import copy
 import sys
-import pkg_resources
+
+try: 
+    import pkg_resources
+    pass
+except TypeError:
+    # Ignore error so we can run pychecker
+    pass
+
+
 import traceback
 
 if "gi" in sys.modules:  # gtk3
