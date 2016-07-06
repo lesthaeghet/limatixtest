@@ -29,7 +29,8 @@ def evaluate_from_element(xmldocu,element,typename):
     # href, string, xmltree, numericunits, etc: dc_value types
     
     # if typename is None, then we evaluate as an element
-    # if typename is "doc" then we evaluate as prxdoc
+    # if typename is "doc" then we evaluate as the document
+    # containg the element, i.e. xmldocu, -- which for <param> elements in prx file is prxdoc
     # (i.e.. the document that contains the element)
         
     basic_python_typedict={
@@ -109,7 +110,6 @@ class stepparam(object):
 
 
 def evaluate_params(paramdict,name,typename,outdoc,element):
-    # not sure this is used anymore!!!
     params=paramdict[name]
     for param in params:
         if param.test_condition(outdoc,element):

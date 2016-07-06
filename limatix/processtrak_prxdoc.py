@@ -9,6 +9,8 @@ from lxml import etree
 
 
 def findstep(prxdoc,stepname):
+    if stepname=="copyinput":
+        return None  # None is a shorthand for the copyinput step
     for step in prxdoc.xpath("prx:step"):
         name=getstepname(prxdoc,step)
         if name==stepname:
@@ -19,6 +21,9 @@ def findstep(prxdoc,stepname):
 
 
 def getstepname(prxdoc,step):
+    if step is None:
+        return "copyinput"
+    
     scripttag=prxdoc.xpathsinglecontext(step,"prx:script",default=None)
     if prxdoc.hasattr(step,"name"):
         return prxdoc.getattr(step,"name")

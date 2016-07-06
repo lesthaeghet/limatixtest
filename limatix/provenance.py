@@ -539,7 +539,7 @@ def elementgenerated(xmldocu,element):
     # that the link is broken.
     global ProvenanceDB
     
-    if xmldocu is None: 
+    if xmldocu is None or xmldocu.filehref is None: 
         return
 
     our_tid=id(threading.current_thread)
@@ -561,7 +561,7 @@ def elementgenerated(xmldocu,element):
 
 def xmldocelementaccessed(xmldocu,element):
     global ProvenanceDB
-    if xmldocu is None:
+    if xmldocu is None or xmldocu.filehref is None:
         return
 
     
