@@ -788,7 +788,7 @@ class explogwindow(gtk.Window):
                 # Open checklists that are not already open, that have a url and that are not mem:// URLs
                 if not entry.is_open and entry.filehref is not None and not entry.filehref.ismem(): 
                     chxdoc=xmldoc.xmldoc.loadhref(entry.filehref,chx_nsmap,readonly=True)
-                    is_done = chxdoc.getattr(chxdoc.getroot(),"done",defaultvalue="false")=="true"
+                    is_done = chxdoc.getattr(chxdoc.getroot(),"done",default="false")=="true"
                     if not is_done:
                         if entry in planentries:
                             self.open_plan(entry.filehref)

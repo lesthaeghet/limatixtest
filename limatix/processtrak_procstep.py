@@ -83,7 +83,7 @@ except IOError:
     pass
 
 
-steppath=[".",os.path.join(__install_prefix__,"share","datacollect2","pt_steps")]
+steppath=[".",os.path.join(__install_prefix__,"share","limatix","pt_steps")]
 
 
 def find_script_in_path(contexthref,scriptname):
@@ -338,6 +338,16 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
         pass
     pass
 
+def resultelementfromdict(output,resultdict):
+    # resultdict can either be a dict
+    # or a list/tuple of (key,element) pairs. 
+    # tuple use case is so that what would otherwise be a key
+    # can itself contain a dictionary of attributes
+
+    resultelementdoc=xmldoc.xmldoc.newdoc("resultelement",nsmap=output.nsmap,contexthref=output.getcontexthref())
+    
+    applyresultdict(resultelementdoc,None,None,resultelementdoc.getroot(),resultdict)
+    return resultelementdoc
 
 def applyresultdict(output,prxdoc,steptag,element,resultdict):
     # resultdict can either be a dict
@@ -345,6 +355,7 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
     # tuple use case is so that what would otherwise be a key
     # can itself contain a dictionary of attributes
 
+    
     if isinstance(resultdict,collections.Mapping):
         # dictionary or dictionary-like: 
         # Convert to list of (key,element) pairs
@@ -373,7 +384,7 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
             pass
 
         if not ":" in name and None in output.nsmap:
-            sys.stderr.write("dc_process.applyresultdict() WARNING: Results from processtrak\nsteps should always specify the XML namespace of result tags\nwhen a default namespace is set. Otherwise they get placed in\nthe default namespace, but not replaced on the next run.\n")
+            sys.stderr.write("processtrak_procstep.applyresultdict() WARNING: Results from processtrak\nsteps should always specify the XML namespace of result tags\nwhen a default namespace is set. Otherwise they get placed in\nthe default namespace, but not replaced on the next run.\n")
             pass
 
 
@@ -420,10 +431,28 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
             newel=output.addelement(element,name)
             output.settext(newel,resultvalue)
             pass
+        elif isinstance(resultvalue,xmldoc.xmldoc):            
+            newel=output.addelement(element,name)
+            # copy tree from resultvalue
+            resultroot=copy.deepcopy(resultvalue.doc.getroot())
+            newel[:]=resultroot[:]
+            for attrname in resultroot.attrib:
+                newel.attrib[attrname]=resultroot.attrib[attrname]
+                pass
+            newel.text=resultroot.text
+            newel.tail=resultroot.tail
 
+            # mark provenance of sub-elements
+            for subel in newel.iterdescendants():
+                provenance.elementgenerated(output,subel)
+                pass
+            pass
         else :
-            raise ValueError("step %s gave unknown result type %s for %s" % (prxdoc.tostring(steptag),unicode(resultvalue.__class__),name))
-        
+            if prxdoc is not None and steptag is not None:
+                raise ValueError("step %s gave unknown result type %s for %s" % (prxdoc.tostring(steptag),unicode(resultvalue.__class__),name))
+            else: 
+                raise ValueError("step gave unknown result type %s for %s" % (unicode(resultvalue.__class__),name))
+            pass
         # add attributes to newel
         for attrname in attrdict:
             output.setattr(newel,attrname,attrdict[attrname])
@@ -478,7 +507,10 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
                 argkw[argname]=output         # supply output XML document
                 pass
             elif argname=="_prxdoc":  # _xmldoc parameter gets output XML document
-                argkw[argname]=output         # supply output XML document
+                argkw[argname]=prxdoc         # supply output XML document
+                pass
+            elif argname=="_step":  # _xmldoc parameter gets output XML document
+                argkw[argname]=steptag         # supply output XML document
                 pass
             elif argname=="_inputfilename":  # _inputfilename parameter gets unquoted name (but not path) of input file
                 argkw[argname]=inputfilehref.get_bare_unquoted_filename()
@@ -489,7 +521,7 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
             elif argname=="_dest_href":
                 # Get hrefvalue pointing at destination directory, where
                 # files should be written
-                destlist=output.xpath("dc:summary/dc:dest")
+                destlist=output.xpath("dc:summary/dc:dest",namespaces=processtrak_common.prx_nsmap)
                 argkw[argname]=None
                 if len(destlist)==1:
                     argkw[argname]=dcv.hrefvalue.fromxml(output,destlist[0])

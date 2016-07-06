@@ -675,6 +675,7 @@ class xmldoc(object):
             # Move root element's children
             new_rootel[:]=rootel[:]
             new_rootel.text=rootel.text
+            new_rootel.tail=rootel.tail
             
             # Move siblings (processing instructions, comments, xml declaration)
             cursibling=new_rootel
@@ -1799,6 +1800,10 @@ class xmldoc(object):
         # Record provenance update for this element
         provenance.xmldocelementaccessed(self,element)
 
+        if element.text is None:
+            return ""
+        
+
         return element.text
 
     def _xpath_merge_params(self,namespaces,extensions,variables):
@@ -1833,7 +1838,8 @@ class xmldoc(object):
                 provenance.xmldocelementaccessed(self,resultlist.getparent())
                 pass
             else :
-                provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (str(resultlist),path,self._filename))
+                # probably a string( ) method... can't track this provenance
+                # provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (str(resultlist),path,self._filename))
                 pass
             pass
         else :
@@ -1846,7 +1852,9 @@ class xmldoc(object):
                         provenance.xmldocelementaccessed(self,resultel.getparent())
                         pass
                     else :
-                        provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (unicode(resultel),path,self._filename))
+                        # probably a string( ) method... can't track this provenance
+                        
+                        #provenance.warnnoprovenance("Unable to identify provenance of XPath result %s for %s on file %s" % (unicode(resultel),path,self._filename))
                         pass
                     pass
                 else : 
@@ -2590,14 +2598,14 @@ class xmldoc(object):
         element.getparent().remove(element)
         pass
 
-    def getattr(self,tag,attrname,defaultvalue=IndexError("Attribute not found"),namespaces=None) :
+    def getattr(self,tag,attrname,default=IndexError("Attribute not found"),namespaces=None) :
         """Set the attribute of the specified element or path
         Use namespace prefixes as usual. 
 
         tag:      The element itself, or path to it from the main tag,
                   or None to get attributes of the main tag
         attrname: Name of attribute to get
-        defaultvalue: Default value of the attribute to return. If
+        default: Default value of the attribute to return. If
                   this is not provided, IndexError
                   will be raised. 
         namespaces: Additional namespaces for attribute evaluation
@@ -2624,10 +2632,10 @@ class xmldoc(object):
             
         if fullattrname in tag.attrib:
             return tag.attrib[fullattrname]
-        elif isinstance(defaultvalue,BaseException):
-            raise defaultvalue
+        elif isinstance(default,BaseException):
+            raise default
         else:
-            return defaultvalue
+            return default
         
         pass
 

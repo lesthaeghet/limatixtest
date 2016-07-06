@@ -735,7 +735,7 @@ class checklist(object):
                         
                         pass
                     pass
-                title=self.xmldoc.getattr(curitem,"title",defaultvalue="")
+                title=self.xmldoc.getattr(curitem,"title",default="")
 
                 if len(title)==0:
                     title=curitem.text
@@ -923,7 +923,7 @@ class checklist(object):
     def is_done(self):
         self.xmldoc.lock_ro()
         try:
-            is_done = self.xmldoc.getattr(self.xmldoc.getroot(),"done",defaultvalue="false")=="true"
+            is_done = self.xmldoc.getattr(self.xmldoc.getroot(),"done",default="false")=="true"
             pass
         finally: 
             self.xmldoc.unlock_ro()

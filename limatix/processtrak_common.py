@@ -105,7 +105,7 @@ xmlNameCharSet = set( [ unichr(num) for num in xmlNameCharNums ] )
 def convert_to_tagname(rawname):
     out=""
 
-    if len(rawname)==0:
+    if rawname is None or len(rawname)==0:
         return None
     
     if rawname[0] in xmlNameStartCharSet:
@@ -262,8 +262,8 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
             ncols=sheet.ncols
 
             rawtitles = [ str(sheet.cell(titlerow,col).value).strip() for col in range(ncols) ]
-            tagnames = [ convert_to_tagname(splitunits(rawtitle)[0]) if len(rawtitle) > 0 else "blank" for rawtitle in rawtitles ]
-            unitnames = [ convert_to_tagname(splitunits(rawtitle)[1]) if len(rawtitle) > 0 else None for rawtitle in rawtitles ]
+            tagnames = [ convert_to_tagname(splitunits(rawtitle)[0]) if rawtitle is not None and len(rawtitle) > 0 else "blank" for rawtitle in rawtitles ]
+            unitnames = [ convert_to_tagname(splitunits(rawtitle)[1]) if rawtitle is not None and len(rawtitle) > 0 else None for rawtitle in rawtitles ]
 
             
             
@@ -303,8 +303,16 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
                     
                     cellel=outdoc.addelement(rowel,"ls:"+tagnames[col])
                     outdoc.setattr(cellel,"ls:celltype",cell_type)
-                    if cell_type=="text":
+                    hyperlink=sheet.hyperlink_map.get((row,col))
+                    if cell_type=="text" and hyperlink is None:
                         outdoc.settext(cellel,cell.value)
+                        pass
+                    elif cell_type=="text" and hyperlink is not None:
+                        # Do we need to do some kind of conversion on
+                        # hyperlink.url_or_path()
+                        outdoc.settext(cellel,cell.value)
+                        hyperlink_href=dcv.hrefvalue(hyperlink.url_or_path,contexthref=inputfilehref)
+                        hyperlink_href.xmlrepr(outdoc,cellel)
                         pass
                     elif cell_type=="number":
                         if unitnames[col] is not None:
@@ -324,13 +332,6 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
                     else:
                         raise ValueError("Unknown cell type %s" %(cell_type))
                     
-                    hyperlink=sheet.hyperlink_map.get((row,col))
-                    if hyperlink is not None:
-                        # Do we need to do some kind of conversion on
-                        # hyperlink.url_or_path()
-                        hyperlink_href=dcv.hrefvalue(hyperlink.url_or_path,contexthref=inputfilehref)
-                        hyperlink_href.xmlrepr(outdoc,cellel)
-                        pass
                     pass
                 pass
             
@@ -455,6 +456,7 @@ def open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=None):
         provenance.write_timestamp(out.output,process_el,"lip:starttimestamp",overall_starttime)
         provenance.write_process_info(out.output,process_el)
         provenance.write_input_file(out.output,process_el,out.inputfilehref)
+        provenance.write_target(out.output,process_el,out.outputfilehref)
         
         # Give our lip:process element a unique hash   (hash is used for distinguishing adjacent process elements)
         provenance.set_hash(out.output,process_el,process_el)
@@ -471,7 +473,7 @@ def open_or_lock_output(prxdoc,out,overall_starttime,copyfileinfo=None):
             cfprocess_el=out.output.addelement(process_el,"lip:process")
             # have lip:used point to the input file we copied from 
             provenance.reference_file(out.output,cfprocess_el,"lip:used",outputroot,out.inputfilehref.value(),warnlevel="warning",timestamp=inputfiletimestamp,fragcanonsha256=inputfilecanonhash)
-            provenance.write_action(out.output,cfprocess_el,"_copy_input_file")
+            provenance.write_action(out.output,cfprocess_el,"copyinput")
             provenance.write_timestamp(out.output,cfprocess_el,"lip:starttimestamp",cf_starttime)
             provenance.write_timestamp(out.output,cfprocess_el,"lip:finishtimestamp")
             
@@ -601,19 +603,29 @@ def outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debug
     # Run the specified steps, on the specified files
 
     
-    # Initialize any output files that don't exist
-    for inputfilehref in outputdict:
-        initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime)
-        pass
+    # # Initialize any output files that don't exist
+    # for inputfilehref in outputdict:
+    #     initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime)
+    #     pass
 
 
     # Run each step on each input file 
     for step in steps:
         print("\nProcessing step %s" % (processtrak_prxdoc.getstepname(prxdoc,step)))
-        for inputfilehref in outputdict:
-            # print("\nProcessing step %s on URL %s." % (processtrak_prxdoc.getstepname(prxdoc,step),output.get_filehref().absurl())) 
 
-            processtrak_procstep.procstep(prxdoc,outputdict[inputfilehref],step,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist)
+    
+        
+        for inputfilehref in outputdict:
+
+            if step is None: 
+                # Initialize output file 
+                initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime,force=True)
+                pass
+            else: 
+                # print("\nProcessing step %s on URL %s." % (processtrak_prxdoc.getstepname(prxdoc,step),output.get_filehref().absurl())) 
+
+                processtrak_procstep.procstep(prxdoc,outputdict[inputfilehref],step,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist)
+                pass
             pass
         pass
 

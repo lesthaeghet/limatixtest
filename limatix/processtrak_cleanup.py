@@ -200,7 +200,7 @@ class inputfile(object):
             ftype=cls.IFT_OTHERXML
             root=xmldocu.getroot()
             lipprocess=xmldocu.xpath("lip:process")                
-            if xmldocu.gettag(root)=="dc:experiment":
+            if xmldocu.tag_is(root,"dc:experiment"):
                 # .xlg
                 ftype=cls.IFT_XLG
                 pass
@@ -209,10 +209,10 @@ class inputfile(object):
                 # call it an .xlp
                 ftype=cls.IFT_XLP
                 pass
-            elif xmldocu.gettag(root)=="prx:processinginstructions":
+            elif xmldocu.tag_is(root,"prx:processinginstructions"):
                 ftype=cls.IFT_PRX
                 pass
-            elif xmldocu.gettag(root)=="prx:inputfiles" and len(xmldocu.xpath("lip:process")) > 0:
+            elif xmldocu.tag_is(root,"prx:inputfiles") and len(xmldocu.xpath("lip:process")) > 0:
                 # A .pro file, which we classify as a .xlp file
                 ftype=cls.IFT_XLP
                 pass            
@@ -293,6 +293,8 @@ def traverse_one(infiles,infileobj,pending,completed,dests,hrefs,recursive=False
         
         if infileobj.ftype==infileobj.IFT_PRX:
             # .PRX file has implicit links to its input and output files
+
+            # ... We follow links to .xlp files whether or not the recursive flag is set
             
             prx_inputfiles_with_hrefs=processtrak_common.getinputfiles(infileobj.xmldocu)
             prx_outputdict=processtrak_common.build_outputdict(infileobj.xmldocu,prx_inputfiles_with_hrefs)
@@ -305,8 +307,10 @@ def traverse_one(infiles,infileobj,pending,completed,dests,hrefs,recursive=False
                 
                 if recursive:
                     add_to_traverse(infiles,pending,completed,prx_inputfile_href)
-                    add_to_traverse(infiles,pending,completed,prx_outputdict[prx_inputfile_href].outputfilehref)
                     pass
+                
+                # follow link to output whether or not recursive is set 
+                add_to_traverse(infiles,pending,completed,prx_outputdict[prx_inputfile_href].outputfilehref)
                 pass
             pass
 

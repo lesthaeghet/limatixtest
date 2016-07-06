@@ -3,16 +3,45 @@
 # experiment log or a tabular portion of your
 # experiment log to a .ods spreadsheet
 
-# *** This is unfinished
 
 import collections
 import zipfile
+import sys
+import copy
+
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    pass
+
+
+from lxml import etree
+
+from limatix import dc_value
+from limatix import xmldoc
+
+if sys.version_info[0] <= 2 and sys.version_info[1] < 7:
+    zipfile_compression=zipfile.ZIP_STORED
+    pass
+else:
+    zipfile_compression=zipfile.ZIP_DEFLATED
+    pass
 
 
 # Example sheetspec
 sheetspec=r"""
 <sheetspec xmlns="http://limatix.org/processtrak" xmlns:pt="http://limatix.org/processtrak">
-  <sheet name="My sheet" tableselect="prx:href(outputfile)/dc:experiment">  <!-- Can create multiple sheets, iterating over nodes found with selection. Selection is relative to the iterating context of the step -- i.e. the element found according to elementmatch. Can use nameselect="xpath_expression" in place of name="name". The nameselect expression will be reevaluated in the context of each tableselect selection -->
+  <sheet name="My sheet" tableselect="dc:experiment">  <!-- Can create multiple sheets, iterating over nodes found with selection. Selection is relative to the iterating context of the step -- i.e. the element found according to elementmatch. Can use nameselect="xpath_expression" in place of name="name". The nameselect expression will be reevaluated in the context of each tableselect selection -->
     <rows select="dc:measurement"/> <!-- relative to table selected in the <sheet> tag above -->
       <col select='dgsfile' type="href" label="DGS Filename"/>
       <col select='concat(substring(normalize-space(timestamp),6,2),"/",substring(normalize-space(timestamp),9,2),"/",substring(normalize-space(timestamp),3,2))' label="Date"/>
@@ -29,8 +58,8 @@ sheetspec=r"""
       <col select="elecenergy" label="Electrical Energy (Joules)"/>
       <col select="hae" label="HAE (m^2/s)"/>
       <col select="dynstress" label="Dynamic stress"/>
-      <col select='crackheat' type="numeric" label="Crack heating, gaussian fit (K)"/>
-      <col select="pixelsperinch" type="numeric" label="Pixels per inch"/>
+      <col select='crackheat' type="numericunits" units="K" label="Crack heating, gaussian fit (K)"/>
+      <col select="pixelsperinch" type="numericunits" label="Pixels per inch"/>
       <col select="notes" type="string" label="Notes"/>
 
       <!-- colspec select='/run/@date' label="Date" type="string"/-->
@@ -63,7 +92,10 @@ xmlns:dom="http://www.w3.org/2001/xml-events"
 xmlns:xforms="http://www.w3.org/2002/xforms"
 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-extension-element-prefixes="dyn"
+xmlns:pt="http://limatix.org/processtrak"
+xmlns:prx="http://limatix.org/processtrak/processinginstructions"
+xmlns:exsl="http://exslt.org/common"
+extension-element-prefixes="dyn prx exsl"
 version="1.0">
 
 <xsl:output method='xml' indent='yes'/>
@@ -90,7 +122,7 @@ version="1.0">
 </office:automatic-styles>
 
 <office:body><office:spreadsheet>
-  <xsl:apply-templates/>
+  <xsl:apply-templates select="prx:sheetspec()"/>  <!-- This is what pulls in the sheetspec -->
 </office:spreadsheet>
 </office:body>
 </office:document-content>
@@ -103,75 +135,79 @@ version="1.0">
 <xsl:variable name="name"><xsl:value-of select="@name"/></xsl:variable>
 <xsl:variable name="nameselect"><xsl:value-of select="@nameselect"/></xsl:variable>
 <xsl:variable name="sheet" select="."/>
-<!-- will monkey-patch in sheetspec's nsmap to each tag with select= 
-     containing dyn:evaluate -->
-<xsl:for-each select="dyn:evaluate(@tableselect)">
-  <xsl:element name="table:table">
-    <xsl:attribute name="table:name">
-      <xsl:choose>
-        <xsl:when test="string-length($nameselect) &gt; 0">
-          <xsl:value-of select="dyn:evaluate($nameselect)"/>
-        </xsl:when>
-        <xsl:otherwise>
-          <xsl:value-of select="$name"/> 
-        </xsl:otherwise>
-      </xsl:choose>
-    </xsl:attribute>
-  <xsl:attribute name="table:style-name">ta1</xsl:attribute>
-  <xsl:attribute name="table:print">false</xsl:attribute>
-  <table:table-column table:style-name="co1" table:default-cell-style-name="Default"/>
-  <table:table-row table:style-name="ro1">
-    <table:table-cell office:value-type="string">
-    <text:p><xsl:value-of select="title"/></text:p>  
-    </table:table-cell>
-  </table:table-row>
-  <table:table-row table:style-name="ro1">
-    <table:table-cell/>
-  </table:table-row>
-  <table:table-row table:style-name="ro1">
-    <table:table-cell office:value-type="string">
-    <text:p>MACHINE-GENERATED: DO NOT EDIT! </text:p>  
-    </table:table-cell>
-  </table:table-row>
-  <table:table-row table:style-name="ro1">
-    <table:table-cell office:value-type="string">
-    <text:p>Converter: </text:p>  
-    </table:table-cell>
-    <table:table-cell office:value-type="string">
-    <text:p>writespreadsheet.py</text:p>  
-    </table:table-cell>
-    <!-- <table:table-cell office:value-type="string">
-    <text:p>Filespec:</text:p>  
-    </table:table-cell>
-    <table:table-cell office:value-type="string">
-    <text:p><xsl:value-of select="$filespecname"/></text:p>  
-    </table:table-cell> -->
-    <table:table-cell office:value-type="string">
-    <table:table-cell office:value-type="string">
-    <text:p>Datestamp:</text:p>  
-    </table:table-cell>
-    <table:table-cell office:value-type="string">
-    <text:p><xsl:value-of select="$datestamp"/></text:p>  
-    </table:table-cell>
-  </table:table-row>
-  <table:table-row table:style-name="ro1">
-    <table:table-cell/>
-  </table:table-row>
-  
-  <table:table-row table:style-name="ro1">
-    <xsl:apply-templates select="$sheet/pt:col" mode="headings"/>
-  </table:table-row>
+<xsl:variable name="tableselect" select="@tableselect"/>
 
-  <xsl:for-each select="dyn:evaluate($sheet/pt:rows/@select)">
-    <xsl:variable name="row" select="."/>
-    <table:table-row table:style-name="ro1">
-      <xsl:apply-templates select="$sheet/pt:col" mode="rows">
-        <xsl:with-param name="row" select="$row"/>
-      </xsl:apply-templates>
-    </table:table-row>
-  </xsl:for-each>
+<!-- Switch context to matched element in .xlp file -->
+<xsl:for-each select="prx:element()">
+  <!-- will monkey-patch in sheetspec's nsmap to each tag with select= 
+     containing dyn:evaluate -->
+  <xsl:for-each select="dyn:evaluate($tableselect)">
+    <xsl:element name="table:table">
+      <xsl:attribute name="table:name">
+        <xsl:choose>
+          <xsl:when test="string-length($nameselect) &gt; 0">
+            <xsl:value-of select="dyn:evaluate($nameselect)"/>
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:value-of select="$name"/> 
+          </xsl:otherwise>
+        </xsl:choose>
+      </xsl:attribute>
+      <xsl:attribute name="table:style-name">ta1</xsl:attribute>
+      <xsl:attribute name="table:print">false</xsl:attribute>
+      <table:table-column table:style-name="co1" table:default-cell-style-name="Default"/>
+      <table:table-row table:style-name="ro1">
+        <table:table-cell office:value-type="string">
+          <text:p><xsl:value-of select="title"/></text:p>  
+        </table:table-cell>
+      </table:table-row>
+      <table:table-row table:style-name="ro1">
+        <table:table-cell/>
+      </table:table-row>
+      <table:table-row table:style-name="ro1">
+        <table:table-cell office:value-type="string">
+          <text:p>MACHINE-GENERATED: DO NOT EDIT! </text:p>  
+        </table:table-cell>
+      </table:table-row>
+      <table:table-row table:style-name="ro1">
+        <table:table-cell office:value-type="string">
+          <text:p>Converter: </text:p>  
+        </table:table-cell>
+        <table:table-cell office:value-type="string">
+          <text:p>writespreadsheet.py</text:p>  
+        </table:table-cell>
+        <!-- <table:table-cell office:value-type="string">
+           <text:p>Filespec:</text:p>  
+           </table:table-cell>
+           <table:table-cell office:value-type="string">
+           <text:p><xsl:value-of select="$filespecname"/></text:p>  
+           </table:table-cell> -->
+        <table:table-cell office:value-type="string">
+          <text:p>Datestamp:</text:p>  
+        </table:table-cell>
+        <table:table-cell office:value-type="string">
+          <text:p><xsl:value-of select="$datestamp"/></text:p>  
+        </table:table-cell>
+      </table:table-row>
+      <table:table-row table:style-name="ro1">
+      <table:table-cell/>
+      </table:table-row>
   
-</xsl:element> <!-- table:table -->
+      <table:table-row table:style-name="ro1">
+        <xsl:apply-templates select="$sheet/pt:col" mode="headings"/>
+      </table:table-row>
+      <xsl:variable name="rowsel" select="$sheet/pt:rows"/>
+      <xsl:for-each select="dyn:evaluate($rowsel/@select)">
+        <xsl:variable name="row" select="."/>
+        <table:table-row table:style-name="ro1">
+          <xsl:apply-templates select="$sheet/pt:col" mode="rows">
+            <xsl:with-param name="row" select="$row"/>
+          </xsl:apply-templates>
+        </table:table-row>
+      </xsl:for-each>
+    </xsl:element> <!-- table:table -->
+  </xsl:for-each>
+</xsl:for-each>
 
 </xsl:template>
 
@@ -179,6 +215,9 @@ version="1.0">
   <table:table-cell office:value-type="string">
   <text:p>
     <xsl:value-of select='@label'/>
+    <xsl:if test="string(@type)='numericunits'">
+      <xsl:value-of select="' '"/>(<xsl:value-of select="@units"/>)
+    </xsl:if>
   </text:p>
 </table:table-cell>
 </xsl:template>
@@ -187,26 +226,36 @@ version="1.0">
   <xsl:param name="row"/>
   <xsl:variable name="col" select="."/>
   <!-- Store cell content in a variable -->
-  <xsl:variable name="cellcontent">
-    <!-- force context area over to the row element -->
-    <xsl:for-each select="$row">
-      <xsl:value-of select='dyn:evaluate($col/@select)'/>
-    </xsl:for-each>
-  </xsl:variable>
+  <!-- force context area over to the row element -->
+  <xsl:for-each select="$row">
+  <xsl:variable name="selection" select="dyn:evaluate($col/@select)"/>
   <xsl:choose>
     <xsl:when test="string($col/@type)='numericunits'">
       <xsl:element name="table:table-cell">
         <xsl:attribute name="office:value-type">float</xsl:attribute>
-        <xsl:attribute name="office:value"><xsl:value-of select="normalize-space($cellcontent)"/></xsl:attribute>
-         <text:p><xsl:value-of select="normalize-space($cellcontent)"/></text:p>
+        <xsl:attribute name="office:value"><xsl:value-of select="prx:numericunitsvalue($selection,@units)"/></xsl:attribute>
+         <text:p><xsl:value-of select="prx:numericunitsvalue($selection,@units)"/></text:p>
       </xsl:element>
+    </xsl:when>
+    <xsl:when test="string($col/@type)='numeric'">
+      <xsl:element name="table:table-cell">
+        <xsl:attribute name="office:value-type">float</xsl:attribute>
+        <xsl:attribute name="office:value"><xsl:value-of select="$selection"/></xsl:attribute>
+         <text:p><xsl:value-of select="$selection"/></text:p>
+      </xsl:element>
+    </xsl:when>
+    <xsl:when test="string($col/@type)='href'">
+      <table:table-cell office:value-type="string">
+        <text:p><text:a xlink:type="simple"><xsl:attribute name="xlink:href"><xsl:value-of select="prx:hrefxlink($selection)"/></xsl:attribute><xsl:value-of select="prx:hrefxlink($selection)"/></text:a></text:p>
+      </table:table-cell>
     </xsl:when>
     <xsl:otherwise>
       <table:table-cell office:value-type="string">
-        <text:p><xsl:value-of select="normalize-space($cellcontent)"/></text:p>
+        <text:p><xsl:value-of select="normalize-space($selection)"/></text:p>
       </table:table-cell>
     </xsl:otherwise>
   </xsl:choose>
+  </xsl:for-each>
 </xsl:template>
 
 
@@ -216,22 +265,78 @@ version="1.0">
 """
 
 
-class href_lookupfcn_ext(object):
+
+class prx_lookupfcn_ext(object):
     # etree extension prx:href that allows looking up other
     # documents via hypertext references
     extensions=None  # extensions parameter for etree.xpath
+    xlpdocu=None  # actually output
+    xlpelement=None # context element
     docdb=None   # Dictionary of xmldocs by href. Include output, prxdoc, and sheetspec
-    sheetspec=None # sheetspec etree.Element within its own xmldoc
+    sheetspec_el=None # sheetspec etree.Element within an xmldoc
     
-    def __init__(self,docdb,sheetspec):
+    def __init__(self,docdb,sheetspec_el,xlpdocu,xlpelement):
         self.docdb=docdb
-        self.sheetspec=sheetspec
-        functions=('href','sheetspec')
+        self.sheetspec_el=sheetspec_el
+        self.xlpdocu=xlpdocu
+        self.xlpelement=xlpelement
+        functions=('href','sheetspec','numericunitsvalue','hrefxlink','xlpdoc','element')
         self.extensions=etree.Extension(self,functions,ns="http://limatix.org/processtrak/processinginstructions")
         pass
 
+    def xlpdoc(self,context):
+        return self.xlpdocu.getroot()
+
+    def element(self,context):
+        #sys.stderr.write("\n\nelement()\n\n")
+        #sys.stderr.write("\n\nelement() returning %s\n\n" % (str(context.context_node)))
+        #return context.context_node 
+        return self.xlpelement
+    
+    def numericunitsvalue(self,context,cellcontent,units):
+        # Evaluate numeric units of a target element (in cellcontent)
+        # according to specified units
+        if isinstance(cellcontent,list):
+            contextdoc=self.finddocument(cellcontent.context_node)
+            if len(cellcontent) > 0:                
+                raise ValueError("Can only evaluate numeric value of a single element: cellcontent = [ %s ]; context=%s" % ( ",".join([dc_value.hrefvalue.fromelement(self.finddocument(cellc),cellc).humanurl() for cellc in cellcontent ]), dc_value.hrefvalue.fromelement(contextdoc,cellcontent.context_node)))
+            elif len(cellcontent) == 0:
+                raise ValueError("Can not evaluate numeric value of empty element set: context=%s" % (dc_value.hrefvalue.fromelement(contextdoc,cellcontent.context_node).humanurl()))
+            cellcontent=cellcontent[0]
+        
+            pass
+        
+        nuv=dc_value.numericunitsvalue.fromxml(self.finddocument(cellcontent),cellcontent).value(units=units)
+        return nuv
+
+    def hrefxlink(self,context,sourcelink):
+        # return xlink:href attribute value for sourcelink
+        # in given context
+
+        contextxmldoc=self.finddocument(context.context_node)
+
+        if isinstance(sourcelink,list):
+            if len(sourcelink) < 1:
+                #raise ValueError("hrefxlink: Empty source node set, context=%s" % (dc_value.hrefvalue.fromelement(contextxmldoc,context.context_node).humanurl()))
+                return []
+            elif len(sourcelink) > 1:
+                raise ValueError("hrefxlink: Multiple source nodes %s, context=%s" % (",".join([dc_value.hrefvalue.fromelement(self.finddocument(cellc),cellc).humanurl() for cellc in sourcelink ]),dc_value.hrefvalue.fromelement(contextxmldoc,context.context_node).humanurl()))
+            sourcelink=sourcelink[0]
+            pass
+        
+        
+        # create dummy xmldoc in given context
+        dummydoc=xmldoc.xmldoc.newdoc("dummy",nsmap={ "xlink": "http://www.w3.org/1999/xlink" },contexthref=contextxmldoc.getcontexthref())
+
+        hrefval=dc_value.hrefvalue(sourcelink.attrib["{http://www.w3.org/1999/xlink}href"],contexthref=self.finddocument(sourcelink).getcontexthref())
+        hrefval.xmlrepr(dummydoc,dummydoc.getroot())
+        xlinktext=dummydoc.getattr(dummydoc.getroot(),"xlink:href")
+        return xlinktext
+    
+        
+
     def sheetspec(self,context):
-        return self.sheetspec
+        return self.sheetspec_el
 
     def href_eval_href(self,hrefobj):
         if hrefobj not in self.docdb:
@@ -253,26 +358,35 @@ class href_lookupfcn_ext(object):
             hrefobj=dc_value.hrefvalue.fromxml(contextxmldoc,node)
             return self.href_eval_href(hrefobj)
         pass
-    
-    def href(self,context,node):
+
+    def finddocument(self,node):
         # find document root
-        ancestor=context.context_node
+        ancestor=node
 
         while ancestor is not None:
             oldancestor=ancestor
             ancestor=ancestor.getparent()
             pass
         docroot=oldancestor
-
         # Now search in docdb for a document with that root
-        contextxmldoc=None
+        xmldoc=None
         for hrefv in self.docdb:
             if docroot is self.docdb[hrefv].getroot():
-                contextxmldoc=self.docdb[hrefv]
+                xmldoc=self.docdb[hrefv]
                 pass
             pass
-        if contextxmldoc is None:
-            raise ValueError("prx:href() extension function called from context that is not in docdb")
+        if xmldoc is None:
+            #sys.stderr.write("docroot=%s; docdb=%s\n" % (str(docroot),str(self.docdb)))
+            #raise ValueError("prx extension function called with context or node that is not in docdb")
+            # if we couldn't find it the correct answer is almost
+            # always xlpdocu
+            return self.xlpdocu
+            
+        return xmldoc
+            
+    def href(self,context,node):
+
+        contextxmldoc=self.finddocument(context.context_node)
 
         return self.hrefevalnode(contextxmldoc,context,node)
     pass
@@ -308,7 +422,7 @@ def write_output(outfilename,result):
     pass
 
 
-def run(_prxdoc,_xmldoc,_element,prx_sheetspec,prx_outfilenamexpath):
+def run(_prxdoc,_step,_xmldoc,_element,prx_sheetspec_doc,prx_sheetspec,prx_outfilenamexpath_doc,prx_outfilenamexpath,linktag="prx:spreadsheet"):
 
 
     docdb={}
@@ -316,24 +430,78 @@ def run(_prxdoc,_xmldoc,_element,prx_sheetspec,prx_outfilenamexpath):
     docdb[_xmldoc.get_filehref()]=_xmldoc
     
     #sheetspec=prx_sheetspec_xmltree.get_xmldoc()
-    docdb[sheetspec.get_filehref()]=sheetspec # don't wrap it in another xmldoc, so context lookups work properly
+    docdb[prx_sheetspec_doc.get_filehref()]=prx_sheetspec_doc # don't wrap it in another xmldoc, so context lookups work properly
     
-
-    href_lookupfcn=href_lookupfcn_ext(docdb,sheetspec.getroot())
-
     stylesheet=etree.XML(transformation)
 
-    # !!!*** Need to monkeypatch in nsmap from sheetspec into
-    # all elements of stylesheet with a select attribute that contains
-    # dyn:evaluate
     
-    transform=etree.XSLT(stylesheet,extensions=href_lookupfcn_ext.extensions)
-    ods=transform(sheetspec)
+    prx_lookupfcn=prx_lookupfcn_ext(docdb,prx_sheetspec,_xmldoc,_element)  # .getroot())
 
-    result=etree.tostring(ods)
+    # Monkeypatch in nsmap from sheetspec into
+    # all xsl:elements of stylesheet with a select attribute that contains
+    # dyn:evaluate
+    els_to_patch=stylesheet.xpath("//xsl:*[contains(@select,'dyn:evaluate')]",namespaces={"xsl": "http://www.w3.org/1999/XSL/Transform"})
+    for el in els_to_patch:
+        parent=el.getparent()
+        index=parent.index(el)
+        
+        parent.remove(el)
 
-    # need to evaluate prx_outfilenamexpath
+        # New element, with desired nsmap and copying all attributes
+        newel=etree.Element(el.tag,nsmap=prx_sheetspec.nsmap,attrib=el.attrib)
+        # Move element's children
+        newel[:]=el[:]
+        
+        newel.text=el.text
+        newel.tail=el.tail
+        
+        parent.insert(index,newel)
+        pass
+        
+    # stylesheetdoc=etree.ElementTree(stylesheet)
+    # stylesheetdoc.write("/tmp/foo.xsl")
+    
+    
+    
+    transform=etree.XSLT(stylesheet,extensions=prx_lookupfcn.extensions)
+    ods=transform(etree.XML("<dummy/>"))  # Stylesheet calls sheetspec() function to get actual sheetspec. This avoids cutting sheespec out of its source document. 
 
-    write_output(outfilename,result):
+    # result=etree.tostring(ods)
 
-    return {"prx:spreadsheet": 
+    resultdoc=xmldoc.xmldoc.frometree(ods,contexthref=_xmldoc.getcontexthref())
+    
+    # evaluate prx_outfilenamexpath
+
+    namespaces=copy.deepcopy(prx_outfilenamexpath.nsmap)
+    if None in namespaces:
+        del namespaces[None]  # nsmap param cannot have None
+        pass
+                             
+    
+    prx_outfilename= _xmldoc.xpathcontext(_element,prx_outfilenamexpath_doc.getattr(prx_outfilenamexpath,"select"),namespaces=namespaces)
+
+    if not prx_outfilename.endswith(".ods"):
+        raise ValueError("Output spreadsheet requires .ods extension")
+
+    ## put in dest dir if present
+    #dest=_xmldoc.xpathsingle("dc:summary/dc:dest",default=None,namespaces={"dc": "http://limatix.org/datacollect"} )
+
+    #if dest is None:
+        # Put in same directory as _xmldoc
+    outdirhref=_xmldoc.getcontexthref().leafless()
+    #    pass
+    #else:
+    #    outdirhref=dc_value.hrefvalue.fromxml(_xmldoc,dest).leafless()
+    #    pass
+    
+        
+    prx_outfilehref=dc_value.hrefvalue(quote(prx_outfilename),contexthref=outdirhref) 
+
+    # ods spreadsheet context is a "content.xml" file inside the .ods file interpreted as a directory
+    odscontext=dc_value.hrefvalue(quote(prx_outfilename)+"/",contexthref=outdirhref) 
+    resultdoc.setcontexthref(dc_value.hrefvalue("content.xml",contexthref=odscontext))  # fix up xlink hrefs
+   
+    write_output(prx_outfilehref.getpath(),resultdoc.tostring())
+
+    return {linktag: prx_outfilehref}
+

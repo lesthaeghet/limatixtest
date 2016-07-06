@@ -204,7 +204,15 @@ class Unit(object):
             pass
         pass
 
+    # We override __copy__ and __deepcopy__ because
+    # this object represents the unit and should never be copies
 
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self,memo):
+        memo[id(self)]=self
+        return self
 
 
     pass
@@ -249,7 +257,7 @@ class UnitFactor(object):
     Unit=None  # Unit object, either this OR 
     NameOnly=None   # NameOnly should be not None. Nameonly used for unknown units
     Power=None   # e.g 1 for emters, 2 for meters^2, positive for numerator... COEFFICIENT WILL BE TAKEN TO THIS POWER TOO!
-    Coefficient=None # Coeffcient of this units. When normalized will be 1.0, except if there is a PreferredPower in which case this will be 10^PreferredPower
+    Coefficient=None # Coefficient of this units. When normalized will be 1.0, except if there is a PreferredPower in which case this will be 10^PreferredPower
 
     def __init__(self,**kwargs):
         self.AbbrevList=[]
@@ -557,7 +565,11 @@ def units_config(configstring):
                     raise ValueError("units_config(): Unknown unit parameter %s" % (param))
                 pass
 
+            if valuelist[0] in UnitDict or valuelist[1] in UnitDict:
+                continue # don't redefine unit a second time
+
             UnitObj=Unit(MeasName=measurement,SingularName=valuelist[0],PluralName=valuelist[1],SiPrefixFlag=siflag,PreferredPower=preferredpower,Index=NextUnitIndex)
+            # sys.stderr.write("Units: %s: %s\n" % (valuelist[0],str(UnitObj)))
             NextUnitIndex+=1
             UnitDict[valuelist[0]]=UnitObj
             UnitDict[valuelist[1]]=UnitObj
@@ -667,7 +679,7 @@ def comparerawunits(CombA,CombB):
         else:
             if FactorA.Power != FactorB.Power:
                 return 0.0
-            assert(FactorA.Coefficient==FactorB.Coeffcient) # Should always match because of normalization in sorting function
+            assert(FactorA.Coefficient==FactorB.Coefficient) # Should always match because of normalization in sorting function
             pass
         pass
 
