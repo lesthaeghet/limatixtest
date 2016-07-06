@@ -733,9 +733,9 @@
       </li>
     </ol>
     
-    <h2>processtrak</h2>
+    <h2>ProcessTrak</h2>
     <p>
-      processtrak is a tool for defining step-by-step processing procedures
+      ProcessTrak is a tool for defining step-by-step processing procedures
       for data analysis. It helps avoid the unbounded need for confusing
       arrays of intermediate files by storing as much information
       in a single processed experiment log that is updated by each
@@ -754,7 +754,7 @@
       processtrak is currently run from the command line. <tt>processtrak prx_file.prx --steps</tt> will list the runnable steps. Then you can run a step with, for example, <tt> processtrak prx_file.prx -s first_step</tt>. The first time you execute a step, it will copy the original experiment log (.xlg) to a "processed experiment log" (.xlp). All further operations will be on the processed .xlp file so that the original experiment log remains untouched.
     </p>
     <p>
-      The processing steps are Python scripts that can be embedded in the .prx file or be referenced as external .py files. The processing script itself is defined as a function called "run" which is called once per matching XML element in the processed experiment log, and takes specially named arguments:
+      The processing steps are Python scripts that can be embedded in the .prx file or be referenced as external .py files. The processing script itself is defined as a function usually called called "run" which is called once per matching XML element in the processed experiment log, and takes specially named arguments:
     </p>
     <table>
       <tr><th>name of argument</th><th>meaning</th></tr>
@@ -765,7 +765,23 @@
       <tr><td>The name of a sub-element of the XML element being operated on. If the sub-element is in a namespace then an underscore replaces the colon separating the namespace prefix. Optionally the name can have "_list" at the end. It can also have one or more of  "_text", "_href", "_hreffullpath", or "_numericvalue" appended to the element name.</td><td>
 	  Passes the value of the specifed element. If "_list" then it will be wrapped in a list. If "_text" then a Python string of the element text. If "_href" then a <tt>datacollect2.dc_value.hrefvalue</tt>. If "_hreffullpath" then a string representing the filesystem path of the href. If "_numericvalue" then a <tt>datacollect2.dc_value.numericunitsvalue</tt>.</td></tr>
     </table>
-    See the attached slides <a href="processtrak.pdf">processtrak.pdf</a> for more information. 
+    See the attached slides <a href="processtrak.pdf">processtrak.pdf</a> for more information.
+    <h3>Parallel processing with ProcessTrak</h3>
+    <p>
+      Parallel processing is usually best done within your step by calling
+      C or C++ computation routines that use OpenMP or similar.
+      It is also possible to run multiple copies of ProcessTrak
+      simultaneously on the same .prx file and experiment log.
+      ProcessTrak uses file locking to ensure synchronization.
+      For this to be useful, you need to rename your "run" function
+      to "rununlocked" and make sure it does not access the experiment
+      log or use any elements within the experiment log (it can
+      accept parameters that have been converted from the experiment
+      log, e.g. hrefs, ints, strings, and it can also return outputs
+      that will be added to the experiment log).
+      A future version of ProcessTrak might use Python's multiprocessing
+      module to automatically run steps in parallel. 
+    </p>
     <h2>Appendix: Checklist/plan step classes</h2>
     <h3>button</h3>
     <p>

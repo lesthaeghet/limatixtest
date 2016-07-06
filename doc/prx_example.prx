@@ -6,9 +6,22 @@
        log to operate on with a class attribute there. -->
        
   <inputfiles>
+    <!-- The <inputfiles> element is where you specify the input
+	 experiment logs. These can be XML, or they can be .xls
+	 or .xlsx spreadsheets (detected by filename extension).
+	 In this case, any <dc:> tags you place within the
+	 <inputfile> element will be placed in a <dc:summary>
+	 tag of the outputfile -->
     <inputfile xlink:href="example_input.xlg">
       <outputfile xlink:href="example_input.xlp"/> <!-- if outputfile tag is omitted, outputfile defaults to original with extension changed to .xlp -->
     </inputfile>
+    <!-- An <outputfile/> tag within the <inputfiles> element
+	 (as opposed to within an <inputfile> element) creates
+	 an output file derived from the <inputfiles> element,
+	 containing a full listing of input and output files.
+	 Such an output usually has a .pro extension and
+	 is useful for combining data from multiple experiment
+	 logs -->
   </inputfiles>
   
   <inputfilter xlink:href="filterscript" param1="-a" param2="-b"/> <!-- inputfilter is what is used to make initial conversion of inputfile to outputfile. It is run as a command with the specified parameters followed by the path to the input file and the path to the output file -->

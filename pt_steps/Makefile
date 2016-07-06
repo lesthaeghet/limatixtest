@@ -60,7 +60,8 @@ depend:
 install:
 	@for i in $(SUBDIRS) ; do if [ -d $$i ] && [ -f $$i/Makefile ] ; then $(MAKE) $(MFLAGS) -C $$i install ; fi done
 	#$(INSTALL) -d $(DCINSTDIR)/  # Directory should already exist
-	$(INSTALL) -d $(DCINSTDIR)/pt_steps
+	## Install of pt_steps is handled by setup.py in parent directory 
+	#$(INSTALL) -d $(DCINSTDIR)/pt_steps
 	#$(INSTALL) *.py $(DCINSTDIR)/pt_steps # uncomment once we actually have installable steps
 
 
