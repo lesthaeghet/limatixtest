@@ -234,6 +234,7 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
             pass
         
         # Write out selected portion under new file name outputfilehref
+        assert(outputfilehref != inputfilehref)
         outdoc.set_href(outputfilehref,readonly=False)
         outdoc.close()
         
@@ -270,7 +271,7 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
             nsmap=copy.deepcopy(prx_nsmap)
             nsmap["ls"] = "http://limatix.org/spreadsheet"
 
-            outdoc=xmldoc.xmldoc.newdoc("ls:sheet",nsmap=nsmap)
+            outdoc=xmldoc.xmldoc.newdoc("ls:sheet",nsmap=nsmap,contexthref=outputfilehref)
 
             # Copy dc: namespace elements within inputfileelement
             # into a dc:summary tag
@@ -282,7 +283,7 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
                         summarydoc=xmldoc.xmldoc.newdoc("dc:summary",nsmap=nsmap,contexthref=prxdoc.getcontexthref())
                         pass
                     # place in document with same context as where it came from
-                    summarydoc.doc.append(copy.deepcopy(inputfileel_child))
+                    summarydoc.getroot().append(copy.deepcopy(inputfileel_child))
                     pass
                 pass
             if summarydoc is not None:
@@ -336,6 +337,7 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
                 pass
             
             # Write out under new file name outputfilehref
+            assert(outputfilehref != inputfilehref)
             outdoc.set_href(outputfilehref,readonly=False)
             outdoc.close()
             canonhash=None  # could hash entire input file...

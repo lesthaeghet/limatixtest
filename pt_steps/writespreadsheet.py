@@ -40,7 +40,7 @@ else:
 
 # Example sheetspec
 sheetspec=r"""
-<sheetspec xmlns="http://limatix.org/processtrak" xmlns:pt="http://limatix.org/processtrak">
+<param name="prx_sheetspec" xmlns="http://limatix.org/processtrak" xmlns:pt="http://limatix.org/processtrak">
   <sheet name="My sheet" tableselect="dc:experiment">  <!-- Can create multiple sheets, iterating over nodes found with selection. Selection is relative to the iterating context of the step -- i.e. the element found according to elementmatch. Can use nameselect="xpath_expression" in place of name="name". The nameselect expression will be reevaluated in the context of each tableselect selection -->
     <rows select="dc:measurement"/> <!-- relative to table selected in the <sheet> tag above -->
       <col select='dgsfile' type="href" label="DGS Filename"/>
