@@ -437,7 +437,7 @@ def parseunits_right(unitstr):
     elif remaining.endswith('/'):
         (remaining2,unitsobj)=parseunits_right(remaining[:-1].strip())
         return (remaining2,unitsobj/unitpower)
-    elif len(remaining) > 0:
+    elif len(remaining) > 0 and remaining[-1].isalpha():
         (remaining2,unitsobj)=parseunits_right(remaining[:-1].strip())
         return (remaining2,unitsobj*unitpower)
     return (remaining,unitpower)
@@ -464,7 +464,7 @@ def parseunitpower_right(unitstr):
         if remaining[-1] != '(':
             raise ValueError("Mismatched Parentheses in %s" % (unitstr))
         remaining=remaining[:-1].strip()
-        pass
+        return (remaining,unitsobj)
 
     unitsobj=None
     
@@ -496,6 +496,8 @@ def parseunitpower_right(unitstr):
 
 # Try to match 
 def parseunits(unitstr):
+    #import pdb
+    #pdb.set_trace()
 
     if unitstr is None:
         return units()
@@ -647,6 +649,17 @@ def accumulatedividestr(comba,combb):
 def simplifyunits(comba):
     # Not fully implemented
     comba.sortunits()
+
+    # Strip unitless, unless it is all there is: 
+    if len(comba.Factors) > 0:
+        for FactorCnt in range(len(comba.Factors)-1,-1,-1):
+            Factor=comba.Factors[FactorCnt]
+            if "unitless" in UnitDict and Factor.Unit is UnitDict["unitless"]:
+                del comba.Factors[FactorCnt]
+                pass
+            pass
+        pass
+
     return comba
 
 def extractcoefficient(comb):

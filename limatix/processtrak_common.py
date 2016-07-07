@@ -155,7 +155,6 @@ def splitunits(titlestr):
 
 
 def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
-            
     
     # print("inputfilehref=%s" % (inputfilehref.humanurl()))
     if inputfilehref.has_fragment():
@@ -613,12 +612,12 @@ def outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debug
 
     # Run each step on each input file 
     for step in steps:
-        print("\nProcessing step %s" % (processtrak_prxdoc.getstepname(prxdoc,step)))
 
     
         
         for inputfilehref in outputdict:
 
+            print("\nProcessing step %s on %s->%s" % (processtrak_prxdoc.getstepname(prxdoc,step),inputfilehref.humanurl(),outputdict[inputfilehref].outputfilehref.humanurl()))
             if step is None: 
                 # Initialize output file 
                 initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime,force=True)
