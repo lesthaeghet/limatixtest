@@ -141,7 +141,7 @@ converter to put those back in.
       </xsl:choose>
     </xsl:for-each>
     <xsl:if test="/*/namespace::*[string(.)='http://thermal.cnde.iastate.edu/datacollect']">
-      <dummy xmlns:dcfoo="http://limatix.org/datacollect"/>
+      <!-- <dummy xmlns:dcfoo="http://limatix.org/datacollect"/> -->
     </xsl:if>
     
   </xsl:variable>

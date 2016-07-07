@@ -200,14 +200,14 @@ class inputfile(object):
             ftype=cls.IFT_OTHERXML
             root=xmldocu.getroot()
             lipprocess=xmldocu.xpath("lip:process")                
-            if xmldocu.tag_is(root,"dc:experiment"):
-                # .xlg
-                ftype=cls.IFT_XLG
-                pass
-            elif len(lipprocess) > 0: 
+            if len(lipprocess) > 0: 
                 # does it have any lip:process tags under the main tag?
                 # call it an .xlp
                 ftype=cls.IFT_XLP
+                pass
+            elif xmldocu.tag_is(root,"dc:experiment"):
+                # .xlg
+                ftype=cls.IFT_XLG
                 pass
             elif xmldocu.tag_is(root,"prx:processinginstructions"):
                 ftype=cls.IFT_PRX
@@ -318,6 +318,7 @@ def traverse_one(infiles,infileobj,pending,completed,dests,hrefs,recursive=False
 
         if hrefs is not None or recursive: 
             all_links=infileobj.xmldocu.xpath("//*[@xlink:href]")
+
             for link in all_links:
                 href=dc_value.hrefvalue.fromxml(infileobj.xmldocu,link)
                 if hrefs is not None:
