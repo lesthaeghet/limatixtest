@@ -778,8 +778,8 @@ class explogwindow(gtk.Window):
                 pass
 
             # Go through all checklists and plans, find those not marked 'done', and open them if possible
-            checklistentries=checklistdb.getchecklists(self.explog.getcontexthref(),self.paramdb,"checklists",None,allchecklists=True)
-            planentries=checklistdb.getchecklists(self.explog.getcontexthref(),self.paramdb,"plans",None,allplans=True)
+            checklistentries=checklistdb.getchecklists(self.explog.getcontexthref().leafless(),self.paramdb,"checklists",None,allchecklists=True)
+            planentries=checklistdb.getchecklists(self.explog.getcontexthref().leafless(),self.paramdb,"plans",None,allplans=True)
 
             allentries=[]
             allentries.extend(checklistentries)
@@ -913,7 +913,7 @@ class explogwindow(gtk.Window):
             pass
         else:
             if self.explog is not None:
-                loadconfigchooser.set_current_folder(self.explog.getcontexthref().getpath())
+                loadconfigchooser.set_current_folder(self.explog.getcontexthref().leafless().getpath())
                 pass
             else:
                 loadconfigchooser.set_current_folder(".")
@@ -958,8 +958,8 @@ class explogwindow(gtk.Window):
             else:
                 # custom config files are always referred to
                 # via relative path
-                fname=canonicalize_path.relative_path_to(self.explog.getcontexthref().getpath(),fname)
-                href=dcv.hrefvalue(pathname2url(fname),contexthref=self.explog.getcontexthref())
+                fname=canonicalize_path.relative_path_to(self.explog.getcontexthref().leafless().getpath(),fname)
+                href=dcv.hrefvalue(pathname2url(fname),contexthref=self.explog.getcontexthref().leafless())
                 pass
             
             #sys.stderr.write("fname=%s" % (fname))
@@ -1246,7 +1246,7 @@ class explogwindow(gtk.Window):
             pass
         else:
             if self.explog is not None:
-                checklistchooser.set_current_folder(self.explog.getcontexthref().getpath())
+                checklistchooser.set_current_folder(self.explog.getcontexthref().leafless().getpath())
                 pass
             else:
                 checklistchooser.set_current_folder(".")
@@ -1269,7 +1269,7 @@ class explogwindow(gtk.Window):
             else:
                 # custom checklists are always referred to
                 # via relative path
-                fnamehref=dcv.hrefvalue(pathname2url(canonicalize_path.relative_path_to(self.explog.getcontexthref().getpath(),fname)),self.explog.getcontexthref())
+                fnamehref=dcv.hrefvalue(pathname2url(canonicalize_path.relative_path_to(self.explog.getcontexthref().leafless().getpath(),fname)),self.explog.getcontexthref().leafless())
                 pass
             
             
@@ -1494,7 +1494,7 @@ class explogwindow(gtk.Window):
         checklistchooser.add_filter(plffilter)
 
         if self.explog is not None:
-            checklistchooser.set_current_folder(self.explog.getcontexthref().getpath())
+            checklistchooser.set_current_folder(self.explog.getcontexthref().leafless().getpath())
             pass
         else:
             checklistchooser.set_current_folder(".")
@@ -1509,7 +1509,7 @@ class explogwindow(gtk.Window):
         if result==RESPONSE_OK:
             # plans are always referred to
             # via relative path
-            fnamehref=dcv.hrefvalue(pathname2url(canonicalize_path.relative_path_to(self.explog.getcontexthref().getpath(),fname)),self.explog.getcontexthref())
+            fnamehref=dcv.hrefvalue(pathname2url(canonicalize_path.relative_path_to(self.explog.getcontexthref().leafless().getpath(),fname)),self.explog.getcontexthref().leafless())
             
             self.open_plan(fnamehref)
 

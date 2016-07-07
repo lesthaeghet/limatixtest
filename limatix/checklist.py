@@ -694,7 +694,7 @@ class checklist(object):
                                     params[paramname]=self.xmldoc.getattr(child,"xlink:href")
                                     pass
                                 else:
-                                    params[paramname]=""
+                                    params[paramname]=None
                                     pass
                                 
                                 #paramval=hrefv.fromxml(self.xmldoc,child)

@@ -1,0 +1,23 @@
+# Note: datacollect config files are passed through an m4 preprocessor
+# so you can use e.g. "m4_include([[includefile.dcc]])" to include
+# another file. As an alternative you can manually load multiple config
+# files before opening your experiment log, either from the 
+# datacollect command line or from the datacollect gui
+
+
+# call createparamserver() if dbus (i.e. python/matlab/etc.) access to the parameter 
+# database is likely to be needed.
+# createparamserver()  # Multiple calls to createparamserver() are OK
+
+m4_include([[imports.dcc]])
+
+paramdb.addparam("spclengthbefore",numericunitsv,defunits="mm",hide_from_meas=True)  # hide_from_meas because this is marked as <intermediate/> in the checklist and therefore stored in the checklist, not the experiment log 
+
+paramdb.addparam("breaktime",numericunitsv,defunits="s")
+paramdb.addparam("datafile",hrefv,save_extension="log")  # save_extension says what files to search for in the chooser
+
+paramdb.addparam("spclengthafter",numericunitsv,defunits="mm")
+
+
+
+

@@ -196,8 +196,8 @@ class runcheckliststep(gtk.HBox):
         self.set_property("description","")
         #self.set_property("checklistname","")
         #self.set_property("checklistpath","")
-        self.set_property("copychecklist","")
-        self.set_property("inplacechecklist","")
+        self.set_property("copychecklist",None)
+        self.set_property("inplacechecklist",None)
 
         self.pack_start(self.gladeobjdict["runcheckliststep"],True,True,0)
 
