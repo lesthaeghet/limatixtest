@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checklist xmlns="http://limatix.org/checklist" xmlns:chx="http://limatix.org/checklist" xmlns:dc="http://limatix.org/datacollect" xmlns:xlink="http://www.w3.org/1999/xlink" dc:done_is_save_measurement="true">
+  <clinfo>Thermalconductivity tester measurement v1.0 7/7/16</clinfo>
+  <cltitle>Test thermal conductivity of a specimen</cltitle>
+  <rationale>Use thermal conductivity tester with specimen embedded in blue insulation foam with thermistor attached</rationale>
+  <dest autofilename="concat('thermalconductivity_meas_',dc:paramdb('specimen'),'.chf')"/>
+    <checkitem class="dc_param" title="Enter specimen ID">
+      <description>Enter specimen ID
+      </description>
+      <labelmarkup>Specimen</labelmarkup>
+      <paramname>specimen</paramname>
+      <intermediate/>
+    </checkitem>
+  
+    <checkitem class="text" title="Make sure sample equilibriated">
+        <description>Sample must be in thermal equilbrium with the room where we will measure.</description>
+    </checkitem>
+    <checkitem class="text" title="Connect specimen to tester and inspect">
+        <description>Connect specimen and inspect specimen. Should be mounted securely, and sealed around the sides and back. Make sure tester is plugged into computer and operating properly.</description>
+    </checkitem>
+
+    <checkitem class="text" title="Perform test">
+      <description>Start belt sander. Then simultaneously push tester joystick to the left and press specimen into belt sander approx for 1 second. Doing these simultaneously is very important. </description>
+    </checkitem>
+
+    <checkitem class="dc_param" title="Break time">
+      <paramname>breaktime</paramname>
+      <description>Enter measured break time from thermal conductivity tester</description>
+      <labelmarkup>Break time</labelmarkup>
+    </checkitem>
+
+    <checkitem class="hrefbutton" title="Save data">
+      <paramname>datafile</paramname>
+      <description>Save data file. Then browse here and find it: </description>
+      <buttonlabel>Data file</buttonlabel>
+    </checkitem>
+
+    <checkitem class="dc_param" title="Measure specimen length">
+      <paramname>spclengthafter</paramname>
+      <description>Unwrap specimen and measure "after" length. Evaluate rough average length from multiple locations.</description>
+      <labelmarkup>Length: </labelmarkup>
+    </checkitem>
+
+
+    <notes shared="true"/>
+</checklist>

@@ -511,7 +511,10 @@ def parseunits(unitstr):
     unitsobj.sortunits()
     
     return unitsobj
-    
+
+def createunits():
+    return units()
+
 
 def units_config(configstring):
 

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checklist xmlns="http://limatix.org/checklist" xmlns:chx="http://limatix.org/checklist" xmlns:dc="http://limatix.org/datacollect" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:html="http://www.w3.org/1999/xhtml"  dc:done_is_save_measurement="true">
+  <clinfo>Thermalconductivity specimen preparation v1.0 7/7/16</clinfo>
+  <cltitle>Thermalconductivity specimen preparation</cltitle>
+  <rationale>Specimens need to be cut, mounted in foam, </rationale>
+  <dest autofilename="concat('thermalconductivity_prep_',dc:paramdb('specimen'),'.chf')"/>
+    <checkitem class="dc_param" title="Enter specimen ID">
+      <description>Enter specimen ID
+      </description>
+      <labelmarkup>Specimen</labelmarkup>
+      <paramname>specimen</paramname>
+      <intermediate/>
+    </checkitem>
+
+  
+    <checkitem class="text" title="Laminate layers and cut specimen to desired size">
+        <description>Laminate three layers of 16 ply samples together into one inch wide strips. For cross-ply propagation, cut to 1 inch long, for other layups cut to 2 inches long.</description>
+    </checkitem>
+
+    <checkitem class="text" title="Mount in blue foam ">
+        <description>Follow <html:a href="MountProcess.pdf">mounting instructions</html:a> to mount in blue foam, including attaching thermistor and soldering socket pins (male side out) to thermistor leads. Thermistor part # NTCLE203E3103HB0. Do not yet do final wrap with electrical tape.</description>
+    </checkitem>
+
+    <checkitem class="text" title="Flatten end">
+      <description>Flatten end with sandpaper so that it will contact
+      belt sander flush
+      and normal, and to make sure it has uniform length.</description>
+    </checkitem>
+    
+    <checkitem class="dc_param" title="Measure specimen length">
+      <paramname>spclengthbefore</paramname>
+      <description>Measure specimen length at multiple points, being sure
+      they are all approximately the same.</description>
+      <labelmarkup>Specimen length before test: </labelmarkup>
+      <intermediate/>  <!-- Store value immediately in checklist -->
+    </checkitem>
+
+    <checkitem class="text" title="Wrap in electrical tape">
+      <description>Wrap specimen and foam in electrical tape. Be sure the specimen is secure. Seal around back end and thermistor leads to prevent wind from the belt sander from affecting measurement. </description>
+    </checkitem>
+
+    <notes shared="true"/>
+</checklist>
