@@ -272,7 +272,7 @@ paramdb=pdb.paramdb(iohandlers)
 
 # paramdb.addparam("clinfo",stringv)
 paramdb.addparam("hostname",stringv,build=lambda param: xmldoc.synced(param),non_settable=True)
-paramdb.addparam("specimen",stringv,build=lambda param: xmldoc.synced(param))
+paramdb.addparam("specimen",stringv,build=lambda param: xmldoc.synced(param)) # reset_with_meas_record=not SingleSpecimen)... MonkeyPatched later
 paramdb.addparam("perfby",stringv,build=lambda param: xmldoc.synced(param))
 # paramdb.addparam("date",stringv,build=lambda param: xmldoc.synced(param))
 #paramdb.addparam("date",datesetv,build=lambda param: xmldoc.synced_accumulating_dates(param))

@@ -9,7 +9,7 @@
 
     <checkitem class="runchecklist" title="Perform prep on each specimen">
       <copychecklist xlink:href="thermalconductivity_prep.chx"/>
-        <description>Prep procedure assembles specimen.</description>
+        <description>Prep procedure assembles specimen. Specimens TD-1, TD-2, TD-3, TD-4, TD-5, TD-6</description>
     </checkitem>
 
     <checkitem class="text" title="Test thermal conductivity tester waveform output">
@@ -23,7 +23,7 @@
 
     <checkitem class="runchecklist" title="Perform test on each specimen">
       <copychecklist xlink:href="thermalconductivity_meas.chx"/>
-        <description>Test each specimen with belt sander</description>
+        <description>Test each specimen with belt sander. Specimens TD-1, TD-2, TD-3, TD-4, TD-5, TD-6</description>
     </checkitem>
 
     <notes shared="true"/>

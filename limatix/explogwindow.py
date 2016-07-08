@@ -280,7 +280,8 @@ class explogwindow(gtk.Window):
             pass
         self.gladeobjdict["ParamBox"].pack_start(SpecimenWidget,True,True,0)
         self.gladeobjdict["ParamBox"].reorder_child(SpecimenWidget,1)
-
+        pass
+    
 
     def reset_specimen(self,*args):
         #sys.stderr.write("Got reset_specimen()\n")
@@ -485,6 +486,8 @@ class explogwindow(gtk.Window):
             # Need to choose Single Specimen/Multi-Specimen mode
             self.ChooseSingleSpecimen()
             pass
+        self.SetSingleSpecimenGui()
+        self.paramdb["specimen"].reset_with_meas_record=not(self.SingleSpecimen)
         
         # self.explog.setfilename(fname)
         # self.explog.shouldbeunlocked()
@@ -719,7 +722,11 @@ class explogwindow(gtk.Window):
         if self.SingleSpecimen is None and confighrefs is not None:
             # Need to choose Single Specimen/Multi-Specimen mode
             self.ChooseSingleSpecimen()
+
             pass
+        self.SetSingleSpecimenGui()
+        self.paramdb["specimen"].reset_with_meas_record=not(self.SingleSpecimen)
+        
         
         try :
             if self.explog is not None:

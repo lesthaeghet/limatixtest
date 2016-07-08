@@ -12,11 +12,12 @@
       <intermediate/>
     </checkitem>
   
-    <checkitem class="text" title="Make sure sample equilibriated">
-        <description>Sample must be in thermal equilbrium with the room where we will measure.</description>
-    </checkitem>
     <checkitem class="text" title="Connect specimen to tester and inspect">
-        <description>Connect specimen and inspect specimen. Should be mounted securely, and sealed around the sides and back. Make sure tester is plugged into computer and operating properly.</description>
+        <description>Connect specimen and inspect specimen. Should be mounted securely, and sealed around the sides and back. Make sure tester is plugged into computer and operating properly. Be sure not to touch the carbon fiber portion, as your body heat meay warm it up. </description>
+    </checkitem>
+
+    <checkitem class="text" title="Make sure sample is equilibriated">
+        <description>Sample must be in thermal equilbrium with the room where we will measure. A good way to check is to start the tester and verify that the temperature is constant. </description>
     </checkitem>
 
     <checkitem class="text" title="Perform test">

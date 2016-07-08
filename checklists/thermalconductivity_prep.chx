@@ -9,7 +9,6 @@
       </description>
       <labelmarkup>Specimen</labelmarkup>
       <paramname>specimen</paramname>
-      <intermediate/>
     </checkitem>
 
   
@@ -32,7 +31,6 @@
       <description>Measure specimen length at multiple points, being sure
       they are all approximately the same.</description>
       <labelmarkup>Specimen length before test: </labelmarkup>
-      <intermediate/>  <!-- Store value immediately in checklist -->
     </checkitem>
 
     <checkitem class="text" title="Wrap in electrical tape">
