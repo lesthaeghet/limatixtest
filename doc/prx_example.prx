@@ -34,20 +34,13 @@
 	 with extension and path removed -->
     <script xlink:href="pullparams.py" function="run">     <!-- Note: You can explicitly specify the function to run (default is "rununlocked" or "run". If the name ends with "unlocked" then the function will be run with the xlp file unlocked.  You can reference an explicit path, by specifying the script with xlink:href, or  ask processtrak to search its script path by using "name" to specify the script. -->
       <elementmatch>xpath_condition_override</elementmatch>
-      <parameter name="foo">
 	<!-- Can supply a condition. It is an xpath, evaluated in the context of the node 
              we are operating on. Two variables are supplied: $filepath:   path to .xlp file
              and $filename: filename portion of xlp file -->
         <!-- The way this works is you provide multiple value tags with different conditions
              and they are tested in order -->
-	<numvalue condition="$filename='example_input_1.xlp'" dcv:units="kHz">34.5</numvalue>
-      </parameter>
-      <parameter name="bar">
-	<strvalue>BAR</strvalue>
-      </parameter>
-      <parameter name="fubar"> 
-	<xpath>foo/bar/fubar[@foo="bar"]</xpath> <!-- xpaths are relative to the current node as context node -->
-      </parameter>
+      <param name="foo" condition="$filename='example_input_1.xlp'" dcv:units="kHz">34.5</param>
+      <param name="bar">BAR</param>
       <!-- in addition, if the Python or Matlab script has additional 
       named parameters beyond the ones listed here, those parameter
       names should start with a prefix (must be one of the xmlns 
@@ -68,21 +61,6 @@
 
       -->
     </script>
-  </step>
-  <!-- Idea: You can make a step operate on all input files together by 
-       putting a <multifile/> tag in the step tag, e.g. -->
-  <step name="multifile">
-    <inputfileset/>
-    <!-- the input files are assembled into a db:dir with db:file elements -->
-    <!-- NOTE: This will probably not be implemented soon -->
-    <elementmatch>db:file[@basename='filename']/filemaintag</elementmatch>
-
-    <script><pycode><![CDATA[
-def run(_xmldoc):
-    pass
-
-]]></pycode></script>
-
   </step>
   
 </processinginstructions>

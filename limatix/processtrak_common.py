@@ -63,6 +63,29 @@ from . import processtrak_prxdoc
 from . import timestamp as lm_timestamp
 
 
+
+try:
+    from pkg_resources import resource_string
+    pass
+except TypeError:
+    # mask lack of pkg_resources when we are running under pychecker
+    def resource_string(x,y):
+        raise IOError("Could not import pkg_resources")
+    pass
+
+
+try: 
+    __install_prefix__=resource_string(__name__, 'install_prefix.txt').decode('utf-8')
+    pass
+except IOError: 
+    sys.stderr.write("processtrak: error reading install_prefix.txt. Assuming /usr/local.\n")
+    __install_prefix__="/usr/local"
+    pass
+
+xsltpath=[os.path.join(__install_prefix__,"share","limatix","xslt")]
+
+
+
 outputnsmap={
     "lip": "http://limatix.org/provenance",
 }
@@ -150,8 +173,31 @@ def splitunits(titlestr):
             # failed
             return (titlestr,None)
         unitstr="".join(units)
+        titlestr=titlestr[:pos].strip()
         return (titlestr,unitstr)
     return (titlestr,None)
+
+def find_xslt_in_path(contexthref,xsltname):
+    #if os.path.exists(os.path.join(contexthref.getpath(),scriptname)):
+    #    print("WARNING: direct paths to scripts should be specified with <script xlink:href=\"...\"/>. Use the name=\"...\" attribute only for scripts to be found in the script search path")
+    #    pass
+    
+    #if posixpath.isabs(scriptname):
+    #    return dcv.hrefvalue(quote(scriptname),contexthref=dcv.hrefvalue("./"))
+    #
+    #if posixpath.pathsep in scriptname:
+    #    return dcv.hrefvalue(quote(scriptname),contexthref=contexthref)
+
+    for trypath in xsltpath:
+        if trypath==".":
+            trypath=contexthref.getpath()
+            pass
+        
+        if os.path.exists(os.path.join(trypath,url2pathname(xsltname))):
+            return dcv.hrefvalue(quote(xsltname),contexthref=dcv.hrefvalue(pathname2url(trypath)+"/"))
+        pass
+    
+    raise IOError("Could not find xslt transform %s in path %s" % (xsltname,unicode(xsltpath)))
 
 
 def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
@@ -215,6 +261,11 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
                 else:
                     raise ValueError("Bad <prx:inputfiles> or <prx:inputfile> tag at %s" % (dcv.hrefvalue.fromelement(outdoc,outdoc_inputfiletag).humanurl()))
 
+                #print("outdoc_inputfilehref:")
+                #print(outdoc_inputfilehref)
+                #print("outputdict keys:")
+                #print(outputdict.keys())
+
                 assert(outdoc_inputfilehref in outputdict)  # all of these input file references should be keys to the output dict because outputdict was made from the originals!
 
                 # Find or create prx:outputfile tag
@@ -232,6 +283,24 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
             
             pass
         
+        # Did the user provide a prx:xslt href indicating 
+        # a transformation to apply? 
+        xslttag=prxdoc.xpathsinglecontext(outputdict[inputfilehref].inputfileelement,"prx:xslt",default=None)
+        if xslttag is not None:
+            if prxdoc.hasattr(xslttag,"xlink:href"):
+                filename=dcv.hrefvalue.fromxml(prxdoc,xslttag).getpath()
+                pass
+            else:
+                filename=find_xslt_in_path(prxdoc.getcontexthref(),prxdoc.getattr(xslttag,"name")).getpath()
+                    
+                pass
+            stylesheet=etree.parse(filename)
+            stylesheet_transform=etree.XSLT(stylesheet)
+
+            # Replace outdoc with transformed copy
+            outdoc=xmldoc.xmldoc.frometree(stylesheet_transform(outdoc.doc),nsmap=prx_nsmap,readonly=False,contexthref=outdoc.getcontexthref())
+            pass
+
         # Write out selected portion under new file name outputfilehref
         assert(outputfilehref != inputfilehref)
         outdoc.set_href(outputfilehref,readonly=False)
@@ -334,6 +403,26 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
                     
                     pass
                 pass
+
+            # Did the user provide a prx:xslt href indicating 
+            # a transformation to apply? 
+            xslttag=prxdoc.xpathsinglecontext(outputdict[inputfilehref].inputfileelement,"prx:xslt",default=None)
+            if xslttag is not None:
+                if prxdoc.hasattr(xslttag,"xlink:href"):
+                    filename=dcv.hrefvalue.fromxml(prxdoc,xslttag).getpath()
+                    pass
+                else:
+                    filename=find_xslt_in_path(prxdoc.getcontexthref(),prxdoc.getattr(xslttag,"name")).getpath()
+                    
+                    pass
+                
+                stylesheet=etree.parse(filename)
+                stylesheet_transform=etree.XSLT(stylesheet)
+                
+                # Replace outdoc with transformed copy
+                outdoc=xmldoc.xmldoc.frometree(stylesheet_transform(outdoc.doc),nsmap=prx_nsmap,readonly=False,contexthref=outdoc.getcontexthref())
+                pass
+
             
             # Write out under new file name outputfilehref
             assert(outputfilehref != inputfilehref)
@@ -562,7 +651,7 @@ def getinputfiles(prxdoc):
 
 def build_outputdict(prxdoc,useinputfiles_with_hrefs):
     outputdict=collections.OrderedDict()
-
+    
     
     for (inputfileelement,inputfilehref) in useinputfiles_with_hrefs:
         
@@ -597,7 +686,7 @@ def build_outputdict(prxdoc,useinputfiles_with_hrefs):
         pass
     return outputdict
 
-def outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist):
+def outputdict_run_steps(prxdoc,outputdict,useinputfiles_with_hrefs,steps,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist):
     # delayed import to avoid circular reference
     from limatix import processtrak_procstep
     
@@ -615,7 +704,7 @@ def outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debug
 
     
         
-        for inputfilehref in outputdict:
+        for (inputfile,inputfilehref) in useinputfiles_with_hrefs:
 
             print("\nProcessing step %s on %s->%s" % (processtrak_prxdoc.getstepname(prxdoc,step),inputfilehref.humanurl(),outputdict[inputfilehref].outputfilehref.humanurl()))
             if step is None: 
