@@ -90,9 +90,13 @@ class stepparam(object):
         condition=self.prxdoc.getattr(self.element,"condition")
         
         
-        result=outdoc.xpathsinglecontext(element,condition,variables={"filename":outdoc.get_filehref().get_bare_unquoted_filename(),"fileurl":outdoc.get_filehref().absurl()},nsmap=self.element.nsmap,noprovenance=True)
+        namespaces=copy.deepcopy(self.element.nsmap)
+        if None in namespaces:
+            del namespaces[None]
+            pass
+        result=outdoc.xpathcontext(element,condition,variables={"filename":outdoc.get_filehref().get_bare_unquoted_filename(),"fileurl":outdoc.get_filehref().absurl()},namespaces=namespaces,noprovenance=True)
 
-        # sys.stderr.write("test_condition: condition=%s variables=%s result=%s\n" % (self.condition,str({"filepath":outdoc.filename,"filename":os.path.split(outdoc.filename)[1]}),str(result)))
+        #sys.stderr.write("test_condition: condition=%s variables=%s result=%s\n" % (condition,str({"filename":outdoc.get_filehref().get_bare_unquoted_filename(),"fileurl":outdoc.get_filehref().absurl()}),str(result)))
 
         if result==True:
             return True
@@ -100,7 +104,10 @@ class stepparam(object):
             return False
         elif isinstance(result,numbers.Number):
             return result != 0
-        else: 
+        elif isinstance(result,list):
+            # got a node-set
+            return len(result) != 0
+        else:
             raise ValueError("test_condition: condition \"%s\" returned invalid result (type %s)" % (condition,result.__class__.__name__))
         pass
 

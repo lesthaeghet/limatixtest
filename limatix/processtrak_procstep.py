@@ -83,29 +83,26 @@ except IOError:
     pass
 
 
-steppath=[".",os.path.join(__install_prefix__,"share","limatix","pt_steps")]
+steppath=[os.path.join(__install_prefix__,"share","limatix","pt_steps")]
 
 
 def find_script_in_path(contexthref,scriptname):
-    # BUG *** !!!!! We really shouldn't use scriptdir at all,
-    # use the scriptpath, but for now we do for backwards compatibility
-
-    if os.path.exists(os.path.join(contexthref.getpath(),scriptname)):
-        print("WARNING: direct paths to scripts should be specified with <script xlink:href=\"...\"/>. Use the name=\"...\" attribute only for scripts to be found in the script search path")
-        pass
+    #if os.path.exists(os.path.join(contexthref.getpath(),scriptname)):
+    #    print("WARNING: direct paths to scripts should be specified with <script xlink:href=\"...\"/>. Use the name=\"...\" attribute only for scripts to be found in the script search path")
+    #    pass
     
-    if posixpath.isabs(scriptname):
-        return dcv.hrefvalue(quote(scriptname),contexthref=dcv.hrefvalue("./"))
-    
-    if posixpath.pathsep in scriptname:
-        return dcv.hrefvalue(quote(scriptname),contexthref=contexthref)
+    #if posixpath.isabs(scriptname):
+    #    return dcv.hrefvalue(quote(scriptname),contexthref=dcv.hrefvalue("./"))
+    #
+    #if posixpath.pathsep in scriptname:
+    #    return dcv.hrefvalue(quote(scriptname),contexthref=contexthref)
 
     for trypath in steppath:
         if trypath==".":
             trypath=contexthref.getpath()
             pass
         
-        if os.path.exists(os.path.join(trypath,scriptname)):
+        if os.path.exists(os.path.join(trypath,url2pathname(scriptname))):
             return dcv.hrefvalue(quote(scriptname),contexthref=dcv.hrefvalue(pathname2url(trypath)+"/"))
         pass
     
@@ -628,7 +625,7 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
 
 
     if len(elements)==0:
-        sys.stderr.write("Warning: step %s: no matching elements for output href%s\n" % (processtrak_prxdoc.getstepname(prxdoc,steptag),output.get_filehref().absurl()))
+        sys.stderr.write("Warning: step %s: no matching elements for output href %s\n" % (processtrak_prxdoc.getstepname(prxdoc,steptag),output.get_filehref().absurl()))
         pass
     
 

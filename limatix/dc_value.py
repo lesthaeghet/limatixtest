@@ -406,6 +406,9 @@ class xmltreevalue(value):
             pass
 
         if xmldocu is not None:
+            xmlstorevalueclass(xmldocu,element,self.__class__)
+            
+
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,element)
             for child in element.iterdescendants():
@@ -1114,6 +1117,9 @@ class complexunitsvalue(value) :
         #    pass
         
         if xmldocu is not None:
+            xmlstorevalueclass(xmldocu,element,self.__class__)
+
+
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,element)
             pass
@@ -1795,6 +1801,8 @@ class integervalue(value) :
             
         
         if xmldocu is not None:
+            xmlstorevalueclass(xmldocu,element,self.__class__)
+
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,element)
             pass
@@ -2054,7 +2062,10 @@ class excitationparamsvalue(value) :
         else : # type is None 
             tag.attrib[DCV+"exctype"]="INVALID"
             pass
+
         if xmldocu is not None:
+            xmlstorevalueclass(xmldocu,element,self.__class__)
+
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,tag)
             pass
@@ -2132,6 +2143,7 @@ class imagevalue(value):
         PNGbuf=StringIO()
         self.PILimage.save(PNGbuf,format="PNG")
         xmldocu.setattr(tag,"src","data:image/png;base64,"+base64.b64encode(PNGbuf.getvalue()))
+        xmlstorevalueclass(xmldocu,element,self.__class__)
         pass
 
     @classmethod
@@ -2236,6 +2248,8 @@ class photosvalue(value):
             tag.append(newel)
             pass
         if xmldocu is not None:
+            xmlstorevalueclass(xmldocu,element,self.__class__)
+
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,tag)
             pass
@@ -2364,6 +2378,8 @@ class datesetvalue(value):
         #    pass
 
         if xmldocu is not None:
+            xmlstorevalueclass(xmldocu,element,self.__class__)
+
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,element)
             pass
@@ -2515,6 +2531,8 @@ class integersetvalue(value) :
             
         
         if xmldocu is not None:
+            xmlstorevalueclass(xmldocu,element,self.__class__)
+
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,element)
             pass
@@ -2618,6 +2636,8 @@ class arrayvalue(value):
         data_element.text=" ".join(["%15.15g" % (arrayval) for arrayval in self.array.ravel(order="C")])
         element.append(data_element)
 
+        xmlstorevalueclass(xmldocu,element,self.__class__)
+            
         xmldocu.modified=True
         provenance.elementgenerated(xmldocu,element)
         
