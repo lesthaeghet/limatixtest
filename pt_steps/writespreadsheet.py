@@ -25,6 +25,20 @@ except ImportError:
     pass
 
 
+try: 
+    import builtins  # python3
+    pass
+except ImportError: 
+    import __builtin__ as builtins # python2
+    pass
+
+
+if not hasattr(builtins,"basestring"):
+    basestring=str  # python3
+    pass
+
+
+
 from lxml import etree
 
 from limatix import dc_value
@@ -94,6 +108,7 @@ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xmlns:pt="http://limatix.org/processtrak"
 xmlns:prx="http://limatix.org/processtrak/processinginstructions"
+xmlns:dcv="http://limatix.org/dcvalue"
 xmlns:exsl="http://exslt.org/common"
 extension-element-prefixes="dyn prx exsl"
 version="1.0">
@@ -216,10 +231,7 @@ version="1.0">
   <text:p>
     <xsl:value-of select='@label'/>
     <xsl:if test="string(@type)='numericunits'">
-      <xsl:value-of select="' '"/>(<xsl:value-of select="@units"/>)
-    </xsl:if>
-  </text:p>
-</table:table-cell>
+      <xsl:value-of select="' '"/>(<xsl:value-of select="@dcv:units"/>)</xsl:if></text:p></table:table-cell>
 </xsl:template>
 
 <xsl:template match="pt:col" mode="rows">
@@ -233,8 +245,8 @@ version="1.0">
     <xsl:when test="string($col/@type)='numericunits'">
       <xsl:element name="table:table-cell">
         <xsl:attribute name="office:value-type">float</xsl:attribute>
-        <xsl:attribute name="office:value"><xsl:value-of select="prx:numericunitsvalue($selection,@units)"/></xsl:attribute>
-         <text:p><xsl:value-of select="prx:numericunitsvalue($selection,@units)"/></text:p>
+        <xsl:attribute name="office:value"><xsl:value-of select="prx:numericunitsvalue($selection,$col/@dcv:units)"/></xsl:attribute>
+         <text:p><xsl:value-of select="prx:numericunitsvalue($selection,$col/@dcv:units)"/></text:p>
       </xsl:element>
     </xsl:when>
     <xsl:when test="string($col/@type)='numeric'">
@@ -296,17 +308,34 @@ class prx_lookupfcn_ext(object):
     def numericunitsvalue(self,context,cellcontent,units):
         # Evaluate numeric units of a target element (in cellcontent)
         # according to specified units
+            
         if isinstance(cellcontent,list):
-            contextdoc=self.finddocument(cellcontent.context_node)
-            if len(cellcontent) > 0:                
+            contextdoc=self.finddocument(context.context_node)
+            if len(cellcontent) > 1:                
                 raise ValueError("Can only evaluate numeric value of a single element: cellcontent = [ %s ]; context=%s" % ( ",".join([dc_value.hrefvalue.fromelement(self.finddocument(cellc),cellc).humanurl() for cellc in cellcontent ]), dc_value.hrefvalue.fromelement(contextdoc,cellcontent.context_node)))
             elif len(cellcontent) == 0:
-                raise ValueError("Can not evaluate numeric value of empty element set: context=%s" % (dc_value.hrefvalue.fromelement(contextdoc,cellcontent.context_node).humanurl()))
+                raise ValueError("Can not evaluate numeric value of empty element set: context=%s" % (dc_value.hrefvalue.fromelement(contextdoc,context.context_node).humanurl()))
             cellcontent=cellcontent[0]
         
             pass
+       
+        if isinstance(units,list):
+            if len(units) < 1: 
+                raise ValueError("Error evaluating units: did not find @dcv:units attribute")
+            if len(units) > 1: 
+                raise ValueError("Error evaluating units: Resolved to more than one @dcv:units attribute")
+            units=units[0]
+            pass
+        if not isinstance(units,basestring):
+            raise ValueError("Error evaluating units: Did not resolve to a string")
         
-        nuv=dc_value.numericunitsvalue.fromxml(self.finddocument(cellcontent),cellcontent).value(units=units)
+
+
+        #nuv=dc_value.numericunitsvalue.fromxml(self.finddocument(cellcontent),cellcontent).value(units=units)
+        # We don't currently provide the document (which allows provenance
+        # tracking) because libxslt just seems to be giving us 
+        # random elements for which getparent() doesn't work
+        nuv=dc_value.numericunitsvalue.fromxml(None,cellcontent).value(units=units)
         return nuv
 
     def hrefxlink(self,context,sourcelink):

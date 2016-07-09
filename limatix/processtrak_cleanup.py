@@ -268,7 +268,7 @@ def traverse_one(infiles,infileobj,pending,completed,dests,hrefs,recursive=False
             (barename,ext)=posixpath.splitext(barefilename)
             if ext==".xlg":
                 xlpfile=barename+".xlp"
-                xlphref=dc_value.hrefvalue(quote(xlpfile),contexhref=infileobj.href)
+                xlphref=dc_value.hrefvalue(quote(xlpfile),contexthref=infileobj.href)
                 if hrefs is not None:
                     hrefs.add(xlphref)
                     pass
@@ -281,10 +281,10 @@ def traverse_one(infiles,infileobj,pending,completed,dests,hrefs,recursive=False
         if infileobj.ftype==infileobj.IFT_XLG or infileobj.ftype==infileobj.IFT_XLP:
             # XLG and XLP files can have dest references
             # and we are tracking those
-            # print("got xlg or xlp")
+            # print("got xlg or xlp. infileobj.href=%s" % (infileobj.href.humanurl()))
             desttags=infileobj.xmldocu.xpath("dc:summary/dc:dest[@xlink:href]")
             for desttag in desttags:
-                # print("got desttag!")
+                #print("got desttag!")
                 desthref=dc_value.hrefvalue.fromxml(infileobj.xmldocu,desttag)
                 dests.add(desthref)
                 

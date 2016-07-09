@@ -1969,9 +1969,9 @@ class xmldoc(object):
 
 
     
-    def xpathcontext(self,contextnode,path,namespaces=None,extensions=None,variables=None):
+    def xpathcontext(self,contextnode,path,namespaces=None,extensions=None,variables=None,noprovenance=False):
         """Alias for xpath(path,namespaces,contextnode)"""
-        return self.xpath(path,namespaces=namespaces,contextnode=contextnode,extensions=extensions,variables=variables)
+        return self.xpath(path,namespaces=namespaces,contextnode=contextnode,extensions=extensions,variables=variables,noprovenance=noprovenance)
         
     def xpathnumpy(self,path,namespaces=None,contextnodes=None,extensions=None,variables=None,iscomplex=False,oneper=True):
         """Like xpath, but convert node-set to floating point, return as 
