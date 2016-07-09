@@ -218,7 +218,7 @@ if __name__=="__main__":
             # handled at imports, above
             pass
         elif arg=="-p":  # insert path into search path for steps
-            steppath.insert(1,sys.argv[argc+1])
+            processtrak_procstep.steppath.insert(1,sys.argv[argc+1])
             argc+=1
             pass
         elif arg=='-h' or arg=="--help":
@@ -318,18 +318,19 @@ if __name__=="__main__":
 
     # If any input files are specified on the command line, use only
     # those input files
+
     
-    useinputfiles_with_hrefs = [ (inputfile,inputfile_href) for (inputfile,inputfile_href) in inputfiles_with_hrefs if len(argv_inputfiles)==0 or inputfile_hrefs.getpath() in argv_inputfiles ]
+    useinputfiles_with_hrefs = [ (inputfile,inputfile_href) for (inputfile,inputfile_href) in inputfiles_with_hrefs if len(argv_inputfiles)==0 or inputfile_href.getpath() in argv_inputfiles ]
 
     
     
     # Build dictionary by input file of output files
-    outputdict=processtrak_common.build_outputdict(prxdoc,useinputfiles_with_hrefs)
+    outputdict=processtrak_common.build_outputdict(prxdoc,inputfiles_with_hrefs)
 
 
     
     # Run the specified steps, on the specified files
-    processtrak_common.outputdict_run_steps(prxdoc,outputdict,steps,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist)    
+    processtrak_common.outputdict_run_steps(prxdoc,outputdict,useinputfiles_with_hrefs,steps,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist)    
 
     
     pass
