@@ -201,9 +201,9 @@ class runscriptstep(buttontextareastep):
             pass
         else: 
             # central paramdb
-	    if self.guistate is not None:
+            if self.guistate is not None:
                 self.gladeobjdict["textarea"].set_paramdb(self.guistate.paramdb)
-		pass
+                pass
 
             self.set_property("readoutparam",self.scriptlog)
 
@@ -218,7 +218,7 @@ class runscriptstep(buttontextareastep):
         # call superclass (buttontextareastep) dc_gui_init
         super(runscriptstep,self).dc_gui_init(guistate)
 
-	self.assign_readoutparam()
+        self.assign_readoutparam()
         
         pass
     
@@ -250,7 +250,7 @@ class runscriptstep(buttontextareastep):
 
     def value_from_xml(self):
         value=dc_value.stringvalue("")
-	gotdisplayfmt=None
+        gotdisplayfmt=None
         self.checklist.xmldoc.lock_ro()
         try: 
             xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)

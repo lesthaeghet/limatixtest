@@ -34,9 +34,20 @@ else :
 
 from lxml import etree
 
-import dataguzzler as dg
-import dg_comm as dgc
+try: 
+    import dataguzzler as dg
+    import dg_comm as dgc
+    pass
+except ImportError:
+    # dataguzzler not available
+    dg=None
+    dgc=None
+    dg_io=None
+    
+    pass
+
 from . import dg_io
+
 
 from . import dc_value 
 
@@ -1715,7 +1726,7 @@ class param(object):
         #import pdb as pythondb
         #pythondb.set_trace()
         
-        object.__setattr__(self,'dcvalue',self.paramtype(""))
+        object.__setattr__(self,'dcvalue',self.paramtype(None))
 
 
         if build is not None:

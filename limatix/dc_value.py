@@ -250,6 +250,20 @@ class xmltreevalue(value):
     
     def __init__(self,xmldoc_element_or_string,defunits=None,nsmap=None,contexthref=None,force_abs_href=False):
         from . import xmldoc   # don't want this in the top-of module because it creates a circular reference
+
+        #sys.stderr.write("xmltreevalue.__init__: contexthref=%s\n" % (str(contexthref)))
+        #if str(contexthref)=="./":
+        #    import pdb
+        #    pdb.set_trace()
+        #
+        #if contexthref is None and xmldoc_element_or_string is not None:
+        #    if isinstance(xmldoc_element_or_string,self.__class__) and self.__xmldoc is None:
+        #        pass
+        #    else: 
+        #        import pdb
+        #        pdb.set_trace()
+        #        pass
+        #    pass
         
         # contexthref is desired context of new document (also assumed context of source, if source has no context)
         if isinstance(xmldoc_element_or_string,self.__class__):
@@ -281,6 +295,12 @@ class xmltreevalue(value):
         self.final=True
         pass
 
+    def getcontexthref(self):
+        if self.__xmldoc is None:
+            return hrefvalue(None)
+        return self.__xmldoc.getcontexthref()
+    
+    
     def isblank(self):
         # blank if __xmldoc is None or if there are no elements
         
@@ -457,6 +477,8 @@ class xmltreevalue(value):
         #    obj.__xmldoc.setcontexthref(contexthref,force_abs_href=force_abs_href)
         #    return obj
 
+        # sys.stderr.write("xmltreevalue.fromxml(): contexthref=%s\n" % (str(xmldocu.getcontexthref())))
+        
         return cls(element,nsmap=nsmap,contexthref=xmldocu.getcontexthref())
     
     @classmethod
@@ -525,7 +547,7 @@ class xmltreevalue(value):
             #descendent_in_context_list=[ descendent if canonicalize_path.canonicalize_path(descendent.__xmldoc.getcontextdir())==desiredcontext else xmltreevalue(descendent,contextdir=contextdir) for descendent in descendentlist if descendent.__xmldoc is not None ]
             descendent_in_context_list=[ descendent if descendent.__xmldoc.getcontexthref()==desiredcontext else xmltreevalue(descendent,contexthref=contexthref) for descendent in descendentlist if descendent.__xmldoc is not None ]
                 
-            newelem=treesync.treesync_multi(parent.__xmldoc.getroot(),[descendent.__xmldoc.getroot() for descendent in descendent_in_context_list if descendent.__xmldoc is not None ],maxmergedepth,ignore_blank_text=True,tag_index_paths_override=tag_index_paths_override)
+            newelem=treesync.treesync_multi(parent.__xmldoc.getroot(),[descendent.__xmldoc.getroot() for descendent in descendent_in_context_list if descendent.__xmldoc is not None ],maxmergedepth,ignore_blank_text=True,tag_index_paths_override=tag_index_paths_override,ignore_root_tag_name=True)
             #    pass
             #except: 
             #    pythondb.post_mortem()
@@ -533,6 +555,8 @@ class xmltreevalue(value):
             pass
 
         #sys.stderr.write("Merging trees... tag=%s parent contexthref=%s descendent contexthrefs=%s output contexthref=%s\n" % (newelem.tag,parent.__xmldoc.getcontexthref().absurl(),",".join([descendent.__xmldoc.getcontexthref().absurl() for descendent in descendentlist if descendent.__xmldoc is not None ]),contexthref.absurl()))
+
+        # sys.stderr.write("xmltreevalue.merge(): contexthref=%s\n" % (str(contexthref)))
 
         return cls(newelem,contexthref=contexthref)
     pass
@@ -2063,7 +2087,7 @@ class excitationparamsvalue(value) :
             pass
 
         if xmldocu is not None:
-            xmlstorevalueclass(xmldocu,element,self.__class__)
+            xmlstorevalueclass(xmldocu,tag,self.__class__)
 
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,tag)
@@ -2142,7 +2166,7 @@ class imagevalue(value):
         PNGbuf=StringIO()
         self.PILimage.save(PNGbuf,format="PNG")
         xmldocu.setattr(tag,"src","data:image/png;base64,"+base64.b64encode(PNGbuf.getvalue()))
-        xmlstorevalueclass(xmldocu,element,self.__class__)
+        xmlstorevalueclass(xmldocu,tag,self.__class__)
         pass
 
     @classmethod
@@ -2247,7 +2271,7 @@ class photosvalue(value):
             tag.append(newel)
             pass
         if xmldocu is not None:
-            xmlstorevalueclass(xmldocu,element,self.__class__)
+            xmlstorevalueclass(xmldocu,tag,self.__class__)
 
             xmldocu.modified=True
             provenance.elementgenerated(xmldocu,tag)

@@ -84,7 +84,7 @@ sheetspec=r"""
 
 
 
-transformation = r"""<?xml version="1.0" encoding="utf-8"?>
+transformation = r"""<?xml version="1.0" ?>
 <xsl:transform xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 xmlns:dyn="http://exslt.org/dynamic"
 xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"

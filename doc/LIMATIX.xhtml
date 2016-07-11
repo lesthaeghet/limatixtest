@@ -1,5 +1,33 @@
 <html xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml">
-  <head><title>Limatix</title></head>
+  <head>
+    <title>Limatix</title>
+    <style type="text/css"><![CDATA[
+
+    body {
+      counter-reset: counth2;
+    }
+    h1  {
+      counter-reset: counth2;
+
+    }
+    h2:before {
+      content: counter(counth2) ".\0000a0\0000a0";
+      counter-increment: counth2;
+    }
+    h2 {
+      counter-reset: counth3;
+    }
+    h3:before {
+      content: counter(counth2) "." counter(counth3) ".\0000a0\0000a0";
+      counter-increment: counth3;
+    }
+
+
+    td {
+      vertical-align: top; 
+    }
+]]></style>
+  </head>
   <body>
     <h1>Limatix</h1>
     <h2>Introduction</h2>
@@ -118,15 +146,26 @@
     <h2> Getting Started </h2>
     <h3> Installation </h3>
     <p>
-      See the file INSTALL.txt distributed with datacollect2.
+      See the file INSTALL.txt distributed with Limatix.
     </p>
-    <h3>Running datacollect2</h3>
+    <h3>Datacollect2 QuickStart</h3>
+    <p>
+      For a simple demonstration of Datacollect2 capabilities,
+      copy the demonstration files into a new directory:
+    </p>
+    <ul>
+      <li>plans/thermalconductivity_crossply_meas.plx: This is a <em>plan file</em>, a checklist that represents the overall plan of what you are trying to do. In the case of this example, it is a plan for performing thermal conductivity measurements</li>
+      <li>checklists/thermalconductivity_prep.chx: This is a checklist for the per-specimen preparation required prior to data collection. This is a "measurement checklist", which means the button at the bottom becomes a "save measurement" button. </li>
+      <li>checklists/thermalconductivity_meas.chx: This is a checklist for the actual datacollection. It is also a "measurement checklist".
+      </li>
+      <li>conf/thermalconductivity.dcc: This is a datacollect configuration file, that represents the parameters to be recorded that are specific to this measurement.</li>
+    </ul>
     <p>
       To start, run the <tt>datacollect2</tt> program:<br/>
       <img src="datacollect2_window.png"/><br/>
       This is the main experiment log window. It provides a place to view
       or update various parameters that are synchronized to the experiment log:
-      The current measurement number index (Measnum), the specimen ID (Specimen),
+      The current measurement number index (Measnum), the specimen ID (Specimen)s,
       who is performing the experiment (Perfby), and the date or dates during which the experiment was performed. It also provides fields to record
       the goal of your experiment, an automatically populated list
       of photographs, and a field to record notes.
@@ -134,18 +173,20 @@
     <h3>Creating a new experiment log</h3>
     <p>
       Use the File menu: File...New to create a new experiment log
-      in a suitable location. You will be asked whether the experiment
+      in the same directory where you placed the above-listed files.
+      You will be asked whether the experiment
       will involve a single specimen or multiple specimens. Select
-      "Single specimen" for now. 
+      "Multiple specimen" for now. 
     </p><p>
-      Normally, you would next load a configuration file that
-      tells datacollect2 about the various additional parameters you
-      may want to store. In this case, to keep things simple, we will
-      just use datacollect2's built-in parameters.
+
+      This experiment requires additional measurement fields, beyond
+      those built into datacollect2. You need to load in a configuration
+      file to define those fields. From the File... menu select
+      "Load Custom Config" and browse to your copy of thermalconductivity.dcc.
     </p>
     <h3>Viewing and editing parameters</h3>
     <p>
-      Start by viewing the built-in parameters: From the "Gui" menu
+      Start by viewing the parameters: From the "Gui" menu
       select "Open paramdb editor" to see a table of currently available
       parameters:<br/>
       <img src="paramdb_editor.png"/><br/>
@@ -160,6 +201,12 @@
       paramdb editor and in the experiment log window) both refer to the
       same underlying parameter, and thus they remain synchronized. 
     </p>
+    <p> <b>If you do not tab- or carriage-return out of editing the field
+	it will remain colored yellow, which indicates that it is
+	out of sync with the underlying parameter. You can press "Esc"
+	to cancel your change. Always be sure fields are colored gray
+	or green, indicating that the change was successful!</b>
+      </p>
     <p>
       Look at the 'Controller' column of the paramdb editor and notice
       that the "Specimen" parameter uses the 'synced' controller. That
@@ -194,9 +241,56 @@
       plan files and checklists before editing them with external
       tools)
     </p>
+    <h3>Opening a plan</h3>
+    <p>
+      Go to the Plan menu... Open and select "thermalconductivity_crossply_meas.plx". This opens up the test plan you copied in earlier.
+      Try clicking the "Open thermalconductivity_prep.chx" button. It won't let you because it won't let you open a sub-checklist until this checklist has a name (that's to give you a chance to set parameters that might affect the file name). Checklists don't get names until a box has been checked. So in this case, just check and uncheck a box on the right-hand side. That assigns this checklist a name and saves the filled copy on disk. You can browse it with a text editor as "thermalconductivity_crossply_meas.plf". Unlike the experiment log, it is <em>NOT</em> safe to edit a filled checklist in a text editor while it is open
+      in datacollect (just close the checklist, and reopen it when you are done editing). 
+      
+    </p>
     <h3>Opening a measurement checklist</h3>
     <p>
-      From the "Checklist" menu, select "Open". The file selector
+      Click the "Open thermalconductivity_prep.chx" button. Note
+      that the status next to that changes to "1 start/0 done"
+      (You can use the status pulldown to bring up this particular checklist). 
+    </p>
+    <p>
+      The thermalconductivity_prep.chx checklist is a "measurement checklist".
+      That means the button at the bottom is "Finish and save measurement"
+      rather than "Done", and when you click the "Finish and save measurement"
+      button, a new measurement (with snapshots of all parameters) is saved
+      to the experiment log.
+    </p>
+    <p>
+      When filling out this checklist, be sure to enter the specimen
+      ID and press return <em>before</em> any box is checked. Enter
+      something into the specimen ID field, press return, and then
+      check that first box. Checking the first box gives the checklist
+      a name. The window title will change to the new name of the
+      checklist and its name includes the specimen ID (That is why you
+      had to be careful to enter the specimen ID first). The filled
+      checklist name also begins with the measurement number
+      ("Measnum" box). The measurement number increments every time a measurement is
+      saved.
+    </p>
+    <p>
+      The specimen id was included in the filled checklist name because
+      the checklist has a special XML tag that tells it how to name
+      the filled checklist: &lt;dest autofilename="concat('thermalconductivity_prep_',dc:paramdb('specimen'),'.chf')"/&gt; 
+    </p>
+    <p>
+      In any case, check off the items in the checklist as if you were
+      performing the experiment.
+      Enter '.2 m' in the specimen length field, and notice how it
+      automatically converts your input from meters into millimeters.
+      That is because the field units were specified as mm in the
+      .dcc configuration file.
+    </p>
+    <p>
+      When done, type some notes into the "Notes" field, being sure to 
+      press &lt;tab&gt; after typing. Then press the "Finish and save measurement" button.
+      
+<!--      From the "Checklist" menu, select "Open". The file selector
       should automatically open to the "checklists" folder of
       datacollect's data installation directory. Pick the checklist
       "testlist.chx": <br/>
@@ -205,7 +299,7 @@
       a measurement to the experiment log when the
       "Finish and save measurement" button at the bottom is selected. Go
       through and check off all the items. You can adjust some of the
-      parameters if you'd like, or enter some notes. 
+      parameters if you'd like, or enter some notes.  -->
     </p>
     <h3>Saving a measurement</h3>
     <p>
@@ -225,7 +319,7 @@
 	  &lt;dc:specimen&gt;S02-AA-19&lt;/dc:specimen&gt;
 	  &lt;dc:hostname&gt;gavroche&lt;/dc:hostname&gt;
 	  &lt;dc:measphotos/&gt;
-	  &lt;dc:measchecklist xlink:href="2016-03-23_files/testchx-0001.chf"/&gt;
+	  &lt;dc:measchecklist xlink:href="2016-03-23_files/0000-thermalconductivity_prep_S02-AA-19.chf"/&gt;
 	  &lt;dc:date&gt;2016-03-23&lt;/dc:date&gt;
 	  &lt;dc:perfby&gt;&lt;/dc:perfby&gt;
 	  &lt;dc:notes&gt;&lt;/dc:notes&gt;
@@ -234,7 +328,20 @@
       The measurement entry in the experiment log always stores the
       parameter values <i>from the instant the "Finish and save measurement"
 	button was pressed.</i> The experiment log also gets (in the &lt;dc:measchecklist&gt; tag) a hyperlink to the filled checklist. Individual parameter values from steps marked as &lt;intermediate/&gt; are captured when the step was checked and stored in the filled checklist. The value for the same parameter stored in the experiment log will be different if the parameter changed value between when the step was checked and when the "Finish and save measurement" button was pressed.      
+    </p><p>
+      Notice also that datacollect has automatically created a "_files" directory to store files from this experiment.  This directory is where it will put filled-out checklists, and if you have data files from other software, this directory is probably where you should put them. 
+      </p>
+    <h3>Performing more measurements</h3>
+    <p>
+      You can perform additional measurements (in this case prepare more samples) either by hitting the "Reset" button at the bottom of the completed checklist
+      or by pressing the "Open thermalconductivity_prep.chx" button in the plan (don't click the 'Switch to Read/Write' button at the top; that will attempt to reload your newly completed checklist, and require synchronization of the parameters shown at the top, including Measnum, which has just incremented).
+      Notice that when press the "Reset" or "Open" buttons, the status shown in the plan updates.
+      You could also go back to the main datacollect experiment log window and
+      select "Open custom checklist" from the "Checklist" menu, but that
+      would not link the new checklist to the plan, so it is usually best
+      avoided.
     </p>
+      
     <h3>Checklists and Plans</h3>
     <p>
       Checklists and plans are generally treated similarly by
@@ -266,6 +373,187 @@
       extension (PLanXml) and filled plans use the ".plf" extension
       (PLanFilled). 
     </p>
+    <p>
+      Checklists and plans can use special kinds of steps. The example plan uses a special kind of step "runchecklist" to support opening the "thermalconductivity_prep.chx" and "thermalconductivity_meas.chx" checklists. Likewise the "thermalconductivity_prep.chx" uses a "dc_param" step to provide the specimen entry box at the top and the specimen length box farther down. The "thermalconductivity_meas.chx" also uses a "hrefbutton" step to give you a way to reference a saved data file. 
+    </p>
+    <p>
+      In most cases, parameters are saved to the experiment log when you press
+      the "Save Measurement" button, and are not saved to the checklist. When
+      you revisit an old checklist you will see the current parameter values
+      (since the widgets are active and connected to the parameter database),
+      not the historical parameter values from when the checklist was completed.
+      This is because the design intent of datacollect is to snapshot the
+      current parameter values when you press the 'save measurement' button,
+      and because values in the experiment log will be easier to access than
+      values buried in a checklist.
+    </p>
+    <p>
+      Nevertheless, sometimes you want to store an intermediate parameter value
+      in a checklist,
+      before saving the entire measurement. Storing an intermediate is indeed possible and will result
+      in different behavior: The entry box for the parameter will track the
+      parameter database only when the step is unchecked. When the step is checked,
+      the displayed value is fixed and stored into the filled checklist, and the
+      entry box is grayed out. Intermediate parameter storage mode is enabled
+      by adding a &lt;chx:intermediate/&gt; element to the &lt;chx:checkitem&gt;
+      element for the checklist step. Marking an checklist parameter step as
+      intermediate does not prevent the parameter from being saved to the
+      experiment log (use the hide_from_meas parameter on creation in the .dcc file
+      to accomplish that), not does it ensure that the value saved to the
+      experiment log and the value from the checklist are the same. If the
+      parameter is changed between checking the checklist box and saving
+      the measurement to the experiment log, then the stored values will be different!
+    </p>
+    <h3>ProcessTrak QuickStart</h3>
+    <p>
+      The processtrak_example directory includes a complete example of
+      the use of ProcessTrak for data analysis.
+Thanks to Joseph Hynek for providing the data and for his permission
+to share the data.</p><p>
+It is from an RF (radio frequency) survey of the Creston, IA area.
+The bulk data files are in the creston_jan2016/ subdirectory.
+RF spectrum data was captured from a vehicle and stored in .csv format.
+Simultaneously, GPS tracking data was captured using a cellphone.
+The two datasets are merged to create geographic maps of estimated RF intensity
+at different frequencies.
+</p><p>
+
+You can adjust the comments in the process_spectrum.prx file to use
+<em>either</em> the creston_jan2016.xlg experiment log file as input <em>or</em> the
+creston_jan2016.xls spreadsheet file as input. To use the spreadsheet file
+you will need to have the xlrd Python package installed.
+</p>
+    <p>
+      A ProcessTrak process consists of a series of steps that operate on experiment logs. In this case, there are six steps listed in the process_spectrum.prx file: 
+    </p>
+    <table>
+      <tr><th>Step</th><th>Description</th></tr>
+      <tr><td>copyinput</td><td>(this step is always implicitly present,
+                       and copies the experiment log to the
+	  processed experiment log.) </td></tr>
+      <tr><td>extract_rflog_entries</td><td>Extract data from the rflog csv files into
+                       the XML experiment log </td></tr>
+<tr><td>combine_freqband_lines</td><td>Merge adjacent spectrum entries for different
+                       frequency subbands into a merged spectrum
+		       covering the entire frequency band of
+		       interest</td></tr>
+<tr><td>mergegps</td><td>               Merge in GPS data by aligning times.</td></tr>
+<tr><td>energymap </td><td>             Generate .png images of RF energy at different
+                       frequencies using matplotlib. Also create .kml
+		       (Google Earth) files for rendering these images
+		       as geographic overlays.</td></tr>
+<tr><td>generatespreadsheet</td><td>    Generate a summary spreadsheet listing the
+    frequencies, .png images, and .kml overlays.</td></tr>
+    </table>
+    <p>
+      ProcessTrak currently runs from the command line shell. Start in the example directory and run <tt>processtrak process_spectrum.prx --steps</tt>. This will list
+      the available steps:
+    </p>
+    <pre>
+List of steps for -s option
+---------------------------
+copyinput      (WILL OVERWRITE CURRENT OUTPUT)
+extract_rflog_entries
+combine_freqband_lines
+mergegps
+energymap
+generatespreadsheet
+    </pre>
+    <p>
+      First, run the copyinput step: <tt>processtrak process_spectrum.prx -s copyinput</tt>. This copies the input file (either creston_jan2016.xls or creston_jan2016.xlg, depending on which is commented out in the .prx file) to creston_jan2016.xlp, the processed experiment log:
+    </p>
+    <pre>
+&lt;?xml version='1.0' encoding='UTF-8'?&gt;
+&lt;dc:experiment xmlns:prx="http://limatix.org/processtrak/processinginstructions" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ls="http://limatix.org/spreadsheet" xmlns:lip="http://limatix.org/provenance" xmlns:dcv="http://limatix.org/dcvalue" xmlns:dc="http://limatix.org/datacollect" xmlns:pt="http://limatix.org/processtrak" lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"&gt;
+  &lt;dc:summary lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"&gt;
+    &lt;dc:dest xlink:href="creston_jan2016/" lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"/&gt;
+  &lt;/dc:summary&gt;
+  &lt;dc:measurement lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"&gt;
+    &lt;dc:rflog xlink:href="creston_jan2016/creston_rf1.csv" lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"/&gt;
+  &lt;/dc:measurement&gt;
+  ...
+  &lt;dc:measurement lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"&gt;
+    &lt;dc:gpslog xlink:href="creston_jan2016/Creston8.gpx" lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"/&gt;
+  &lt;/dc:measurement&gt;
+  &lt;lip:process uuid="4f8ff3651f8e075155a221db7fd9f66a89e1e50c"&gt;
+    &lt;lip:wascontrolledby&gt;
+      &lt;lip:prxfile xlink:href="process_spectrum.prx" xlink:type="simple" warnlevel="info" type="href" mtime="2016-07-11T18:07:02.099510+00:00" lip:timestamp="2016-07-11T18:07:02.099510+00:00"/&gt;
+    &lt;/lip:wascontrolledby&gt;
+    &lt;lip:starttimestamp&gt;2016-07-11T17:07:34.416009-05:00&lt;/lip:starttimestamp&gt;
+    &lt;lip:hostname pid="7780" uid="1667" username="sdh4"&gt;thermal.cnde.iastate.edu&lt;/lip:hostname&gt;
+    &lt;lip:argv&gt;['/usr/bin/processtrak', 'process_spectrum.prx', '-s', 'copyinput']&lt;/lip:argv&gt;
+    &lt;lip:inputfile xlink:href="creston_jan2016.xlg" xlink:type="simple"/&gt;
+    &lt;lip:target xlink:href="" xlink:type="simple"/&gt;
+    &lt;lip:process uuid="db7cf5e5ab34f14132979bd1eace790b3c7eff76"&gt;
+      &lt;lip:used xlink:href="creston_jan2016.xlg" xlink:type="simple" warnlevel="warning" type="href" mtime="2016-07-11T21:45:06.136009+00:00"/&gt;
+      &lt;lip:action&gt;copyinput&lt;/lip:action&gt;
+      &lt;lip:starttimestamp&gt;2016-07-11T17:07:34.417219-05:00&lt;/lip:starttimestamp&gt;
+      &lt;lip:finishtimestamp&gt;2016-07-11T17:07:34.427022-05:00&lt;/lip:finishtimestamp&gt;
+    &lt;/lip:process&gt;
+    &lt;lip:finishtimestamp&gt;2016-07-11T17:07:34.428232-05:00&lt;/lip:finishtimestamp&gt;
+  &lt;/lip:process&gt;
+&lt;/dc:experiment&gt;
+    </pre>
+    <p>
+      The processed experiment log looks intimidating with lots of complicated numbers, but most of that is just the provenance, history, and cross-references used to
+      implement <em>traceability</em>: Being able to identify where your outputs came from. 
+    </p>
+    <p>
+      In particular, note the <tt>&lt;dc:dest&gt;</tt> indicating where to store output.
+      files and a series of <tt>&lt;dc:measurement&gt;</tt> tags with rflog and gpslog content that correspond to the input experiment log.
+      Also look at the <tt>&lt;lip:process&gt;</tt> section at the bottom. This section stores a record of the <tt>copyinput</tt>operation, including what inputs were used, what the parameters were, etc. Within the main <tt>&lt;lip:process&gt;</tt> there is a sub-<tt>&lt;lip:process&gt;</tt> with (in the above case) a uuid= attribute (universally-unique identifier) starting with "db7c". The various tags above have a <tt>lip:wasgeneratedby=</tt> attribute that refers to this same uuid. That is ProcessTrak's record of where those tags came from.
+    </p>
+    <p>
+      Now run the remaining steps in sequence and watch the file grow (<b>Warning:</b> The energymap step is very memory-intensive). 
+      The <tt>extract_rflog_entries</tt> step adds a bunch of &lt;spectrumlog&gt;
+      tags. The <tt>combine_freqband_lines</tt> step adds &lt;mergedspectrumlog&gt;
+      tags that combine information from multiple &lt;spectrumlog&gt; tags.
+      Notice how additional <tt>&lt;lip:process&gt;</tt> tags are generated for each of these steps.
+    </p>
+    <p>
+      Now is a good time to look at <tt>process_spectrum.prx</tt> in more
+      depth. AT the top, the input files are specified. Then with <tt>&lt;elementmatch&gt;</tt> and <tt>&lt;inputfilematch&gt;</tt>, default constraints for which elements and which files to operate on. Then a series of steps, with parameters supplied as needed, and with links to the Python scripts for executing those steps.
+    </p>
+    <p>
+       ProcessTrak provide two tools: pt_checkprovenance and
+      pt_cleanup to help keep your processed results neat and tidy,
+      and to verify consistency.  Try
+      running <tt>pt_checkprovenance</tt>
+       on <tt>creston_jan2016.xlp</tt>.  This tool walks the provenance graph
+       (the lip:wasgeneratedby and lip:used references) to determine if there
+       are any errors or inconsistencies in the generated output.
+       It should pass without
+      warnings or errors. Now rerun an earlier step without rerunning
+      the later step, and rerun <tt>pt_checkprovenance</tt>.  It
+      will give errors. You can see the details of the errors by
+       adding the "-v" option. If you rerun the later steps in order and
+       return <tt>pt_checkprovenance</tt> you will find the errors have cleared.
+       The <tt>pt_checkprovenance</tt> tool is very useful in making sure your
+       output is consistent and all steps have been rerun as needed.
+    </p>
+    <p>
+      Now try running <tt>mergegps</tt> twice. The fact that you have run a step
+      twice means that there is excess information in the processed experiment log
+      about the extra run, and perhaps excess or obsolete data that shouldn't
+      be there anymore.  The <tt>pt_cleanup</tt> tool will remove this and other
+      unneeded, obsolete information. Try: <tt>pt_cleanup process_spectrum.prx -h</tt>
+      To remove obsolete elements from the processed experiment log, use the "-b" option (there shouldn't be any in this case). You should be able to clean up excess provenance (excess <tt>&lt;lip:process&gt;</tt> tags) from the experiment log with the "-p" option. You can also use this tool to clean out the destination directly with the "-d" option.
+    </p>
+    <p>
+      Be careful using the <tt>pt_cleanup</tt> "-d" option to clean out the destination directory. It will ask you before it deletes anything, but it will want to delete anything it can't find a reference to. So if your destination directory is not a sub-directory or if you have manually added files to it, or if there are outputs that were never recorded in the experiment log, it might identify these for deletion.
+    </p>
+    <p>
+      If you want to cleanup generated files from the destination directory,
+      reset the experiment log by running the <tt>copyinput</tt> step (this
+      completely empties the experiment log). Then use <tt>pt_cleanup</tt> with
+      the "-d" option and it will offer to delete all of the processing outputs. 
+    </p>
+    <p>
+      The net result of using ProcessTrak is the ability to manage complicated multi-step processes while minimizing the need to re-run steps. Outputs are kept in a centralized location, with tools to cleanup obsolete results (<tt>pt_cleanup</tt>) and verify tracability of your results through the processing chain (<tt>pt_checkprovenance</tt>). 
+    </p>
+      
+
+      
     <h2> Datacollect2 Building Blocks </h2>
     <h3>XML, XPath, and XLink</h3>
     <p>
@@ -758,14 +1046,16 @@
     </p>
     <table>
       <tr><th>name of argument</th><th>meaning</th></tr>
-      <tr><td>Any parameter explicitly specifed in .prx file</td><td>Value from .prx file</td></tr>
+      <tr><td>Any parameter explicitly specifed in .prx file, optionally with a suffix appended</td><td>Value from .prx file, interpreted according to suffix, as below</td></tr>
       <tr><td>_xmldoc</td><td>datacollect2.xmldoc.xmldoc instance for the processed experiment long</td></tr>
       <tr><td>_element</td><td>XML element to be operated on by the step</td></tr>
       <tr><td>_dest_href</td><td>datacollect2.dc_value.hrefvalue pointing at destination directory where whiles should be written</td></tr>
-      <tr><td>The name of a sub-element of the XML element being operated on. If the sub-element is in a namespace then an underscore replaces the colon separating the namespace prefix. Optionally the name can have "_list" at the end. It can also have one or more of  "_text", "_href", "_hreffullpath", or "_numericvalue" appended to the element name.</td><td>
-	  Passes the value of the specifed element. If "_list" then it will be wrapped in a list. If "_text" then a Python string of the element text. If "_href" then a <tt>datacollect2.dc_value.hrefvalue</tt>. If "_hreffullpath" then a string representing the filesystem path of the href. If "_numericvalue" then a <tt>datacollect2.dc_value.numericunitsvalue</tt>.</td></tr>
+      <tr><td>The name of a sub-element of the XML element being operated on. If the sub-element is in a namespace then an underscore replaces the colon separating the namespace prefix. Optionally the name can have a suffix, which will cause the element to be interpreted according to the suffix.  </td><td>
+No suffix means pass the element. A suffix of "_doc" means pass the xmldoc object containing the element. A suffix of "str", "float", "int", or "bool" means interpret the element content as the corresponding Python type. A suffix of "list", "tuple", "dict" or "set" means interpret the element content as a Python literal and cast to the specified type. A suffix of a dc_value value class name, e.g. "numericunits", "href", or "xmltree" will intrepret the element as an instance of the corresponding limatix.dc_value class</td></tr>
     </table>
     See the attached slides <a href="processtrak.pdf">processtrak.pdf</a> for more information.
+    <h3>Paremeters with ProcessTrak</h3>
+    Parameters are specified with a &lt;param&gt; tag 
     <h3>Parallel processing with ProcessTrak</h3>
     <p>
       Parallel processing is usually best done within your step by calling

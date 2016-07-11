@@ -63,10 +63,22 @@ else :
     from gi.repository.GLib import threads_init
     pass
 
+try: 
+    import dataguzzler as dg
+    import dg_comm as dgc
+    import dg_file as dgf
 
-import dataguzzler as dg
-import dg_comm as dgc
-import dg_file as dgf
+    dgc_client=dgc.client
+    
+    pass
+except ImportError:
+    # dataguzzler not available
+    dg=None
+    dgc=None
+    dgf=None
+
+    dgc_client=object
+    pass
 
 
 __pychecker__="no-import no-callinit no-local" # no-callinit because of spurious warning about (dg_comm.client) __init__() not being called
@@ -82,7 +94,7 @@ def addhandler(iohandlers):
     
     pass
 
-class iochan(dgc.client):
+class iochan(dgc_client):
     # extension of dg_comm client class
     # that tracks whether it is in use
     

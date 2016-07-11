@@ -36,8 +36,8 @@ else :
     import gobject
     pass
 
-import dg_file as dgf
-import dg_comm as dgc
+#import dg_file as dgf
+#import dg_comm as dgc
 from .. import paramdb2 as pdb
 
 from .. import dc_value
@@ -242,7 +242,15 @@ class savebuttonstep(buttonreadoutstep):
             pass
         
         
-        Chooser=gtk.FileChooserDialog(title="Save as...",action=gtk.FILE_CHOOSER_ACTION_SAVE,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+        if hasattr(gtk,"FileChooserAction") and hasattr(gtk.FileChooserAction,"OPEN"):
+            # gtk3
+            Chooser=gtk.FileChooserDialog(title="Save as...",action=gtk.FileChooserAction.SAVE,buttons=(gtk.STOCK_CANCEL,gtk.ResponseType.CANCEL,gtk.STOCK_SAVE,gtk.ResponseType.OK))
+            ResponseOK=gtk.ResponseType.OK
+            pass
+        else:
+            Chooser=gtk.FileChooserDialog(title="Save as...",action=gtk.FILE_CHOOSER_ACTION_SAVE,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+            ResponseOK=gtk.RESPONSE_OK
+            pass
         Chooser.set_modal(True)
         Chooser.set_current_name(defname)
         Chooser.set_current_folder(desthref.getpath())
@@ -258,7 +266,7 @@ class savebuttonstep(buttonreadoutstep):
         Chooser.hide()
         Chooser.destroy()
         
-        if response != gtk.RESPONSE_OK:
+        if response != ResponseOK:
             return 
         
         # datafilename should be relative to desthref

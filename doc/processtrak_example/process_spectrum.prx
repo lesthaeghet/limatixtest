@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<processinginstructions
+    xmlns="http://limatix.org/processtrak/processinginstructions"
+    xmlns:prx="http://limatix.org/processtrak/processinginstructions"
+    xmlns:dcv="http://limatix.org/dcvalue"
+    xmlns:dc="http://limatix.org/datacollect"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:ls="http://limatix.org/spreadsheet"
+    xmlns:pt="http://limatix.org/processtrak">
+  
+  <inputfiles>
+    <!-- Uncomment this <inputfile> tag to use spreadsheet input,
+	 along with the spreadsheet_like_datacollect.xsl converter
+         to make the spreadsheet experiment log look like a datacollect
+	 experiment log 
+    <inputfile xlink:href="creston_jan2016.xls" titlerow="2">
+      <xslt name="spreadsheet_like_datacollect.xsl"/>
+      <dc:dest xlink:type="simple" xlink:href="creston_jan2016/"/>
+      <outputfile xlink:href="creston_jan2016.xlp"/>      
+    </inputfile>
+    -->
+
+    <!-- Uncomment this <inputfile> tag to use datacollect2-style
+	 experiment log input -->
+    <inputfile xlink:href="creston_jan2016.xlg">
+      <outputfile xlink:href="creston_jan2016.xlp"/>      
+    </inputfile>
+    
+  </inputfiles>
+
+  <elementmatch>dc:measurement[dc:rflog]</elementmatch>
+  <inputfilematch>*</inputfilematch> 
+
+  <step name="extract_rflog_entries">
+    <script xlink:href="extract_rflog_entries.py"/>
+  </step>
+
+  <!-- For some reason rtl_power split its output into multiple lines for a single timestamp (?) ... This step combines those lines together -->
+
+  <step name="combine_freqband_lines">
+    <param name="frequencyerrorthreshold" dcv:units="Hz">20000</param>
+    <elementmatch>dc:measurement[dc:rflog]/spectrumlog[1]|dc:measurement[dc:rflog]/spectrumlog[not(string(@datetime)=preceding-sibling::spectrumlog[1]/@datetime)]</elementmatch> <!-- match spectrumlog tags with a datetime different from the datetime of the following spectrumlog -->
+    <script xlink:href="combine_freqband_lines.py"/>
+  </step>
+  
+  <step name="mergegps">
+    <elementmatch>dc:measurement[dc:rflog]/spectrumlog/mergedspectrumlog</elementmatch>
+    <param name="timezone">US/Central</param>
+    <script xlink:href="mergegps.py"/>    
+  </step>
+
+  <step name="energymap">
+    <param name="freqstart" dcv:units="Hz">88700000</param>
+    <param name="freqstep" dcv:units="Hz">200000</param>
+    <param name="freqend" dcv:units="Hz">104100000</param>
+
+    <param name="leftlong">-94.40</param>
+    <param name="rightlong">-94.30</param>
+    <param name="botlat">41.03</param>
+    <param name="toplat">41.08</param>
+    <param name="xpixels">480</param>
+    <param name="ypixels">500</param>
+    <param name="windowwidth_meters">50</param>
+
+    <elementmatch>/dc:experiment</elementmatch>  <!-- Match root element -->
+    <script xlink:href="energymaps.py"/>
+  </step>
+  <!--
+    <step name="energymap2">
+    <parameter name="frequency">
+      <numvalue>91900000</numvalue>
+    </parameter>
+    
+    <parameter name="leftlong">
+      <numvalue>-94.40</numvalue>
+    </parameter>
+    <parameter name="rightlong">
+      <numvalue>-94.30</numvalue>
+    </parameter>
+    <parameter name="botlat">
+      <numvalue>41.03</numvalue>
+    </parameter>
+    <parameter name="toplat">
+      <numvalue>41.08</numvalue>
+    </parameter>
+    <parameter name="xpixels">
+      <numvalue>480</numvalue>
+    </parameter>
+    <parameter name="ypixels">
+      <numvalue>500</numvalue>
+    </parameter>
+    <parameter name="windowwidth_meters">
+      <numvalue>250</numvalue>
+    </parameter>
+
+  <elementmatch>/sdrlog</elementmatch>
+    <script xlink:href="energymap.py"/>    
+  </step>
+  -->
+  <step name="generatespreadsheet">
+    <elementmatch>/dc:experiment</elementmatch>    
+    <param name="prx_sheetspec">
+      <pt:sheet name="frequencies" tableselect=".">
+	<pt:rows select="freq"/>
+	<pt:col select="@frequency" type="numeric" label="Frequency (Hz)"/>
+	<pt:col select="imagemap" type="href" label="PNG image"/>
+	<pt:col select="kmlmap" type="href" label="KML overlay"/>
+      </pt:sheet>
+    </param>
+    <param name="prx_outfilenamexpath" select="'creston_jan2016_out.ods'"/>
+    <script name="writespreadsheet.py"/>  <!-- finding script with name= attribute searches in the path for standard scripts -->
+  </step>
+
+  <!-- 
+  <step name="generatespreadsheet2">
+    <elementmatch>/sdrlog</elementmatch>    
+    <param name="prx_sheetspec">
+      <pt:sheet name="Experiment Log" tableselect=".">
+	<pt:rows select="rflog|gpslog"/>
+	<pt:col select="self::rflog" type="href" label="rflog"/>
+	<pt:col select="self::gpslog" type="href" label="gpslog"/>
+      </pt:sheet>
+    </param>
+    <param name="prx_outfilenamexpath" select="'temp.ods'"/>
+    <script name="writespreadsheet.py"/> 
+  </step> -->
+  
+  
+</processinginstructions>

@@ -1,0 +1,67 @@
+<dc:experiment xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://limatix.org/datacollect">
+    <dc:summary><dc:dest xlink:href="creston_jan2016/"/></dc:summary>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf1.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf1b.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf2.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf2b.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf3.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf3b.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf4.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf4b.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf5.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf5b.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf6.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf6b.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf7.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:rflog xlink:href="creston_jan2016/creston_rf7b.csv"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:gpslog xlink:href="creston_jan2016/Crestonrf1.gpx"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:gpslog xlink:href="creston_jan2016/Crestonrf2.gpx"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:gpslog xlink:href="creston_jan2016/Crestonrf4.gpx"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:gpslog xlink:href="creston_jan2016/Crestonrf5.gpx"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:gpslog xlink:href="creston_jan2016/Creston5.gpx"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:gpslog xlink:href="creston_jan2016/Creston7.gpx"/>
+    </dc:measurement>
+    <dc:measurement>
+	<dc:gpslog xlink:href="creston_jan2016/Creston8.gpx"/>
+    </dc:measurement>
+	
+</dc:experiment>

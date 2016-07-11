@@ -58,8 +58,8 @@ all:
 
 clean:
 	@for i in $(SUBDIRS) ; do if [ -d $$i ] && [ -f $$i/Makefile ] ; then $(MAKE) $(MFLAGS) -C $$i clean; fi done
-	rm -f *.bak *~ core.* *.o *.pyc a.out octave-core *.pycheck limatix/widgets/*~ limatix/steps/*~ limatix/widgets/core.* limatix/steps/core.* limatix/widgets/*.pyc limatix/steps/*.pyc checklists/*~ limatix/widgets/glade-3/*~ limatix/widgets/glade-3/glade_catalogs/*~ limatix/widgets/glade-3/glade_catalogs/*.pyc limatix/widgets/glade-3/glade_modules/*~ limatix/widgets/glade-3/glade_modules/*.pyc limatix/*~ limatix/core.* limatix/*.o limatix/*.pyc limatix/a.out limatix/octave-core limatix/*.pycheck conf/*~ conf/core.* conf/*.bak conf/*.pyc doc/*.bak doc/*.pyc doc/*~ bin/*~ bin/*.bak bin/*.pyc
-	rm -rf lib/__pycache__ steps/__pycache__ widgets/__pycache__
+	rm -f *.bak *~ core.* *.o *.pyc a.out octave-core *.pycheck limatix/widgets/*~ limatix/steps/*~ limatix/widgets/core.* limatix/steps/core.* limatix/widgets/*.pyc limatix/steps/*.pyc checklists/*~ plans/*~ limatix/widgets/glade-3/*~ limatix/widgets/glade-3/glade_catalogs/*~ limatix/widgets/glade-3/glade_catalogs/*.pyc limatix/widgets/glade-3/glade_modules/*~ limatix/widgets/glade-3/glade_modules/*.pyc limatix/*~ limatix/core.* limatix/*.o limatix/*.pyc limatix/a.out limatix/octave-core limatix/*.pycheck conf/*~ conf/core.* conf/*.bak conf/*.pyc doc/*.bak doc/*.pyc doc/*~ doc/processtrak_example/*~ doc/processtrak_example/*.pyc doc/processtrak_example/creston_jan2016/*.png  doc/processtrak_example/creston_jan2016/*.kml doc/processtrak_example/*.xlp doc/processtrak_example/creston_jan2016_out.ods  doc/processtrak_example/.creston*.bak*  bin/*~ bin/*.bak bin/*.pyc
+	rm -rf lib/__pycache__ steps/__pycache__ widgets/__pycache__ doc/processtrak_example/__pycache__
 	rm -rf build/
 	rm -rf dist/
 	rm -rf limatix.egg-info

@@ -33,6 +33,18 @@ import time
 import shutil
 import datetime
 
+try: 
+    import builtins  # python3
+    pass
+except ImportError: 
+    import __builtin__ as builtins # python2
+    pass
+
+if not hasattr(builtins,"raw_input"):
+    # python3
+    raw_input=input
+    pass
+
 
 try:
     # py2.x
