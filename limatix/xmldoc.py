@@ -431,17 +431,25 @@ class xmldoc(object):
             # Element object has getchildren()
             # Wrap it in a new tree
             newetree=etree.ElementTree(elementcopy)
-            pass
+            if xmldocu is not None:
+                for subel in etree_or_element.iter():
+                    provenance.xmldocelementaccessed(xmldocu,subel)
+                    pass
+                pass
         else:     
             # ElementTree object does not have getchildren()
             newetree=elementcopy
+            if xmldocu is not None:
+                for subel in etree_or_element.getroot().iter():
+                    provenance.xmldocelementaccessed(xmldocu,subel)
+                    pass
+                pass
             pass
-
+        
         if xmldocu is not None:
             assert(contexthref is None)
             contexthref=xmldocu.getcontexthref()
             pass
-        
         
 
         return xmldoc.frometree(newetree,nsmap=nsmap,readonly=readonly,contexthref=contexthref,debug=debug,force_abs_href=force_abs_href)
@@ -1607,6 +1615,29 @@ class xmldoc(object):
             self.remelement(element)
             pass
         pass
+
+    def addtreefromdoc(self,parent,sourcedoc,sourceel):
+        """This routine copies sourceel (and sub-elements) from sourcedoc,
+           and copies it into this document, adding it as a child of the 
+           specified parent"""
+        self.element_in_doc(parent)
+        
+        sourcecopy=copy.deepcopy(sourceel)
+
+        parent.append(sourcecopy)
+        
+        for el in sourcecopy.iter():  # iter() gives descendant-or-self
+            provenance.elementgenerated(self,el)
+            pass
+
+        if sourcedoc is not None:
+            for el in sourceel.iter():
+                provenance.xmldocelementaccessed(sourcedoc,el)
+                pass
+            pass
+
+        pass
+        
     
     def addelement(self,parent,elname): 
         """This routine creates and appends a new empty element to the document.
@@ -2718,6 +2749,10 @@ class xmldoc(object):
                     pass
                 pass
 
+
+            # Check if we have something to write!
+            if self.doc is None and ( not(ok_to_be_unlocked) or self.olddoc is None): 
+                raise ValueError("No document available to write!")
 
                               
             # flush changes to disk

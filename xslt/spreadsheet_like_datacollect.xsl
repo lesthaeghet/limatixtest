@@ -35,6 +35,13 @@
     </dc:measurement>
   </xsl:template>
 
+  <!-- Convert ls:rownum to dc:measnum -->
+  <xsl:template match="ls:rownum">
+   <dc:measnum>
+      <xsl:apply-templates/>
+    </dc:measnum>
+  </xsl:template>
+
   <!-- Convert ls:namespace elements to dc: -->
   <xsl:template match="ls:*">
     <xsl:element name="dc:{local-name()}" namespace="http://limatix.org/datacollect"><xsl:apply-templates select="@*|node()"/>
