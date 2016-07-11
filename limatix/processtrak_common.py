@@ -364,6 +364,8 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
             # Copy spreadsheet table
             for row in range(titlerow+1,nrows):
                 rowel=outdoc.addelement(outdoc.getroot(),"ls:row")
+                rownumel=outdoc.addelement(rowel,"ls:rownum")
+                outdoc.settext(rownumel,str(row))
                 for col in range(ncols):
                     cell=sheet.cell(row,col)
                     cell_type=xlrd.sheet.ctype_text.get(cell.ctype,'unknown')
@@ -706,9 +708,10 @@ def outputdict_run_steps(prxdoc,outputdict,useinputfiles_with_hrefs,steps,filter
         
         for (inputfile,inputfilehref) in useinputfiles_with_hrefs:
 
-            print("\nProcessing step %s on %s->%s" % (processtrak_prxdoc.getstepname(prxdoc,step),inputfilehref.humanurl(),outputdict[inputfilehref].outputfilehref.humanurl()))
             if step is None: 
                 # Initialize output file 
+                print("\nProcessing step %s on %s->%s" % (processtrak_prxdoc.getstepname(prxdoc,step),inputfilehref.humanurl(),outputdict[inputfilehref].outputfilehref.humanurl()))
+
                 initialize_output_file(prxdoc,outputdict,inputfilehref,overall_starttime,force=True)
                 pass
             else: 
