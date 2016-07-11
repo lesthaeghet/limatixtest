@@ -346,6 +346,50 @@ def resultelementfromdict(output,resultdict):
     applyresultdict(resultelementdoc,None,None,resultelementdoc.getroot(),resultdict)
     return resultelementdoc
 
+
+def applyresultdict_dissectresult(output,element,resultname,resultitem):
+
+    attrdict={}
+    if isinstance(resultname,tuple):
+        # if result is a tuple, then treat first element 
+        # of tuple as actual name, second element as attribute dictionary, 
+        assert(len(resultname)==2)
+        attrdict.update(resultname[1])
+        name=resultname[0]
+        pass
+    else: 
+        name=resultname
+        pass
+    
+    
+    # split name by '/' like an xpath... treat all but the trailing
+    # part as an xpath context
+    if "/" in name: 
+        (tagpath,tagname)=name.rsplit("/",1)
+        tagpatheval=output.xpathsinglecontext(element,tagpath,namespaces=output.namespaces)
+        pass
+    else:
+        tagname=name
+        tagpatheval=element
+        pass
+    
+
+    if isinstance(resultitem,tuple):
+        # if result is a tuple, then treat first element 
+        # of tuple as an attribute dictionary, second
+        # element as value object
+        assert(len(resultitem)==2)
+        attrdict.update(resultitem[0])
+        resultvalue=resultitem[1]
+        pass
+    else: 
+        resultvalue=resultitem
+        pass
+    
+    
+    return (tagname,tagpatheval,attrdict,resultvalue)
+
+
 def applyresultdict(output,prxdoc,steptag,element,resultdict):
     # resultdict can either be a dict
     # or a list/tuple of (key,element) pairs. 
@@ -366,39 +410,13 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
     # Go through results...
     for (resultname,resultitem) in resultlist: 
 
-
-        #  resultitem=resultdict[resultname]
-        attrdict={}
-        if isinstance(resultname,tuple):
-            # if result is a tuple, then treat first element 
-            # of tuple as actual name, second element as attribute dictionary, 
-            assert(len(resultname)==2)
-            attrdict.update(resultname[1])
-            name=resultname[0]
-            pass
-        else: 
-            name=resultname
-            pass
-
-        if not ":" in name and None in output.nsmap:
-            sys.stderr.write("processtrak_procstep.applyresultdict() WARNING: Results from processtrak\nsteps should always specify the XML namespace of result tags\nwhen a default namespace is set. Otherwise they get placed in\nthe default namespace, but not replaced on the next run.\n")
-            pass
-
-
-        if isinstance(resultitem,tuple):
-            # if result is a tuple, then treat first element 
-            # of tuple as an attribute dictionary, second
-            # element as value object
-            assert(len(resultitem)==2)
-            attrdict.update(resultitem[0])
-            resultvalue=resultitem[1]
-            pass
-        else: 
-            resultvalue=resultitem
-            pass
+        (tagname,tagpatheval,attrdict,resultvalue)=applyresultdict_dissectresult(output,element,resultname,resultitem)
         
-        # Remove preexisting elements if present
-        oldelements=output.children(element,name,noprovenanceupdate=True)
+        # ... and remove preexisting elements if present
+        # (We do this first because otherwise there is the potential 
+        # for provenance mixup between the results we are destroying 
+        # and the ones we are about to generated) 
+        oldelements=output.children(tagpatheval,tagname,noprovenanceupdate=True)
         for oldelement in oldelements:
             # do the requested attributes match?
             attrmatch=True
@@ -414,22 +432,35 @@ def applyresultdict(output,prxdoc,steptag,element,resultdict):
                 output.removeelement(oldelement)
                 pass
             pass
+
+        pass
+
+    # Now go through again and generate the elements 
+    # Go through results...
+    for (resultname,resultitem) in resultlist: 
+
+        (tagname,tagpatheval,attrdict,resultvalue)=applyresultdict_dissectresult(output,element,resultname,resultitem)
+
+        if not ":" in tagname and None in output.nsmap:
+            sys.stderr.write("processtrak_procstep.applyresultdict() WARNING: Results from processtrak\nsteps should always specify the XML namespace of result tags\nwhen a default namespace is set. Otherwise they get placed in\nthe default namespace, but not replaced on the next run.\n")
+            pass
+        
         
         # Create new element according to type
         # sys.stderr.write("resultdict=%s\n" % (str(resultdict))) 
         if isinstance(resultvalue,numbers.Number):
-            newel=output.addsimpleelement(element,name,(resultvalue,))
+            newel=output.addsimpleelement(tagpatheval,tagname,(resultvalue,))
             pass
         elif isinstance(resultvalue,dcv.value):
-            newel=output.addelement(element,name)
+            newel=output.addelement(tagpatheval,tagname)
             resultvalue.xmlrepr(output,newel)
             pass
         elif isinstance(resultvalue,basestring):
-            newel=output.addelement(element,name)
+            newel=output.addelement(tagpatheval,tagname)
             output.settext(newel,resultvalue)
             pass
         elif isinstance(resultvalue,xmldoc.xmldoc):            
-            newel=output.addelement(element,name)
+            newel=output.addelement(tagpatheval,tagname)
             # copy tree from resultvalue
             resultroot=copy.deepcopy(resultvalue.doc.getroot())
             newel[:]=resultroot[:]
@@ -495,10 +526,10 @@ def procsteppython_runelement(output,prxdoc,prxnsmap,steptag,rootprocesspath,ste
                 # returns XML element for auto-params or xpaths
                 # returns dc_value for fixed numeric params
                 # returns string for fixed string params
-                argkw[argname]=processtrak_stepparam.evaluate_params(params,argname,None,output,element)
+                argkw[argname]=processtrak_stepparam.evaluate_params(params,argname,None,output,element,inputfilehref)
                 pass
             elif argnamebase in params:
-                argkw[argname]=processtrak_stepparam.evaluate_params(params,argnamebase,argnametype,output,element)
+                argkw[argname]=processtrak_stepparam.evaluate_params(params,argnamebase,argnametype,output,element,inputfilehref)
                 
             elif argname=="_xmldoc":  # _xmldoc parameter gets output XML document
                 argkw[argname]=output         # supply output XML document
@@ -843,6 +874,7 @@ def procsteppython(scripthref,pycode_el,prxdoc,output,steptag,scripttag,rootproc
     pass
 
 
+
 def procstep(prxdoc,out,steptag,filters,overall_starttime,debugmode,stdouthandler,stderrhandler,ipythonmodelist):
     # *** output should be unlocked when this is called
 
@@ -856,22 +888,27 @@ def procstep(prxdoc,out,steptag,filters,overall_starttime,debugmode,stdouthandle
     except NameError:
         pass
 
-    defaultinputfilematch="*" # defaults to matching anything
-    try: 
-        defaultinputfilematchel=prxdoc.xpathsingle("prx:inputfilematch")
-        defaultinputfilematch=defaultinputfilematchel.text
-        pass
-    except NameError:
-        pass
-
-    
     scripttag=prxdoc.xpathsinglecontext(steptag,"prx:script")
+    
+ 
+    inputfilematch=["*"] # defaults to matching anything
+
+    for inputfilematchel in prxdoc.xpath("prx:inputfilematch") + prxdoc.xpathcontext(steptag,"prx:inputfilematch") + prxdoc.xpathcontext(scripttag,"prx:inputfilematch"):
+        if prxdoc.getattr(inputfilematchel,"mode",default="replace")=="union":
+            # union
+            inputfilematch.append(prxdoc.gettext(inputfilematchel))
+            pass
+        else:
+            # replace
+            inputfilematch=[ prxdoc.gettext(inputfilematchel) ]
+            pass
+        pass
+    
     
     elementmatch=defaultelementmatch
     elementmatch_nsmap=defaultelementmatch_nsmap
     # sys.stderr.write("defaultelementmatch=%s\n" % (elementmatch))
 
-    inputfilematch=defaultinputfilematch
 
     # try for <prx:elementmatch> in <step> 
     try: 
@@ -883,14 +920,14 @@ def procstep(prxdoc,out,steptag,filters,overall_starttime,debugmode,stdouthandle
     except NameError:
         pass
 
-    # try for <prx:inputfilematch> in <step> 
-    try: 
-        inputfilematchel=prxdoc.xpathsinglecontext(steptag,"prx:inputfilematch")
-        inputfilematch=inputfilematchel.text
-        # sys.stderr.write("overrideinputfilematch=%s\n" % (inputfilematch))
-        pass
-    except NameError:
-        pass
+    ## try for <prx:inputfilematch> in <step> 
+    #try: 
+    #    inputfilematchel=prxdoc.xpathsinglecontext(steptag,"prx:inputfilematch")
+    #inputfilematch=inputfilematchel.text
+    #    # sys.stderr.write("overrideinputfilematch=%s\n" % (inputfilematch))
+    #    pass
+    #except NameError:
+    #    pass
 
     
     # try for <prx:elementmatch> in <script> 
@@ -903,22 +940,23 @@ def procstep(prxdoc,out,steptag,filters,overall_starttime,debugmode,stdouthandle
     except NameError:
         pass
 
-    # try for <prx:inputfilematch> in <script> 
-    try: 
-        inputfilematchel=prxdoc.xpathsinglecontext(scripttag,"prx:inputfilematch")
-        inputfilematch=inputfilematchel.text
-        # sys.stderr.write("overrideinputfilematch=%s\n" % (inputfilematch))
-        pass
-    except NameError:
-        pass
+    ## try for <prx:inputfilematch> in <script> 
+    #try: 
+    #    inputfilematchel=prxdoc.xpathsinglecontext(scripttag,"prx:inputfilematch")
+    #    inputfilematch=inputfilematchel.text
+    #    # sys.stderr.write("overrideinputfilematch=%s\n" % (inputfilematch))
+    #    pass
+    #except NameError:
+    #    pass
 
 
     # return if we don't pass filename matching
     
-    if not fnmatch.fnmatch(out.inputfilehref.get_bare_unquoted_filename(),inputfilematch):
+    if not any([ fnmatch.fnmatch(out.inputfilehref.get_bare_unquoted_filename(),inputfilematchstr) for inputfilematchstr in inputfilematch]):
         return
     
 
+    print("\nProcessing step %s on %s->%s" % (processtrak_prxdoc.getstepname(prxdoc,steptag),out.inputfilehref.humanurl(),out.outputfilehref.humanurl()))
 
     
     

@@ -542,6 +542,10 @@ def elementgenerated(xmldocu,element):
     if xmldocu is None or xmldocu.filehref is None: 
         return
 
+    if isinstance(element,etree._Comment) or isinstance(element,etree._ProcessingInstruction):
+        return # Don't track provenance of comments or processing instructions
+    
+
     our_tid=id(threading.current_thread)
     if our_tid in ProvenanceDB:
         ourdb=ProvenanceDB[our_tid]
@@ -564,7 +568,10 @@ def xmldocelementaccessed(xmldocu,element):
     if xmldocu is None or xmldocu.filehref is None:
         return
 
-    
+    if isinstance(element,etree._Comment) or isinstance(element,etree._ProcessingInstruction):
+        return # Don't track provenance of comments or processing instructions
+ 
+   
     our_tid=id(threading.current_thread)
     if our_tid in ProvenanceDB:
         ourdb=ProvenanceDB[our_tid]
@@ -700,8 +707,9 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
 
         
         #sys.stderr.write("foundelement=%s\n" % (str(foundelement)))
+        
         if len(foundelement) != 1:
-            msg="Non-unique result identifying provenance reference %s." % (modified_element_hrefc.humanurl())
+            msg="Non-unique result identifying provenance reference %s: Got %d elements." % (modified_element_hrefc.humanurl(),len(foundelement))
             msg+=" ".join("foundelement[%d]=%s" % (idx,href_context.fromelement(xmldocu,foundelement[idx]).humanurl()) for idx in range(len(foundelement)))
             raise ValueError(msg) # etree.tostring(xmldocu.doc)))
 
@@ -1208,7 +1216,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                 from . import xmldoc # don't want this in top-of-file because it creates a circular reference
                 from . import dc_value # don't want this in top-of-file because it creates a circular reference
 
-                xmldocu=xmldoc.xmldoc.loadhref(dc_value.hrefvalue(filehrefc))
+                xmldocu=xmldoc.xmldoc.loadhref(dc_value.hrefvalue(filehrefc.fragless()))
                 pass
             except IOError:
                 errmsg="URL %s missing for %s referred by %s." % (filehrefc.humanurl(),element_hrefc.humanurl(),referrer_hrefc.humanurl())
