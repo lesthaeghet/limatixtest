@@ -83,7 +83,7 @@ class stepparam(object):
         pass
 
 
-    def test_condition(self,outdoc,element):
+    def test_condition(self,outdoc,element,inputfilehref):
         if not self.prxdoc.hasattr(self.element,"condition"):
             return True
         
@@ -94,7 +94,14 @@ class stepparam(object):
         if None in namespaces:
             del namespaces[None]
             pass
-        result=outdoc.xpathcontext(element,condition,variables={"filename":outdoc.get_filehref().get_bare_unquoted_filename(),"fileurl":outdoc.get_filehref().absurl()},namespaces=namespaces,noprovenance=True)
+
+        variables = {"outputfile":outdoc.get_filehref().get_bare_unquoted_filename(),
+                     "outputfileurl":outdoc.get_filehref().absurl(),
+                     "inputfile":inputfilehref.get_bare_unquoted_filename(),
+                     "inputfileurl":inputfilehref.absurl(),
+                     }
+
+        result=outdoc.xpathcontext(element,condition,variables=variables,namespaces=namespaces,noprovenance=True)
 
         #sys.stderr.write("test_condition: condition=%s variables=%s result=%s\n" % (condition,str({"filename":outdoc.get_filehref().get_bare_unquoted_filename(),"fileurl":outdoc.get_filehref().absurl()}),str(result)))
 
@@ -116,10 +123,10 @@ class stepparam(object):
     pass
 
 
-def evaluate_params(paramdict,name,typename,outdoc,element):
+def evaluate_params(paramdict,name,typename,outdoc,element,inputfilehref):
     params=paramdict[name]
     for param in params:
-        if param.test_condition(outdoc,element):
+        if param.test_condition(outdoc,element,inputfilehref):
             return param.evaluateas(typename)
         pass
     raise ValueError("No value found for parameter %s for element %s" % (name,etxpath2human(outdoc.get_canonical_etxpath(element),outdoc.nsmap)))

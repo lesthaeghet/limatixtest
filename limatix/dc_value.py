@@ -410,8 +410,7 @@ class xmltreevalue(value):
             
 
             xmldocu.modified=True
-            provenance.elementgenerated(xmldocu,element)
-            for child in element.iterdescendants():
+            for child in element.iter():
                 provenance.elementgenerated(xmldocu,child)
                 pass
             
