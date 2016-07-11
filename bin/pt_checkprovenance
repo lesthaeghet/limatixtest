@@ -10,8 +10,9 @@ import copy
 import inspect
 import numbers
 import traceback
-import StringIO
-import cProfile
+
+
+#import cProfile
 
 #if "--gtk3" in sys.argv or sys.version_info[0] >= 3:  # gtk3
 #    from gi.repository import Gtk as gtk

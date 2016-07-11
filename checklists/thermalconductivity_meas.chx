@@ -32,7 +32,7 @@
 
     <checkitem class="hrefbutton" title="Save data">
       <paramname>datafile</paramname>
-      <description>Save data file. Then browse here and find it: </description>
+      <description>Save data file to the auto-created "_files" directory. Then browse here and find it: </description>
       <buttonlabel>Data file</buttonlabel>
     </checkitem>
 

@@ -466,13 +466,13 @@ class xmldoc(object):
         # if you set contextdir and force_abs_href it will absolutize all
         # xlink:href references
 
-        if contexthref is None and contextdir is not None:
-            if not contextdir.endswith("/"):
-                contextdir+="/"
-                pass
-
-            contexthref=dc_value.hrefvalue(pathname2url(contextdir))
-            pass
+        #if contexthref is None and contextdir is not None:
+        #    if not contextdir.endswith("/"):
+        #        contextdir+="/"
+        #        pass
+        #
+        #    contexthref=dc_value.hrefvalue(pathname2url(contextdir))
+        #    pass
 
         newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=readonly,ETreeObj=lxmletree,use_locking=False,contexthref=contexthref,debug=debug)
 
@@ -3545,7 +3545,7 @@ class synced(object):
         
         #import pdb as pythondb
         #pythondb.set_trace()
-        
+
         if parent is not None:
             ParentFrame=gtk.Frame()
             ParentFrame.set_label("Parent: from %s" % (str(parentsource)))
@@ -3613,7 +3613,14 @@ class synced(object):
         dialogval=dialog.run()
 
         if dialogval==1:
-            mergeddoc=xmldoc.fromstring(MergedTextBuffer.get_text(MergedTextBuffer.get_start_iter(),MergedTextBuffer.get_end_iter(),False))
+            mergeddoc=xmldoc.fromstring(MergedTextBuffer.get_text(MergedTextBuffer.get_start_iter(),MergedTextBuffer.get_end_iter(),False),contexthref=contexthref)
+            # ***!!!! Bug: If we have to merge an XMLTreevalue,
+            # the resulting tree's root is a <parent> or <descendent>
+            # tag, not what it should be, and therefore
+            # mergedvalue ends up wrong!
+            #
+            # Workaround: User manually puts in correct tag from window title
+            # Suggested fix: Use correct tag in parent and descendents
             mergedvalue=paramtype.fromxml(mergeddoc,mergeddoc.getroot())
             
             dialog.destroy()
@@ -3929,8 +3936,14 @@ class synced(object):
             #for mv in mergevalues:
             #    sys.stderr.write("mv=%s %s\n" % (mv.__class__.__name__,str(mv)))
 
-            contexthref=self.find_a_context_href(requestedvalueparams)
-            
+            # If we are requesting a non-blank value that can provide a context URL, always use that for the merge context 
+            if requestedvalue is not None and hasattr(requestedvalue,"getcontexthref") and not(requestedvalue.getcontexthref().isblank()):
+                contexthref=requestedvalue.getcontexthref()
+                pass
+            else: 
+                contexthref=self.find_a_context_href(requestedvalueparams)
+                pass
+                
             # domerge enforces the correct value class by using that class to do the merge 
             mergedval=self.domerge(humanpath,oldvalue,"in memory",mergevalues,mergesources,contexthref=contexthref,**self.mergekwargs)
             # sys.stderr.write("mergedval=%s\n\n" % (str(mergedval)))

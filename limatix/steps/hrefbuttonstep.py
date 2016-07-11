@@ -36,8 +36,6 @@ else :
     import gobject
     pass
 
-import dg_file as dgf
-import dg_comm as dgc
 from .. import paramdb2 as pdb
 
 from .. import dc_value
@@ -194,7 +192,6 @@ class hrefbuttonstep(buttonreadoutstep):
 
     def find_file_dialog(self,paramname,desthref=None):
 
-        defname=""
 
         if desthref is not None:
             reference_href=desthref
@@ -204,13 +201,18 @@ class hrefbuttonstep(buttonreadoutstep):
             pass
         reference_path=reference_href.getpath()
         
-        if self.checklist.ok_set_filename():
-            defname=os.path.splitext(self.checklist.requestedfilename())[0]+self.paramdb[self.myprops["paramname"]].save_extension
-            
+        
+        if hasattr(gtk,"FileChooserAction") and hasattr(gtk.FileChooserAction,"OPEN"):
+            # gtk3
+            Chooser=gtk.FileChooserDialog(title="Open...",action=gtk.FileChooserAction.OPEN,buttons=(gtk.STOCK_CANCEL,gtk.ResponseType.CANCEL,gtk.STOCK_OPEN,gtk.ResponseType.OK))
+            ResponseOK=gtk.ResponseType.OK
+            pass
+        else:
+            # gtk2
+            Chooser=gtk.FileChooserDialog(title="Open...",action=gtk.FILE_CHOOSER_ACTION_OPEN,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+            ResponseOK=gtk.RESPONSE_OK
             pass
         
-        
-        Chooser=gtk.FileChooserDialog(title="Open...",action=gtk.FILE_CHOOSER_ACTION_OPEN,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         Chooser.set_modal(True)
         Chooser.set_current_folder(reference_path)
         
@@ -231,7 +233,7 @@ class hrefbuttonstep(buttonreadoutstep):
         Chooser.hide()
         Chooser.destroy()
         
-        if response != gtk.RESPONSE_OK:
+        if response != ResponseOK:
             return 
         
         # datafilename should be relative to desthref

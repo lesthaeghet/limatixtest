@@ -50,9 +50,27 @@ except ImportError:
     from urllib.parse import urljoin
     pass
 
+try: 
+    import builtins  # python3
+    pass
+except ImportError: 
+    import __builtin__ as builtins # python2
+    pass
+
+if not hasattr(builtins,"unichr"):
+    # python3
+    unichr=chr
+    pass
+
+if not hasattr(builtins,"unicode"):
+    # python3
+    unicode=str
+    pass
+
+
 # import lm_units
 
-import timestamp
+from . import timestamp
 from . import canonicalize_path
 from .canonicalize_path import etxpath2human
 
@@ -99,27 +117,27 @@ prx_nsmap={
 };
 
 
-xmlNameStartCharNums = (range(65,91) +    # From XML Spec
+xmlNameStartCharNums = (list(range(65,91)) +    # From XML Spec
                         [95] +
-                        range(97,123) +
-                        range(0xC0,0xD7) +
-                        range(0xD8,0xF7) +
-                        range(0xF8,0x300) +
-                        range(0x370,0x37E) +
-                        range(0x37F,0x2000) +
-                        range(0x200C,0x200E) +
-                        range(0x2070,0x2190) +
-                        range(0x2C00,0x2ff0) +
-                        range(0x3001,0xD800) +
-                        range(0xF900,0xFDD0) +
-                        range(0xFDF0,0xFFFE) +
-                        range(0x10000,0xF0000))
+                        list(range(97,123)) +
+                        list(range(0xC0,0xD7)) +
+                        list(range(0xD8,0xF7)) +
+                        list(range(0xF8,0x300)) +
+                        list(range(0x370,0x37E)) +
+                        list(range(0x37F,0x2000)) +
+                        list(range(0x200C,0x200E)) +
+                        list(range(0x2070,0x2190)) +
+                        list(range(0x2C00,0x2ff0)) +
+                        list(range(0x3001,0xD800)) +
+                        list(range(0xF900,0xFDD0)) +
+                        list(range(0xFDF0,0xFFFE)) +
+                        list(range(0x10000,0xF0000)))
 xmlNameCharNums = (xmlNameStartCharNums +
                    [ 45, 46 ] +
-                   range(48,58) +
+                   list(range(48,58)) +
                    [ 0xB7 ] +
-                   range(0x300,0x370) +
-                   range(0x2040,2041))
+                   list(range(0x300,0x370)) +
+                   list(range(0x2040,2041)))
                         
 xmlNameStartCharSet = set( [ unichr(num) for num in xmlNameStartCharNums ] )
 xmlNameCharSet = set( [ unichr(num) for num in xmlNameCharNums ] )

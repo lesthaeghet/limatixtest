@@ -39,7 +39,7 @@ def load_config(href,paramdb,iohandlers,createparamserver):
 
     #
     #confdir="-I%s" % (os.path.join(thisdir,"../conf/"))
-    confdir="-I%s" % (os.path.join(__install_prefix__,"share","datacollect2","conf"))
+    confdir="-I%s" % (os.path.join(__install_prefix__,"share","limatix","conf"))
     # sys.stderr.write("confdir=%s\n" % confdir)
     
     config_globals={"paramdb":paramdb,"iohandlers":iohandlers,"createparamserver":createparamserver,"DCCHREF":href,}

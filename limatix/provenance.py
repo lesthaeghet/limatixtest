@@ -255,6 +255,9 @@ class iterelementsbutskip(object):
     def __iter__(self):
         return self
 
+    def __next__(self):  # python3
+        return self.next()
+    
     def next(self):
         stackentry=len(self.contextstackpos)-1
 

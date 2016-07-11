@@ -50,6 +50,24 @@ except ImportError:
     from urllib.parse import urljoin
     pass
 
+
+try: 
+    import builtins  # python3
+    pass
+except ImportError: 
+    import __builtin__ as builtins # python2
+    pass
+
+if not hasattr(builtins,"unicode"):
+    # python3
+    unicode=str
+    pass
+
+if not hasattr(builtins,"basestring"):
+    # python3
+    basestring=str
+    pass
+
 # import dg_units
 
 from . import timestamp
