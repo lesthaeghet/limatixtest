@@ -130,8 +130,9 @@ xmlNameStartCharNums = (list(range(65,91)) +    # From XML Spec
                         list(range(0x2C00,0x2ff0)) +
                         list(range(0x3001,0xD800)) +
                         list(range(0xF900,0xFDD0)) +
-                        list(range(0xFDF0,0xFFFE)) +
-                        list(range(0x10000,0xF0000)))
+                        list(range(0xFDF0,0xFFFE)))
+                        #list(range(0x10000,0xF0000))  # Disabled because it screws up Windows
+
 xmlNameCharNums = (xmlNameStartCharNums +
                    [ 45, 46 ] +
                    list(range(48,58)) +

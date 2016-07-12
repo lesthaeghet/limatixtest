@@ -360,7 +360,7 @@ def cleanup_dest(input_files,desthref_set,href_set):
         excess_files=[]
         
         destpath=desthref.getpath()
-        assert(destpath.endswith('/'))
+        assert(destpath.endswith('/') or destpath.endswith(os.path.sep))
 
         for filename in os.listdir(destpath):
             if os.path.isdir(os.path.join(destpath,filename)):
@@ -474,7 +474,9 @@ def main(args=None):
     input_files=processtrak_cleanup.infiledicts.fromhreflist(input_file_hrefs)
 
 
-    
+
+    #import pdb
+    #pdb.set_trace()
     (completed_set,desthref_set,href_set)=processtrak_cleanup.traverse(input_files,recursive=recursive,need_href_set=not(cleanup_obsolete or len(remove_steps)>0) and cleanup_dest_files)
 
 

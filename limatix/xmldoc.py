@@ -2977,7 +2977,7 @@ class xmldoc(object):
             self.lockfh.close()
             pass
         self.lockfh=None
-        self.lockfd=None
+        self.lockfd=-1
         pass
 
 
