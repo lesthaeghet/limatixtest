@@ -448,10 +448,13 @@ class explogwindow(gtk.Window):
         fname=newexplogchooser.get_filename()
         newexplogchooser.destroy()
 
+        #import pdb as pythondb
+        #pythondb.set_trace()
+        
         # create context from fname and directory
         (direc,filename)=os.path.split(fname)
 
-        href=dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc+os.path.sep),contexthref=dcv.hrefvalue("./")))
+        href=dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc)+posixpath.sep,contexthref=dcv.hrefvalue("./")))
 
 
         
@@ -699,7 +702,7 @@ class explogwindow(gtk.Window):
             # create context from fname and directory
             (direc,filename)=os.path.split(fname)
             
-            self.open_explog(dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc+os.path.sep),contexthref=dcv.hrefvalue("./"))),confighrefs=confighrefs)
+            self.open_explog(dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc)+posixpath.sep,contexthref=dcv.hrefvalue("./"))),confighrefs=confighrefs)
             pass
         pass
 
