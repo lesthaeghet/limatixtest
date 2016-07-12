@@ -45,7 +45,10 @@ Windows installation instructions
      python setup.py install
 5. From an Anaconda command prompt you should now be able to
    run 'datacollect2', 'processtrak', etc.
-6. Also obtain a good XML editor that supports syntax
+6. Suggest installing "PySide" QT bindings for IPython/Matplotib
+   run "conda install pyside". This will make ProcessTrak's
+   IPython mode work
+7. Also obtain a good XML editor that supports syntax
    highlighting to associate with the various Limatix XML
    file types.
    
