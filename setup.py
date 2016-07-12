@@ -129,6 +129,8 @@ setup(name="limatix",
                     "limatix": limatix_package_files},
       entry_points={"limatix.checklist.step": limatix_checklist_step_entrypoints,
                     "limatix.widget": limatix_widget_entrypoints,
+                    "limatix.datacollect2.config_url_search_path": [ "limatix.share.conf = limatix.dc2_misc:getconfigurlpath" ],
+                    "limatix.processtrak.step_url_search_path": [ "limatix.share.pt_steps = limatix.processtrak_prockstep:getstepurlpath" ],
                     "console_scripts": console_scripts_entrypoints,
                     "gui_scripts": gui_scripts_entrypoints })
 

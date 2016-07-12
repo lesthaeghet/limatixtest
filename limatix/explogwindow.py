@@ -918,8 +918,25 @@ class explogwindow(gtk.Window):
             loadconfigchooser=gtk.FileChooserDialog(title="Load config file",action=gtk.FILE_CHOOSER_ACTION_OPEN,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
             pass
         #openexplogchooser.set_current_name(self.suggestname())
-        if central: 
-            loadconfigchooser.set_current_folder(os.path.abspath(os.path.join(__data_prefix__, 'conf')))
+        if central:
+            #
+            #loadconfigchooser.set_current_folder(os.path.abspath(os.path.join(__data_prefix__, 'conf')))
+
+            primaryconfighrefpaths = dc2_misc.get_confighrefpaths(primary=True)
+
+            allconfighrefpaths = dc2_misc.get_confighrefpaths()
+
+            for hrefpath in allconfighrefpaths:
+                if hrefpath.isfile():
+                    loadconfigchooser.add_shortcut_folder(hrefpath.getpath())
+                    pass
+                pass
+
+            if primaryconfighrefpaths[0].isfile():
+                loadconfigchooser.set_current_folder(primaryconfighrefpaths[0].getpath())
+                pass
+            
+            
             pass
         else:
             if self.explog is not None:

@@ -32,3 +32,21 @@ Note that the install_data step also installs some useful files
 into $(PREFIX)/share/limatix where $(PREFIX) is the Python
 installation prefix. These include sample checklists, configuration
 files, documentation, and processtrak steps.
+
+
+Windows installation instructions
+---------------------------------
+1. Install Anaconda Python 2.7 version 32 BIT.
+   http://www.continuum.io
+2. Get latest pygtk all-in-one package from www.pygtk.org
+3. Install PyGTK all-in-one selecting the 32-Bit Anaconda Python
+4. Open an Anaconda command prompt, change to your Limatix
+   source tree directory, then run:
+     python setup.py install
+5. From an Anaconda command prompt you should now be able to
+   run 'datacollect2', 'processtrak', etc.
+6. Also obtain a good XML editor that supports syntax
+   highlighting to associate with the various Limatix XML
+   file types.
+   
+
