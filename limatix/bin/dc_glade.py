@@ -49,9 +49,12 @@ os.environ["GLADE_CATALOG_PATH"]=os.path.join(widgetsdir,"glade_catalogs")
 #    pass
 
 #print (os.environ["GLADE_MODULE_PATH"])
-print (os.environ["GLADE_CATALOG_PATH"])
 
-params=["glade-367"]
-params.extend(sys.argv[1:])
-# print params
-os.execvp(params[0],tuple(params))
+def main():
+    print (os.environ["GLADE_CATALOG_PATH"])
+
+    params=["glade-367"]
+    params.extend(sys.argv[1:])
+    # print params
+    os.execvp(params[0],tuple(params))
+    pass

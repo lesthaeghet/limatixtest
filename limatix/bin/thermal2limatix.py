@@ -260,54 +260,63 @@ converter to put those back in.
 
 
 def usage():
-
     print("Usage: %s <InputXMLFile>\n\n       Renames input file with .thns extension, and replaces it with a \n       copy where the thermal.cnde.iastate.edu namespaces have been\n       converted to limatix.org namespaces.\n\nWARNING: May not be perfect in all cases. Does unwrap CDATA,\nfor example. DOUBLE-CHECK WITH DIFF!!!\n" % (sys.argv[0]))
-
-inputfile=None
-
-cnt=1
-
-while cnt < len(sys.argv):
-    if sys.argv[cnt].startswith("-"):
-        if sys.argv[cnt]=="-h" or sys.argv[cnt]=="--help":
-            usage()
-            sys.exit(0)
-            pass
-        else:
-            raise NameError("Unknown switch %s" % (sys.argv[cnt]))
-        pass
-    else:
-        if inputfile is not None:
-            raise ValueError("Only one positional parameter permitted")
-        inputfile=sys.argv[cnt]
-        pass
-    cnt+=1
     pass
 
-if inputfile is None:
-    usage()
-    sys.exit(1)
+def main(args=None):
+    if args is None:
+        args=sys.argv
+        pass
     
 
-inputfh=file(inputfile)
-inputetree=etree.parse(inputfh)
-inputfh.close()
+    
+    inputfile=None
+    
+    cnt=1
+    
+    while cnt < len(args):
+        if args[cnt].startswith("-"):
+            if args[cnt]=="-h" or args[cnt]=="--help":
+                usage()
+                sys.exit(0)
+                pass
+            else:
+                raise NameError("Unknown switch %s" % (args[cnt]))
+            pass
+        else:
+            if inputfile is not None:
+                raise ValueError("Only one positional parameter permitted")
+            inputfile=args[cnt]
+            pass
+        cnt+=1
+        pass
+    
+    if inputfile is None:
+        usage()
+        sys.exit(1)
+        
+        pass
+    
+    inputfh=file(inputfile)
+    inputetree=etree.parse(inputfh)
+    inputfh.close()
 
-convert_namespaces_transform=etree.XSLT(etree.XML(convert_namespaces))
-#move_namespace_decls_to_root_transform=etree.XSLT(etree.XML(move_namespace_decls_to_root))
+    convert_namespaces_transform=etree.XSLT(etree.XML(convert_namespaces))
+    #move_namespace_decls_to_root_transform=etree.XSLT(etree.XML(move_namespace_decls_to_root))
 
 
-namespaces_transformed=convert_namespaces_transform(inputetree)
+    namespaces_transformed=convert_namespaces_transform(inputetree)
+    
+    #print(etree.tostring(namespaces_transformed))
+    
+    result_tree=namespaces_transformed #move_namespace_decls_to_root_transform(namespaces_transformed)
+    
+    backupfile=inputfile+".thns"
 
-#print(etree.tostring(namespaces_transformed))
-
-result_tree=namespaces_transformed #move_namespace_decls_to_root_transform(namespaces_transformed)
-
-backupfile=inputfile+".thns"
-
-os.rename(inputfile,backupfile)
-
-outputfh=file(inputfile,"w")
-result_tree.write(outputfh,encoding='utf-8',xml_declaration=True)
-outputfh.close()
-
+    os.rename(inputfile,backupfile)
+    
+    outputfh=file(inputfile,"w")
+    result_tree.write(outputfh,encoding='utf-8',xml_declaration=True)
+    outputfh.close()
+    
+    pass

@@ -28,4 +28,6 @@ elif os.path.exists(os.path.join(installeddir,"../gui2/lib/checklist.py")):
     installeddir=os.path.join(installeddir,"../gui2")
     pass
 
-print(installeddir)
+def main():
+    print(installeddir)
+    pass

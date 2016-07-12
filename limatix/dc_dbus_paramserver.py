@@ -18,6 +18,10 @@ except ImportError:
     sys.stderr.write("Error importing dbus; remote procedure calls will not be available\n")
     dbus=None
     dbus_service_Object=object
+    def dbus_service_method(**kwargs):
+        def decor(ob):
+            return ob
+        return decor
     pass
 
     

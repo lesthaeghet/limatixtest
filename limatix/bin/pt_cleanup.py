@@ -412,7 +412,11 @@ Flags:
     """ % (sys.argv[0]))
     pass
         
-if __name__=="__main__":
+def main(args=None):
+    if args is None:
+        args=sys.argv
+        pass
+    
     argc=1
     input_file_names=[]
     show_steps=False
@@ -423,8 +427,8 @@ if __name__=="__main__":
     recursive=False
     remove_steps=[]
 
-    while argc < len(sys.argv):
-        arg=sys.argv[argc]
+    while argc < len(args):
+        arg=args[argc]
         if arg=="-h" or arg=="--help":
             usage()
             sys.exit(0)
@@ -438,7 +442,7 @@ if __name__=="__main__":
             pass
         elif arg=="-s":
             argc+=1
-            remove_steps.append(sys.argv[argc])
+            remove_steps.append(args[argc])
         elif arg=="-p":
             # cleanup provenance
             cleanup_provenance=True
