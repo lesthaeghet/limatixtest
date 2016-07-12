@@ -38,26 +38,33 @@ from limatix import dc_value
 from limatix import xmldoc
 from limatix import dc2_misc
 
-positionals=[]
+def main(args=None):
 
-argc=1
-while argc < len(sys.argv):
-    arg=sys.argv[argc]
-
-    if arg=="-h" or arg=="--help":	
-        print("""Usage: %s parent.chf input.chx output.chf""" % (sys.argv[0]))
-        sys.exit(0)
-        pass	
-    elif arg.startswith("-"):
-        raise ValueError("Unknown flag: %s" % (arg))
-    else: 	
-        positionals.append(arg)
+    if args is None:
+        args=sys.argv
         pass
-    argc+=1
+    
+    positionals=[]
+
+    argc=1
+    while argc < len(args):
+        arg=args[argc]
+        
+        if arg=="-h" or arg=="--help":	
+            print("""Usage: %s parent.chf input.chx output.chf""" % (args[0]))
+            sys.exit(0)
+            pass	
+        elif arg.startswith("-"):
+            raise ValueError("Unknown flag: %s" % (arg))
+        else: 	
+            positionals.append(arg)
+            pass
+        argc+=1
+        pass
+    
+    parent=positionals[0]
+    infile=positionals[1]
+    outfile=positionals[2]
+    
+    dc2_misc.chx2chf(".",parent,".",infile,".",outfile)
     pass
-
-parent=positionals[0]
-infile=positionals[1]
-outfile=positionals[2]
-
-dc2_misc.chx2chf(".",parent,".",infile,".",outfile)

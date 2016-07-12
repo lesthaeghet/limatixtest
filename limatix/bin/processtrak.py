@@ -165,8 +165,12 @@ Flags:
     """ % (sys.argv[0],processtrak_procstep.steppath[0]))
     pass
 
-if __name__=="__main__":
 
+def main(args=None):
+    if args is None:
+        args=sys.argv
+        pass
+    
     argv_inputfiles=set([])
 
     overall_starttime=timestamp.now().isoformat()
@@ -182,11 +186,11 @@ if __name__=="__main__":
     debugmode=False
     ipythonmodelist=[False] # ipythonmode is contained within a list so it is mutable by functions and these changes will be persistent
     
-    while argc < len(sys.argv):
-        arg=sys.argv[argc]
+    while argc < len(args):
+        arg=args[argc]
         
         if arg=="-s":  # -s <step>: Only run this (or these) steps
-            stepnames.append(sys.argv[argc+1])
+            stepnames.append(args[argc+1])
             argc+=1
             pass
         elif arg=="--steps": # just list steps
@@ -194,11 +198,11 @@ if __name__=="__main__":
             pass
         elif arg=="-l": # -l <filter>: Apply additional filtering constraint 
                         # to elements operated on 
-            filters.append(sys.argv[argc+1])
+            filters.append(args[argc+1])
             argc+=1
             pass
         elif arg=="-f": # -f <inputfile>: Operate only on the specified file
-            argv_inputfiles.add(sys.argv[argc+1])
+            argv_inputfiles.add(args[argc+1])
             argc+=1
             pass
         elif arg=="--files": # just list files
@@ -218,7 +222,7 @@ if __name__=="__main__":
             # handled at imports, above
             pass
         elif arg=="-p":  # insert path into search path for steps
-            processtrak_procstep.steppath.insert(1,sys.argv[argc+1])
+            processtrak_procstep.steppath.insert(1,args[argc+1])
             argc+=1
             pass
         elif arg=='-h' or arg=="--help":

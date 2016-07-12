@@ -62,30 +62,37 @@ if "gobject" in sys.modules:  # only for GTK2
     
 import_widgets()
 
-argc=1
-gladefile=None
-while argc < len(sys.argv):
-    arg=sys.argv[argc]
-    if arg=="--gtk3":
-        pass  # handled with imports, above
-    elif arg.startswith('-'):
-        raise ValueError("Unknown switch: %s" % (arg))
-    if gladefile is None:
-        gladefile=arg
+
+def main(args=None):
+    if args is None:
+        args=sys.argv
         pass
-    else :
-        raise ValueError("Too many positional parameters")
-    argc+=1
+    
+    argc=1
+    gladefile=None
+    while argc < len(args):
+        arg=args[argc]
+        if arg=="--gtk3":
+            pass  # handled with imports, above
+        elif arg.startswith('-'):
+            raise ValueError("Unknown switch: %s" % (arg))
+        if gladefile is None:
+            gladefile=arg
+            pass
+        else :
+            raise ValueError("Too many positional parameters")
+        argc+=1
+        pass
+    
+    # !!! Add paramdb2 instatiation here
+    iohandlers={}   #=dg_io.io()
+    guistate=create_guistate(iohandlers,None,[os.path.split(gladefile)[0]])
+    
+    (gladeobjdict,builder)=build_from_file(gladefile)
+    
+    dc_initialize_widgets(gladeobjdict,guistate)
+    
+    win=gladeobjdict["guiwindow"]
+    win.show()
+    gtk.main()
     pass
-
-# !!! Add paramdb2 instatiation here
-iohandlers={}   #=dg_io.io()
-guistate=create_guistate(iohandlers,None,[os.path.split(gladefile)[0]])
-
-(gladeobjdict,builder)=build_from_file(gladefile)
-
-dc_initialize_widgets(gladeobjdict,guistate)
-
-win=gladeobjdict["guiwindow"]
-win.show()
-gtk.main()

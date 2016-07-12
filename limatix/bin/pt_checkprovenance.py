@@ -69,13 +69,17 @@ Flags:
     pass
 
 
-if __name__=="__main__":
+def main(args=None):
+    if args is None:
+        args=sys.argv
+        pass
+    
     argc=1
     positionals=[]
     verbose=False
 
-    while argc < len(sys.argv):
-        arg=sys.argv[argc]
+    while argc < len(args):
+        arg=args[argc]
         if arg=="-h" or arg=="--help":
             usage()
             sys.exit(0)
