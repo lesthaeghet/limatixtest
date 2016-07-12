@@ -328,7 +328,7 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
             kernel.shell.push({"runfunc_lines": runfunc_lines,"scripthref": scripthref},interactive=False) # provide processed syntax tree for debugging purposes
             
             # kernel.shell.run_code(compile("kernel.shell.run_ast_nodes(runfunc_lines,scriptpath,interactivity='all')","None","exec"))
-            from IPython.external.qt import QtCore
+            from IPython.qt.inprocess import QtCore
             QTimer=QtCore.QTimer
 
             def showret():
