@@ -58,8 +58,8 @@
     <param name="rightlong">-94.30</param>
     <param name="botlat">41.03</param>
     <param name="toplat">41.08</param>
-    <param name="xpixels">480</param>
-    <param name="ypixels">500</param>
+    <param name="xpixels">100</param>
+    <param name="ypixels">110</param>
     <param name="windowwidth_meters">50</param>
 
     <elementmatch>/dc:experiment</elementmatch>  <!-- Match root element -->

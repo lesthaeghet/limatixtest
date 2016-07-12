@@ -151,7 +151,10 @@ def write_process_info(doc,process_el):
     hostname_el=doc.addelement(process_el,"lip:hostname")
     doc.settext(hostname_el,determinehostname())
     doc.setattr(hostname_el,"pid",str(os.getpid()))
-    doc.setattr(hostname_el,"uid",str(os.getuid()))
+    if os.name=="posix":
+        doc.setattr(hostname_el,"uid",str(os.getuid()))
+        pass
+    
     doc.setattr(hostname_el,"username",getpass.getuser())
     argv_el=doc.addelement(process_el,"lip:argv")
     doc.settext(argv_el,unicode(sys.argv)) # Save command line parameters
