@@ -101,7 +101,7 @@ except IOError:
     __install_prefix__="/usr/local"
     pass
 
-def getsteputlpath():
+def getstepurlpath():
     return [ pathname2url(os.path.join(__install_prefix__,"share","limatix","pt_steps")) ]
 
 def get_stephrefpaths(primary=False):
