@@ -156,13 +156,11 @@ Flags:
   -d                  Drop into debugger in case of exception executing step
   -f                  Operate only on the specified input files (multiple OK)
   -l                  Apply additional xpath filters (multiple OK)
-  -p                  Additional search path entry for finding scripts
-                      (inserted between current directory and %s) (multiple OK)
   -i                  Use ipython interactive mode to execute script
   --gtk3              Use GTK3 if gui elements required
   --steps             Don't do anything; just list available steps
   --files             Don't do anything; just list available files
-    """ % (sys.argv[0],processtrak_procstep.steppath[0]))
+    """)
     pass
 
 
@@ -221,10 +219,10 @@ def main(args=None):
         elif arg=='--gtk3':
             # handled at imports, above
             pass
-        elif arg=="-p":  # insert path into search path for steps
-            processtrak_procstep.steppath.insert(1,args[argc+1])
-            argc+=1
-            pass
+        #elif arg=="-p":  # insert path into search path for steps
+        #    processtrak_procstep.steppath.insert(1,args[argc+1])
+        #    argc+=1
+        #    pass
         elif arg=='-h' or arg=="--help":
             usage()
             sys.exit(0)
