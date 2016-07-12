@@ -12,8 +12,8 @@ Recommended:
   python-pillow (required for Ricoh camera support and for representing parameters that are images)
   glade-3.6.7 (required for interative gtk2 widget layout; not needed for
                general use)
-  datacollect2-qautils (not used directly, but documents checklist
-                        format/structure and can render checklists as PDF)
+  limatix-qautils (not used directly, but documents checklist
+         	   format/structure and can render checklists as PDF)
   ipython (with PySide qt4 bindings) for interactive debugging of 
           processtrak scripts
   matplotlib (with qt4 support) for use with ipython for interactive
@@ -36,20 +36,41 @@ files, documentation, and processtrak steps.
 
 Windows installation instructions
 ---------------------------------
-1. Install Anaconda Python 2.7 version 32 BIT.
-   http://www.continuum.io
+1. Install Anaconda Python 2.7 version 32 bit or Enthought
+   Canopy 32 bit. http://www.continuum.io or 
+   http://www.enthought.com
 2. Get latest pygtk all-in-one package from www.pygtk.org
-3. Install PyGTK all-in-one selecting the 32-Bit Anaconda Python
-4. Open an Anaconda command prompt, change to your Limatix
-   source tree directory, then run:
+3. Install PyGTK Python 2.7 all-in-one, making sure it 
+   installs into the Anaconda or Canopy distribution from 
+   above. 
+4. Open an Anaconda or Canopy command prompt, change to 
+   your Limatix source tree directory, then run:
      python setup.py install
-5. From an Anaconda command prompt you should now be able to
-   run 'datacollect2', 'processtrak', etc.
-6. Suggest installing "PySide" QT bindings for IPython/Matplotib
-   run "conda install pyside". This will make ProcessTrak's
-   IPython mode work
+     python setup.py install_data
+   This will install Limatix into your Anaconda or Canopy
+   installation
+5. From an Anaconda or Canopy command prompt you should 
+   now be able to run 'datacollect2', 'processtrak', etc.
+6. Anaconda does not install the "PySide" QT bindings for 
+   IPython/Matplotlib by default. To make ProcessTrak's
+   IPython mode work, run "conda install pyside" from an
+   Anaconda command prompt. 
 7. Also obtain a good XML editor that supports syntax
    highlighting to associate with the various Limatix XML
    file types.
-   
+
+A note on 32-bit vs. 64-bit on Windows
+--------------------------------------
+The current Limatix platform is Python 2.7/GTK 2.x. 
+PyGTK 2.x is only available for 32 bit Windows, hence
+installation of 32-bit Python versions. 
+
+Limatix will work fine on 64 bit Python, but on Windows 
+that means you will need to use GTK3 (--gtk3 command
+line parameter). GTK3 support has not been extensively
+tested and is missing some key functionality such as 
+colored widgets. 
+
+ProcessTrak does not require GTK and will work fine
+on 64 bit Python
 
