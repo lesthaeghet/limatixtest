@@ -34,7 +34,7 @@ if os.name=='nt':
     import win32file
     import pywintypes
 
-    __overlapped = pywintypes.OVERLAPPED()
+    pwt__overlapped = pywintypes.OVERLAPPED()
     pass
 
 else: 
@@ -331,7 +331,7 @@ class xmldoc(object):
     ro_lockcount=None # no. of times locked readonly
     rw_lockcount=None # no. of times locked readwrite
     lockfd=None      # file descriptor currently used for locking, or -1. If this is not -1 then this decriptor is locked. This should be close()'d when you unlock. This should always be set if ro_lockcount or rw_lockcount > 0 and filename is set, cleared otherwise
-
+    lockfh=None      # file handle currently used for locking, for NT which requires that the file be left open and reused
 
 
     @classmethod
@@ -1406,6 +1406,7 @@ class xmldoc(object):
             while retry:
                 retry=False
                 lockfd=-1
+                fh=None
                 try:
                     if self.use_databrowse:
                         if dbl is None: 
@@ -1437,8 +1438,16 @@ class xmldoc(object):
                             
                             reuseold=False;
 
-                            fh=open(self._filename,"r")
-
+                            if os.name=="posix":
+                                fh=open(self._filename,"rb")
+                                self.lockfh=fh
+                                pass
+                            elif os.name=="nt" and self.lockfh is None:
+                                fh=open(self._filename,"rb+") # always open read-write binary mode for NT
+                            else:
+                                fh=self.lockfh
+                                pass
+                            
                             #if rolock:
                             #    assert(os.name=="posix") 
                             #    lockfd=os.dup(fh.fileno())
@@ -1453,10 +1462,20 @@ class xmldoc(object):
                             # we are locking because resyncnotify
                             # routine might need to write
 
+                            # On POSIX, lockfd owns an extra copy of the file descriptor and the one we use for
+                            # reading/writing is only open when needed
+                            # On NT, lockfd is the primary copy of the file descriptor, and we grab it from
+                            # there as needed. Also store Python file handle in lockfh
+
                             # if rolock or rwlock:
-                            assert(os.name=="posix") 
-                            lockfd=os.dup(fh.fileno())
-                            self._lock_rw(lockfd) # pass ownership of lockfd
+                            #assert(os.name=="posix")
+                            if os.name=="posix":
+                                lockfd=os.dup(fh.fileno())
+                                pass
+                            else:
+                                lockfd=fh.fileno()
+                                pass
+                            self._lock_rw(lockfd,fh) # pass ownership of lockfd/fh
                             if self.lastfileinfo is not None and fileinfo(lockfd)==self.lastfileinfo: 
                                 reuseold=True # avoid rereading file
                                 pass
@@ -1476,7 +1495,10 @@ class xmldoc(object):
                                 else :
                                     self.lastfileinfo=None
                                 pass
-                            fh.close()  # NOTE THAT THIS IS INCOMPATIBLE WITH fcntl() locking as this close will drop all locks on this file. Thus we use flock instead.
+                            if os.name=="posix":
+                                fh.close()  # NOTE THAT THIS IS INCOMPATIBLE WITH fcntl() locking as this close will drop all locks on this file. Thus we use flock instead.
+                                pass
+                            
                             pass
                         pass
                     if not self.readonly:
@@ -1569,9 +1591,16 @@ class xmldoc(object):
                         assert(lockfd==self.lockfd)
                         #fcntl.flock(lockfd,fcntl.LOCK_UN)
                         self.__unlock()
-                        os.close(lockfd)
+                        if os.name=="posix":
+                            os.close(lockfd)
+                            pass
+                        elif os.name=="nt":
+                            fh.close()
+                            pass
+                        
                         self.lockfd=-1
-
+                        self.lockfh=None
+                        
 
                     if result=="retry": # retry
                         retry=True
@@ -2731,10 +2760,14 @@ class xmldoc(object):
                 traceback.print_stack()
                 pass
 
-            if rolock or rwlock :
+
+            lockfd=-1
+            lockfh=None
+            if os.name=="posix" and rolock or rwlock :
+                # This stuff is to support rename-based backups, which we don't do on non-POSIX platforms (NT)
                 assert(self.lockfd < 0)
-                lockfd=-1
-                assert(os.name=="posix")
+            
+                #assert(os.name=="posix")
                 try : 
                     lockfd=os.open(self._filename,os.O_RDONLY)
                     if rwlock: 
@@ -2748,7 +2781,7 @@ class xmldoc(object):
                     # can not lock if file does not exist
                     pass
                 pass
-
+            
 
             # Check if we have something to write!
             if self.doc is None and ( not(ok_to_be_unlocked) or self.olddoc is None): 
@@ -2758,45 +2791,47 @@ class xmldoc(object):
             # flush changes to disk
             
             (filenamepath,filenamefile)=os.path.split(self._filename)
-            # save backup first
-            for baknum in range(self.num_backups,0,-1):
-                
-                bakname=os.path.join(filenamepath,"."+filenamefile+(".bak%d" % (baknum)))
-                nextbakname=os.path.join(filenamepath,"."+filenamefile+(".bak%d" % (baknum+1)))
-                
-                if baknum==self.num_backups and os.path.exists(bakname):
-                    try : 
-                        os.remove(bakname)
-                        pass
-                    except :
-                        (exctype,value)=sys.exc_info()[:2]
-                        sys.stderr.write("%s: %s removing old backup %s\n" % (unicode(exctype.__name__),unicode(value),bakname))
-                        pass
-                    pass
-                elif os.path.exists(bakname):
-                    try: 
-                        os.rename(bakname,nextbakname)
-                        pass
-                    except :
-                        (exctype,value)=sys.exc_info()[:2]
-                        sys.stderr.write("%s: %s renaming old backup %s to %s\n" % (unicode(exctype.__name__),unicode(value),bakname,nextbakname))
-                        pass
-                    pass
-                
-                pass
             
-
-            bakname=os.path.join(filenamepath,"."+filenamefile+(".bak1"))
-            if self.num_backups > 0 and os.path.exists(self._filename):
-                try :
-                    shutil.copyfile(self._filename,bakname);
+            # save backup first
+            if os.name=="posix":
+                for baknum in range(self.num_backups,0,-1):
+                    
+                    bakname=os.path.join(filenamepath,"."+filenamefile+(".bak%d" % (baknum)))
+                    nextbakname=os.path.join(filenamepath,"."+filenamefile+(".bak%d" % (baknum+1)))
+                    
+                    if baknum==self.num_backups and os.path.exists(bakname):
+                        try : 
+                            os.remove(bakname)
+                            pass
+                        except :
+                            (exctype,value)=sys.exc_info()[:2]
+                            sys.stderr.write("%s: %s removing old backup %s\n" % (unicode(exctype.__name__),unicode(value),bakname))
+                            pass
+                        pass
+                    elif os.path.exists(bakname):
+                        try: 
+                            os.rename(bakname,nextbakname)
+                            pass
+                        except :
+                            (exctype,value)=sys.exc_info()[:2]
+                            sys.stderr.write("%s: %s renaming old backup %s to %s\n" % (unicode(exctype.__name__),unicode(value),bakname,nextbakname))
+                            pass
+                        pass
+                    
                     pass
-                except :
-                    (exctype,value)=sys.exc_info()[:2]
-                    sys.stderr.write("%s: %s renaming %s to %s to save as backup\n" % (unicode(exctype.__name__),unicode(value),self._filename,bakname))
+                
+
+                bakname=os.path.join(filenamepath,"."+filenamefile+(".bak1"))
+                if self.num_backups > 0 and os.path.exists(self._filename):
+                    try :
+                        shutil.copyfile(self._filename,bakname);
+                        pass
+                    except :
+                        (exctype,value)=sys.exc_info()[:2]
+                        sys.stderr.write("%s: %s renaming %s to %s to save as backup\n" % (unicode(exctype.__name__),unicode(value),self._filename,bakname))
+                        pass
                     pass
                 pass
-                
             # put temporary SIGINT handler in place that 
             # ignores during critical writing code
 
@@ -2814,15 +2849,31 @@ class xmldoc(object):
                 sys.stderr.write("xmldoc _flush() cannot hold off SIGINT for critical output section (not running in main thread?)\n")
                 pass
 
-            OutFH=open(self._filename,"wb");
+            if os.name=="nt" and self.lockfd >= 0:
+                # reuse file handle
+                OutFH=self.lockfh
+                OutFH.seek(0)
+                OutFH.truncate()
+                pass
+            else:
+                OutFH=open(self._filename,"wb");
+                pass
+            
             if (rolock or rwlock) and lockfd < 0:
                 # try again to lock
-                lockfd=os.dup(OutFH.fileno())
-                if rwlock: 
-                    self._lock_rw(lockfd) # pass ownership of dup'd file descriptor
+                if os.name=="posix":
+                    lockfd=os.dup(OutFH.fileno())
                     pass
-                else: 
-                    self._lock_ro(lockfd) # pass ownership of dup'd file descriptor
+                else:
+                    lockfd=OutFH.fileno()
+                    pass
+                
+                if rwlock: 
+                    self._lock_rw(lockfd,OutFH) # pass ownership of dup'd file descriptor
+                    pass
+                else:
+                    # Shoudn't this be dependent on rolock parameter??
+                    self._lock_ro(lockfd,OutFH) # pass ownership of dup'd file descriptor
                     pass
                 pass
             if self.doc is None and ok_to_be_unlocked: 
@@ -2832,7 +2883,10 @@ class xmldoc(object):
             else : 
                 self.doc.write(OutFH,encoding='utf-8',pretty_print=True,xml_declaration=True)
                 pass
-            OutFH.close();
+            if os.name=="posix": # Close non-lock copy
+                OutFH.close();
+                pass
+            
             if self.lockfd >= 0:
                 # if locked, save mtime, etc. 
                 self.lastfileinfo=fileinfo(self.lockfd)
@@ -2865,18 +2919,19 @@ class xmldoc(object):
         if os.name=='nt':
             hfile=win32file._get_osfhandle(self.lockfd)
             flags=0
-            win32file.LockFileEx(hfile, flags, 0, -0x10000, __overlapped)
+            win32file.LockFileEx(hfile, flags, 0, -0x10000, pwt__overlapped)
             pass
         else:
             fcntl.flock(self.lockfd,fcntl.LOCK_SH)
             pass
         pass
 
-    def _lock_ro(self,fd):
+    def _lock_ro(self,fd,fh):
         # low-level non recursive file locking
         # NOTE: This takes ownership of fd and will close it on unlock
         assert(self.lockfd==-1)
         self.lockfd=fd
+        self.lockfh=fh
         # !!!*** bug: Should handle receipt of signal
         # during flock() call...
         # fcntl.flock(self.lockfd,fcntl.LOCK_SH)
@@ -2903,7 +2958,7 @@ class xmldoc(object):
         # super-low-level file locking
         if os.name=='nt':
             hfile=win32file._get_osfhandle(self.lockfd)
-            win32file.UnlockFileEx(hfile,  0, -0x10000, __overlapped)
+            win32file.UnlockFileEx(hfile,  0, -0x10000, pwt__overlapped)
             pass
         else:
             fcntl.flock(self.lockfd,fcntl.LOCK_UN)
@@ -2915,8 +2970,14 @@ class xmldoc(object):
         assert(self.lockfd > 0)
         self.__unlock()
         #fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
-        os.close(self.lockfd)
-        self.lockfd=-1
+        if os.name=="posix":
+            os.close(self.lockfd)
+            pass
+        elif os.name=="nt":
+            self.lockfh.close()
+            pass
+        self.lockfh=None
+        self.lockfd=None
         pass
 
 
@@ -2925,18 +2986,19 @@ class xmldoc(object):
         if os.name=='nt':
             hfile=win32file._get_osfhandle(self.lockfd)
             flags=win32con.LOCKFILE_EXCLUSIVE_LOCK
-            win32file.LockFileEx(hfile, flags, 0, -0x10000, __overlapped)
+            win32file.LockFileEx(hfile, flags, 0, -0x10000, pwt__overlapped)
             pass
         else:
             fcntl.flock(self.lockfd,fcntl.LOCK_EX)
             pass
         pass
     
-    def _lock_rw(self,fd):
+    def _lock_rw(self,fd,fh):
         # low-level non recursive file locking
         # NOTE: This takes ownership of fd and will close it on unlock
         assert(self.lockfd==-1)
         self.lockfd=fd
+        self.lockfh=fh
         # !!!*** bug: Should handle receipt of signal
         # during flock() call
         #fcntl.flock(self.lockfd,fcntl.LOCK_EX)
@@ -2949,7 +3011,7 @@ class xmldoc(object):
     #    # super-low-level file locking
     #    if os.name=='nt':
     #        hfile=win32file._get_osfhandle(self.lockfd)
-    #        win32file.UnlockFileEx(hfile,  0, -0x10000, __overlapped)
+    #        win32file.UnlockFileEx(hfile,  0, -0x10000, pwt__overlapped)
     #        pass
     #    else:
     #        fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
@@ -2961,7 +3023,13 @@ class xmldoc(object):
         assert(self.lockfd > 0)
         #fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
         self.__unlock()
-        os.close(self.lockfd)
+        if os.name=="posix":
+            os.close(self.lockfd)
+            pass
+        elif os.name=="nt":
+            self.lockfh.close()
+            pass
+        self.lockfh=None
         self.lockfd=-1
         pass
 
@@ -3116,7 +3184,9 @@ class xmldoc(object):
             # fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
             self.__unlock()
 
-            os.close(self.lockfd)
+            if os.name=="posix":
+                os.close(self.lockfd)
+                pass
             self.lockfd=-1
             
             pass
@@ -3154,7 +3224,9 @@ class xmldoc(object):
                 # mysterious lock... unlock it
                 #fcntl.flock(self.lockfd,fcntl.LOCK_UN)  # See also exception handler in resync() for another unlock call
                 self.__unlock()
-                os.close(self.lockfd)
+                if os.name=="posix":
+                    os.close(self.lockfd)
+                    pass
                 self.lockfd=-1
                 pass
             # rw_lockcount is zero... need to relock file
@@ -3173,6 +3245,7 @@ class xmldoc(object):
             if self.lockfd < 0:
                 sys.stderr.write("xmldoc.should_be_rwlocked_once: Got invalid lockfd with valid filename\n")
                 traceback.print_stack()
+                assert(os.name=="posix") # can't recover on Windows
                 lockfd=os.open(self._filename,os.O_RDONLY)
                 self._lock_rw(lockfd) # pass ownership of lockfd
                 pass
