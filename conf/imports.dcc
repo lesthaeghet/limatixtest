@@ -1,22 +1,23 @@
-m4_ifdef(imports_dcc,[[]],[[
-m4_define(imports_dcc,[[]])
 
-import limatix.dg_io
+if "imports_dcc" not in locals():
+   imports_dcc=True
+   
+   import limatix.dg_io
+   
+   from limatix.paramdb2 import dgcontroller
+   from limatix.paramdb2 import autocontroller_specimendb
+   from limatix.paramdb2 import autocontroller_xducerdb
+   from limatix.paramdb2 import autocontroller_xmlfile
+   from limatix.paramdb2 import optionscontroller_xmlfile
+   from limatix.paramdb2 import dgcontroller_nummathparam
+   from limatix.paramdb2 import autocontroller_averagedwfm
+   from limatix.paramdb2 import autocontroller_wfmmetadata
+   from limatix.paramdb2 import updatedg_notifycallback
+   from limatix.paramdb2 import updatedg_exitcallback
+   from limatix.dc_value import numericunitsvalue as numericunitsv
+   from limatix.dc_value import complexunitsvalue as complexunitsv
+   from limatix.dc_value import stringvalue as stringv
+   from limatix.dc_value import hrefvalue as hrefv
+   from limatix.dc_value import excitationparamsvalue as excitationparamsv
 
-from limatix.paramdb2 import dgcontroller
-from limatix.paramdb2 import autocontroller_specimendb
-from limatix.paramdb2 import autocontroller_xducerdb
-from limatix.paramdb2 import autocontroller_xmlfile
-from limatix.paramdb2 import optionscontroller_xmlfile
-from limatix.paramdb2 import dgcontroller_nummathparam
-from limatix.paramdb2 import autocontroller_averagedwfm
-from limatix.paramdb2 import autocontroller_wfmmetadata
-from limatix.paramdb2 import updatedg_notifycallback
-from limatix.paramdb2 import updatedg_exitcallback
-from limatix.dc_value import numericunitsvalue as numericunitsv
-from limatix.dc_value import complexunitsvalue as complexunitsv
-from limatix.dc_value import stringvalue as stringv
-from limatix.dc_value import hrefvalue as hrefv
-from limatix.dc_value import excitationparamsvalue as excitationparamsv
-
-]])
+   pass

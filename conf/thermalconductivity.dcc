@@ -9,7 +9,7 @@
 # database is likely to be needed.
 # createparamserver()  # Multiple calls to createparamserver() are OK
 
-m4_include([[imports.dcc]])
+include("imports.dcc")
 
 paramdb.addparam("spclengthbefore",numericunitsv,defunits="mm",reset_with_meas_record=True)  # hide_from_meas because this is marked as <intermediate/> in the checklist and therefore stored in the checklist, not the experiment log 
 
