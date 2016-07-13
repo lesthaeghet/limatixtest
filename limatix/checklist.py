@@ -1805,7 +1805,25 @@ class checklist(object):
         else:
             # not readonly
 
+            # for checklist to be read-write, parent must also
+            # be read-write
+
+            # ... we do this prior to making ourselves read-write
+            # because opening the parent may make the parent
+            # set all of its children to read only,
+            # which is the opposite of what we're trying to do.
+            # Opening the parent early, gives us the chance to
+            # override that change.
+            
+            if self.datacollect_explogwin is not None:
+                # perform explogwin pre-notification so it can open any parent
+                
+                self.datacollect_explogwin.open_checklist_parent(self)
+                pass
+            
+            
             self.readonly=False
+
             if not dont_switch_xmldoc_mode:
                 self.xmldoc.set_readonly(False)
                 pass
@@ -1898,10 +1916,10 @@ class checklist(object):
                     self.gladeobjdict["SaveButton"].set_sensitive(True)
                     pass
 
-                # for checklist to be read-write, parent must also
-                # be read-write
+
                 parentclobj=None
                 parent=self.get_parent() # returns hrefv
+
 
                 if parent is not None:
                     (parentclobj,parenthref)=dc2_misc.searchforchecklist(parent)

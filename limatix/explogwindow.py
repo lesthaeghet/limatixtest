@@ -1232,7 +1232,7 @@ class explogwindow(gtk.Window):
             return
         if self.checklistdbwin is None:
 
-            self.checklistdbwin=checklistdbwin.checklistdbwin(self.explog.filehref,self.paramdb,"checklists",self.popupchecklist,[],True,True)
+            self.checklistdbwin=checklistdbwin.checklistdbwin(self.explog.filehref,self.paramdb,"checklists","plans",self.popupchecklist,[],True,True)
             self.checklistdbwin.show()
             pass
         else:
@@ -1516,7 +1516,7 @@ class explogwindow(gtk.Window):
         checklistchooser.add_filter(plxfilter)
 
         plffilter=gtk.FileFilter()
-        plffilter.set_name("Filled checklist files")
+        plffilter.set_name("Filled plan files")
         plffilter.add_pattern("*.plf")
         checklistchooser.add_filter(plffilter)
 

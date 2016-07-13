@@ -39,7 +39,7 @@ plandbwindow=None
 def handle_openchecklists(event,paramdb,iohandlers):
     global checklistdbwindow
     if checklistdbwindow is None:
-        checklistdbwindow=checklistdbwin.checklistdbwin(None,None,None,popupchecklist,[paramdb,iohandlers],True,False)
+        checklistdbwindow=checklistdbwin.checklistdbwin(None,None,None,None,popupchecklist,[paramdb,iohandlers],True,False)
         checklistdbwindow.show()
         pass
     else:
@@ -52,7 +52,7 @@ def handle_openchecklists(event,paramdb,iohandlers):
 def handle_openplans(event,paramdb,iohandlers):
     global plandbwindow
     if plandbwindow is None:
-        plandbwindow=checklistdbwin.checklistdbwin(None,None,None,popupchecklist,[paramdb,iohandlers],False,True)
+        plandbwindow=checklistdbwin.checklistdbwin(None,None,None,None,popupchecklist,[paramdb,iohandlers],False,True)
         plandbwindow.show()
         pass
     else:

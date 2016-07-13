@@ -1,8 +1,3 @@
-# Note: datacollect config files are passed through an m4 preprocessor
-# so you can use e.g. "m4_include([[includefile.dcc]])" to include
-# another file. As an alternative you can manually load multiple config
-# files before opening your experiment log, either from the 
-# datacollect command line or from the datacollect gui
 
 
 # call createparamserver() if dbus (i.e. python/matlab/etc.) access to the parameter 

@@ -406,7 +406,7 @@
     </p>
     <h3>ProcessTrak QuickStart</h3>
     <p>
-      The processtrak_example directory includes a complete example of
+      The doc/processtrak_example directory includes a complete example of
       the use of ProcessTrak for data analysis.
 Thanks to Joseph Hynek for providing the data and for his permission
 to share the data.</p><p>
@@ -504,7 +504,7 @@ generatespreadsheet
       Also look at the <tt>&lt;lip:process&gt;</tt> section at the bottom. This section stores a record of the <tt>copyinput</tt>operation, including what inputs were used, what the parameters were, etc. Within the main <tt>&lt;lip:process&gt;</tt> there is a sub-<tt>&lt;lip:process&gt;</tt> with (in the above case) a uuid= attribute (universally-unique identifier) starting with "db7c". The various tags above have a <tt>lip:wasgeneratedby=</tt> attribute that refers to this same uuid. That is ProcessTrak's record of where those tags came from.
     </p>
     <p>
-      Now run the remaining steps in sequence and watch the file grow (<b>Warning:</b> The energymap step is very memory-intensive). 
+      Now run the remaining steps in sequence and watch the file grow. 
       The <tt>extract_rflog_entries</tt> step adds a bunch of &lt;spectrumlog&gt;
       tags. The <tt>combine_freqband_lines</tt> step adds &lt;mergedspectrumlog&gt;
       tags that combine information from multiple &lt;spectrumlog&gt; tags.

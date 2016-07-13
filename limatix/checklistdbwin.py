@@ -346,6 +346,7 @@ class checklistdbwin(gtk.Window):
     contexthref=None
     paramdb=None  
     clparamname=None
+    clparamname2=None
     popupcallback=None
     popupcallbackargs=None
     
@@ -374,11 +375,12 @@ class checklistdbwin(gtk.Window):
     COLUMN_EXTRA_HREF=7  # hidden
     COLUMN_EXTRA_SHOWTHISROW=8 # hidden, flag for whether this row should be shown or filtered (not yet implemented)
 
-    def __init__(self,contexthref,paramdb,clparamname,popupcallback=None,popupcallbackargs=[],allchecklists=False,allplans=False):
+    def __init__(self,contexthref,paramdb,clparamname,clparamname2=None,popupcallback=None,popupcallbackargs=[],allchecklists=False,allplans=False):
         gobject.GObject.__init__(self)
         self.contexthref=contexthref
         self.paramdb=paramdb
         self.clparamname=clparamname
+        self.clparamname2=clparamname2
         #self.explogwin=explogwin
         self.popupcallback=popupcallback
         self.popupcallbackargs=popupcallbackargs
@@ -389,8 +391,13 @@ class checklistdbwin(gtk.Window):
         self.checklists=[]
         self.liststorerows=0
 
-        self.set_title("datacollect2 %s" % (clparamname))
-
+        if clparamname2 is not None:
+            self.set_title("datacollect2 %s/%s" % (clparamname,clparamname2))
+            pass
+        else:
+            self.set_title("datacollect2 %s" % (clparamname))
+            pass
+        
         titles=["Orig Name","Filename","Measnum","Start Timestamp","Open","All Checked","Done"]
 
         types=[gobject.TYPE_STRING,gobject.TYPE_STRING,gobject.TYPE_LONG,gobject.TYPE_STRING,gobject.TYPE_BOOLEAN,gobject.TYPE_BOOLEAN,gobject.TYPE_BOOLEAN,gobject.TYPE_STRING,gobject.TYPE_BOOLEAN]
@@ -592,7 +599,7 @@ class checklistdbwin(gtk.Window):
 
 
         
-        updchecklists=checklistdb.getchecklists(self.contexthref,self.paramdb,self.clparamname,None,allchecklists=self.allchecklists,allplans=self.allplans)
+        updchecklists=checklistdb.getchecklists(self.contexthref,self.paramdb,self.clparamname,self.clparamname2,allchecklists=self.allchecklists,allplans=self.allplans)
         updchecklistsbyhref=dict((entry.filehref,entry) for entry in updchecklists)
         updchecklistsbyid=dict((id(entry.checklist),entry) for entry in updchecklists if entry.checklist is not None)
 
@@ -600,7 +607,8 @@ class checklistdbwin(gtk.Window):
         clnum=0
         while clnum < len(self.checklists):
             if self.checklists[clnum].filehref not in updchecklistsbyhref and id(self.checklists[clnum]) not in updchecklistsbyid:
-                # Remove 
+                # Remove
+
 
                 #if hasattr(gtk.TreeRowReference,"new"): # gtk3 requires use of gtk.TreeRowReference.new and gtk.TreePath
                 #    TreeRowRef=gtk.TreeRowReference.new(self.liststore,gtk.TreePath((clnum,)))

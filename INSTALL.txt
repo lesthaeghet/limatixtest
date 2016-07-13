@@ -14,12 +14,17 @@ Recommended:
                general use)
   limatix-qautils (not used directly, but documents checklist
          	   format/structure and can render checklists as PDF)
-  ipython (with PySide qt4 bindings) for interactive debugging of 
+  ipython (with PySide QT4 bindings) for interactive debugging of 
           processtrak scripts
-  matplotlib (with qt4 support) for use with ipython for interactive
+  matplotlib (with QT4 support) for use with ipython for interactive
              debugging of processtrak scripts
 
-Limatix is built with Python setuptools. 
+Limatix should work on all major platforms with the above packages.
+In most cases you will want to use a package manager or a Python
+distribution such as Canopy or Anaconda to provide the packages. 
+Detailed installation instructions for Windows are included below. 
+
+Limatix is built with Python setuptools:
 
 To build from source package:
   python setup.py build
@@ -34,8 +39,10 @@ installation prefix. These include sample checklists, configuration
 files, documentation, and processtrak steps.
 
 
+
 Windows installation instructions
 ---------------------------------
+   RUN WITH A 32-BIT PYTHON 2.8 INSTALLATAION
 1. Install Anaconda Python 2.7 version 32 bit or Enthought
    Canopy 32 bit. http://www.continuum.io or 
    http://www.enthought.com
@@ -59,6 +66,8 @@ Windows installation instructions
    highlighting to associate with the various Limatix XML
    file types.
 
+
+
 A note on 32-bit vs. 64-bit on Windows
 --------------------------------------
 The current Limatix platform is Python 2.7/GTK 2.x. 
@@ -74,3 +83,7 @@ colored widgets.
 ProcessTrak does not require GTK and will work fine
 on 64 bit Python
 
+Getting Started
+---------------
+See doc/LIMATIX.xhtml for quickstart documentation and
+examples. 
