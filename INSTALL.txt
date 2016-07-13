@@ -1,0 +1,89 @@
+
+Prerequisites:
+  python (version 2.7 or 3.x... 3.x is a bit of a work in progress)
+  python-lxml (often distributed with operating system or Python distribution)
+  numpy (often distributed with operating system or Python distribution)
+  gtk2 and pygtk2 (on python2;  required to use GUI components)
+  gtk3 and python bindings (on python3;  required to use GUI components)
+  setuptools (often distributed with operating system or Python distribution)
+
+
+Recommended:
+  python-pillow (required for Ricoh camera support and for representing parameters that are images)
+  glade-3.6.7 (required for interative gtk2 widget layout; not needed for
+               general use)
+  limatix-qautils (not used directly, but documents checklist
+         	   format/structure and can render checklists as PDF)
+  ipython (with PySide QT4 bindings) for interactive debugging of 
+          processtrak scripts
+  matplotlib (with QT4 support) for use with ipython for interactive
+             debugging of processtrak scripts
+
+Limatix should work on all major platforms with the above packages.
+In most cases you will want to use a package manager or a Python
+distribution such as Canopy or Anaconda to provide the packages. 
+Detailed installation instructions for Windows are included below. 
+
+Limatix is built with Python setuptools:
+
+To build from source package:
+  python setup.py build
+
+To install into Python site-packages 
+  python setup.py install
+  python setup.py install_data
+
+Note that the install_data step also installs some useful files
+into $(PREFIX)/share/limatix where $(PREFIX) is the Python
+installation prefix. These include sample checklists, configuration
+files, documentation, and processtrak steps.
+
+
+
+Windows installation instructions
+---------------------------------
+   RUN WITH A 32-BIT PYTHON 2.8 INSTALLATAION
+1. Install Anaconda Python 2.7 version 32 bit or Enthought
+   Canopy 32 bit. http://www.continuum.io or 
+   http://www.enthought.com
+2. Get latest pygtk all-in-one package from www.pygtk.org
+3. Install PyGTK Python 2.7 all-in-one, making sure it 
+   installs into the Anaconda or Canopy distribution from 
+   above. 
+4. Open an Anaconda or Canopy command prompt, change to 
+   your Limatix source tree directory, then run:
+     python setup.py install
+     python setup.py install_data
+   This will install Limatix into your Anaconda or Canopy
+   installation
+5. From an Anaconda or Canopy command prompt you should 
+   now be able to run 'datacollect2', 'processtrak', etc.
+6. Anaconda does not install the "PySide" QT bindings for 
+   IPython/Matplotlib by default. To make ProcessTrak's
+   IPython mode work, run "conda install pyside" from an
+   Anaconda command prompt. 
+7. Also obtain a good XML editor that supports syntax
+   highlighting to associate with the various Limatix XML
+   file types.
+
+
+
+A note on 32-bit vs. 64-bit on Windows
+--------------------------------------
+The current Limatix platform is Python 2.7/GTK 2.x. 
+PyGTK 2.x is only available for 32 bit Windows, hence
+installation of 32-bit Python versions. 
+
+Limatix will work fine on 64 bit Python, but on Windows 
+that means you will need to use GTK3 (--gtk3 command
+line parameter). GTK3 support has not been extensively
+tested and is missing some key functionality such as 
+colored widgets. 
+
+ProcessTrak does not require GTK and will work fine
+on 64 bit Python
+
+Getting Started
+---------------
+See doc/LIMATIX.xhtml for quickstart documentation and
+examples. 
