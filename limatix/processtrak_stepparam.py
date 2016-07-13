@@ -23,7 +23,7 @@ else:
     pass
 
 
-def evaluate_from_element(xmldocu,element,typename):
+def evaluate_from_elements(xmldocu,elementlist,typename,paramname):
     # typename can be str,float,int,bool : basic Python types
     # list, tuple, dict, set : Python type interpreted by ast.literal_eval() -- may return None if that is given!
     # href, string, xmltree, numericunits, etc: dc_value types
@@ -47,18 +47,40 @@ def evaluate_from_element(xmldocu,element,typename):
     }
     val=None
     if typename in basic_python_typedict:
-        return basic_python_typedict[typename](xmldocu.gettext(element))
-        pass
+        if len(elementlist) > 1:
+            raise ValueError("Got %d values for parameter %s" % (len(elementlist),paramname))
+        elif len(elementlist) == 0:
+            raise NameError("No element found")
+        return basic_python_typedict[typename](xmldocu.gettext(elementlist[0]))
     elif typename in literal_python_typedict:
-        return literal_python_typedict(ast.literal_eval(xmldocu.gettext(element)))
+        if len(elementlist) > 1:
+            raise ValueError("Got %d values for parameter %s" % (len(elementlist),paramname))
+        elif len(elementlist) == 0:
+            raise NameError("No element found")
+        return literal_python_typedict(ast.literal_eval(xmldocu.gettext(elementlist[0])))
+    elif typename=="nodeset":
+        #import pdb as pythondb
+        #pythondb.set_trace()
+        return elementlist
+        
     elif typename is None:
-        return element
+        if len(elementlist) > 1:
+            raise ValueError("Got %d values for parameter %s" % (len(elementlist),paramname))
+        elif len(elementlist) == 0:
+            raise NameError("No element found")
+        return elementlist[0]
     elif typename+"value" in dir(dcv) and issubclass(getattr(dcv,typename+"value"),dcv.value):
-        return getattr(dcv,typename+"value").fromxml(xmldocu,element)
+        if len(elementlist) > 1:
+            raise ValueError("Got %d values for parameter %s" % (len(elementlist),paramname))
+        elif len(elementlist) == 0:
+            raise NameError("No element found")
+        return getattr(dcv,typename+"value").fromxml(xmldocu,elementlist[0])
     elif typename=="doc":
+        if len(elementlist) == 0:
+            raise NameError("No element found")
         return xmldocu
 
-    raise ValueError("Unknown typename \"%s\" evaluating %s" % (typename,dcv.hrefvalue.fromelement(xmldocu,element).humanurl()))
+    raise ValueError("Unknown typename \"%s\" evaluating %s" % (typename,paramname))
 
 
 
@@ -119,7 +141,7 @@ class stepparam(object):
         pass
 
     def evaluateas(self,typename):
-        return evaluate_from_element(self.prxdoc,self.element,typename)    
+        return evaluate_from_elements(self.prxdoc,[self.element],typename,self.name)    
     pass
 
 
@@ -147,11 +169,10 @@ def findparam_concrete(prxnsmap,outdoc,element,arg_nspre,argname,argtype):
     else:
         useargname=argname
         pass
-    child=outdoc.child(element,useargname,namespaces=namespaces)
-    if child is not None:
-        return evaluate_from_element(outdoc,child,argtype)
-
-    raise NameError("No child element found")
+    children=outdoc.children(element,useargname,namespaces=namespaces)
+    return evaluate_from_elements(outdoc,children,argtype,argname)
+    #
+    #raise NameError("No child element found")
 
 def findparam(prxnsmap,outdoc,element,argname):
     #     Create a parameter structure for parameter argname from outdoc
@@ -171,11 +192,6 @@ def findparam(prxnsmap,outdoc,element,argname):
     if "_" in argname:
         # Argname  may be base_type
         (argnamebase,argnametype)=argname.rsplit("_",1)
-        try: 
-            ret=findparam_concrete(prxnsmap,outdoc,element,None,argnamebase,argnametype)
-            return ret
-        except NameError:
-            pass
 
         if "_" in argnamebase:
             # Argname may be prefix_base_type
@@ -186,6 +202,14 @@ def findparam(prxnsmap,outdoc,element,argname):
             except NameError:
                 pass
             pass
+
+        # Argname  may be base_type
+        try: 
+            ret=findparam_concrete(prxnsmap,outdoc,element,None,argnamebase,argnametype)
+            return ret
+        except NameError:
+            pass
+
         
         # argname maybe prefix_base
         (argnameprefix,argnamebase_noprefix)=argname.split("_",1)
