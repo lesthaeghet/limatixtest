@@ -196,13 +196,13 @@ def main(args=None):
             dpdfiles.append(args[argc])
             pass
         elif arg=='-h' or arg=="--help":
-            print """Usage: %s [--gtk3] [-f <config.dcc>]  [-g gui.glade] ...
+            print("""Usage: %s [--gtk3] [-f <config.dcc>]  [-g gui.glade] ...
         
 Flags:
   -f <config.dcc>     Open this config file (multiple OK)
   -g <gui.glade>      Open this gui (multiple OK)
   -d <params.dpd>     Load parameters from this .dpd file (multiple OK)
-""" % (args[0])
+""" % (args[0]))
             sys.exit(0)
             pass
         elif arg=="--gtk3":
