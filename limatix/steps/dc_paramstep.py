@@ -159,6 +159,10 @@ class dc_paramstep(gtk.HBox):
 
         if self.myprops["paramname"] is None or self.myprops["paramname"]=="":
             raise ValueError("dc_paramstep: <paramname> parameter not set or blank")
+
+        if self.myprops["paramname"] not in self.paramdb:
+            raise NameError("dc_paramstep: <paramname> parameter of \"%s\" not found in parameter database.\nDid you load the correct datacollect configuration (.dcc) file?" % (self.myprops["paramname"]))
+        
         self.paramnotify=self.paramdb.addnotify(self.myprops["paramname"],self.changedcallback,pdb.param.NOTIFY_NEWVALUE)
 
         pass
