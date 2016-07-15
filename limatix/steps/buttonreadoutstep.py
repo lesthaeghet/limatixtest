@@ -143,6 +143,7 @@ class buttonreadoutstep(gtk.HBox):
         self.paramdb=guistate.paramdb
         self.dc_gui_io=guistate.iohandlers
 
+
         dc_initialize_widgets(self.gladeobjdict,guistate)
 
         pass

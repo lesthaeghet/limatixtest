@@ -418,7 +418,7 @@ class xmltreevalue(value):
 
             # Copy our children
             ourroot=self.__xmldoc.getroot()
-            element.attrib.update(ourroot.attrib) # copy attributes
+            element.attrib.update(dict(ourroot.attrib)) # copy attributes
             element.text=ourroot.text # copy text 
             for child in ourroot.getchildren(): # copy children
                 element.append(copy.deepcopy(child))

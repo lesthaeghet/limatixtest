@@ -46,3 +46,27 @@ Documentation
 Primary LIMATIX documentation is in doc/LIMATIX.xhtml.
 Some additional documentation on processtrak is in the presentation
 that can be accessed as doc/processtrak.odp or doc/processtrak.pdf
+
+
+
+Acknowledgments
+---------------
+Thanks to the LIMATIX proposal team for their input and support:
+  Hui Hu, Iowa State University
+  Amy Kaleita, Iowa State University 
+  Brian Mennecke, Iowa State University  1960-2016 RIP
+  Hridesh Rajan, Iowa State University
+  Michael Thompson, Cornell University
+
+Thanks also to Dave Forsyth and Carl Magnuson of TRI-Austin
+for their input and support. 
+
+Thanks to Joseph Hynek for providing the RF survey data used in the
+ProcessTrak example. 
+
+This material is based on work supported by the Air Force Research
+Laboratory under Contract #FA8650-10-D-5210, Task Order #023 and
+performed at Iowa State University; Case number XXXXXXXX.
+
+This material is based on work supported by the NASA Early Stage
+Innovation (ESI) program under grant #NNX15AD75G
