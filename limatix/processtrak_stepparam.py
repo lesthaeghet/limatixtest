@@ -80,7 +80,7 @@ def evaluate_from_elements(xmldocu,elementlist,typename,paramname):
             raise NameError("No element found")
         return xmldocu
 
-    raise ValueError("Unknown typename \"%s\" evaluating %s" % (typename,paramname))
+    raise NameError("Unknown typename \"%s\" evaluating %s" % (typename,paramname))
 
 
 
