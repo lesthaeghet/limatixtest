@@ -87,3 +87,5 @@ Getting Started
 ---------------
 See doc/LIMATIX.xhtml for quickstart documentation and
 examples. 
+
+see README.txt for basic information on LIMATIX

@@ -43,6 +43,7 @@ paramdb2     -- Database of parameters to be written to experiment log
 
 Documentation
 -------------
+Installation instructions are in INSTALL.txt
 Primary LIMATIX documentation is in doc/LIMATIX.xhtml.
 Some additional documentation on processtrak is in the presentation
 that can be accessed as doc/processtrak.odp or doc/processtrak.pdf
