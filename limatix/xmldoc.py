@@ -539,7 +539,7 @@ class xmldoc(object):
 
         # attrlist is a list of (name,value) tuples for attributes
         if nsmap is None: 
-            nsmap={ None: "http://limatix.org/datacollect",
+            nsmap={ 
                     "dc": "http://limatix.org/datacollect",
                     "dcv": "http://limatix.org/dcvalue",
                     "chx": "http://limatix.org/checklist",
