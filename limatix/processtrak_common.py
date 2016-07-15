@@ -462,10 +462,14 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
         
         # Do we have an input filter? ... stored as xlink:href in <inputfilter> tag
         canonhash=None  # (we could hash the entire inputfile!)
-        inputfilters=prxdoc.xpath("inputfilter")
+        inputfilters=prxdoc.xpathcontext(outputdict[inputfilehref].inputfileelement,"prx:inputfilter")
+
         if len(inputfilters) > 1:
             raise ValueError("Maximum of one <inputfilter> element permitted in .prx file")
         timestamp=datetime.datetime.fromtimestamp(os.path.getmtime(inputfilehref.getpath()),lm_timestamp.UTC()).isoformat()
+
+        xslttag=prxdoc.xpathsinglecontext(outputdict[inputfilehref].inputfileelement,"prx:xslt",default=None)
+
 
         if len(inputfilters) > 0:
             # have an input filter
@@ -493,6 +497,29 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
             # Call input filter... will raise
             # exception if input filter fails. 
             subprocess.check_call(*inputfilterargs)
+            
+            pass
+        elif xslttag is not None:
+
+            if prxdoc.hasattr(xslttag,"xlink:href"):
+                filename=dcv.hrefvalue.fromxml(prxdoc,xslttag).getpath()
+                pass
+            else:
+                filename=find_xslt_in_path(prxdoc.getcontexthref(),prxdoc.getattr(xslttag,"name")).getpath()
+                
+                pass
+                
+            stylesheet=etree.parse(filename)
+            stylesheet_transform=etree.XSLT(stylesheet)
+            
+            indoc=xmldoc.xmldoc.loadhref(inputfilehref,nsmap=prx_nsmap,readonly=True)
+
+            # transform indoc
+            outdoc=xmldoc.xmldoc.frometree(stylesheet_transform(indoc.doc),nsmap=prx_nsmap,readonly=False,contexthref=indoc.getcontexthref())
+            # Write out under new file name outputfilehref
+            assert(outputfilehref != inputfilehref)
+            outdoc.set_href(outputfilehref,readonly=False)
+            outdoc.close()
             
             pass
         else:

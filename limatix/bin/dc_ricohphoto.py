@@ -128,9 +128,9 @@ def main(args=None):
             pass
         elif args[argc]=="-h" or args[argc]=="--help":
             # print usage: 
-            print "Usage: ricohphoto [-sdb] [-s <specimen>] [--gtk3]"
-            print " "
-            print " -sdb enables specimen database mode"
+            print("Usage: ricohphoto [-sdb] [-s <specimen>] [--gtk3]")
+            print(" ")
+            print(" -sdb enables specimen database mode")
             
             pass 
         elif args[argc]=="--gtk3":
