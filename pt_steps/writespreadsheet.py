@@ -451,7 +451,7 @@ def write_output(outfilename,result):
     pass
 
 
-def run(_prxdoc,_step,_xmldoc,_element,prx_sheetspec_doc,prx_sheetspec,prx_outfilenamexpath_doc,prx_outfilenamexpath,linktag="prx:spreadsheet"):
+def run(_prxdoc,_step,_xmldoc,_element,prx_sheetspec_doc,prx_sheetspec,prx_outfilenamexpath_doc=None,prx_outfilenamexpath=None,prx_outfilename_str=None,linktag="prx:spreadsheet"):
 
 
     docdb={}
@@ -499,18 +499,26 @@ def run(_prxdoc,_step,_xmldoc,_element,prx_sheetspec_doc,prx_sheetspec,prx_outfi
 
     resultdoc=xmldoc.xmldoc.frometree(ods,contexthref=_xmldoc.getcontexthref())
     
-    # evaluate prx_outfilenamexpath
-
-    namespaces=copy.deepcopy(prx_outfilenamexpath.nsmap)
-    if None in namespaces:
-        del namespaces[None]  # nsmap param cannot have None
-        pass
+    # evaluate prx_outfilename_str or prx_outfilenamexpath
+    if prx_outfilename_str is None:
+        
+        namespaces=copy.deepcopy(prx_outfilenamexpath.nsmap)
+        if None in namespaces:
+            del namespaces[None]  # nsmap param cannot have None
+            pass
                              
     
-    prx_outfilename= _xmldoc.xpathcontext(_element,prx_outfilenamexpath_doc.getattr(prx_outfilenamexpath,"select"),namespaces=namespaces)
-
-    if not prx_outfilename.endswith(".ods"):
-        raise ValueError("Output spreadsheet requires .ods extension")
+        prx_outfilename= _xmldoc.xpathcontext(_element,prx_outfilenamexpath_doc.getattr(prx_outfilenamexpath,"select"),namespaces=namespaces)
+        
+        if not prx_outfilename.endswith(".ods"):
+            raise ValueError("Output spreadsheet requires .ods extension")
+        
+        pass
+    else:
+        if prx_outfilenamexpath is not None:
+            raise ValueError("Both prx_outfilenamexpath and prx_outfilename specified (only one at a time is permitted)")
+        prx_outfilename=prx_outfilename_str
+        pass
 
     ## put in dest dir if present
     #dest=_xmldoc.xpathsingle("dc:summary/dc:dest",default=None,namespaces={"dc": "http://limatix.org/datacollect"} )
