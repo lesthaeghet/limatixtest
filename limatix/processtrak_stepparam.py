@@ -23,6 +23,52 @@ else:
     pass
 
 
+def evaluate_from_number(number,typename,paramname):
+    if typename=="float":
+        return float(number)
+    elif typename=="int":
+        return int(number)
+    else:
+        raise ValueError("processtrak_stepparam: Error evaluating parameter %s: evaluate_from_number cannot convert number to %s" % (paramname,typename))
+    
+    
+    pass
+
+def evaluate_from_bool(boolean,typename,paramname):
+    if typename=="bool":
+        return bool(boolean)
+    elif typename=="int":
+        return int(boolean)
+    elif typename=="str":
+        return str(boolean)
+    else:
+        raise ValueError("processtrak_stepparam: Error evaluating parameter %s: evaluate_from_bool cannot convert boolean to %s" % (paramname,typename))
+    pass
+
+def evaluate_from_string(string,typename,paramname):
+    literal_python_typedict={
+        "list": list,
+        "tuple": tuple,
+        "dict": dict,
+        "set": set,
+        "bool": bool,
+    }
+
+    if typename=="str":
+        return str(string)
+    elif typename=="int":
+        return int(string)
+    elif typename=="float":
+        return float(string)
+    elif typename in literal_python_typedict:
+        return literal_python_typedict[typename](ast.literal_eval(string))
+    else:
+        raise ValueError("processtrak_stepparam: Error evaluating parameter %s: evaluate_from_string cannot convert string to %s" % (paramname,typename))
+    pass
+
+    
+    pass
+
 def evaluate_from_elements(xmldocu,elementlist,typename,paramname):
     # typename can be str,float,int,bool : basic Python types
     # list, tuple, dict, set : Python type interpreted by ast.literal_eval() -- may return None if that is given!
@@ -37,15 +83,14 @@ def evaluate_from_elements(xmldocu,elementlist,typename,paramname):
         "str": str,
         "float": float,
         "int": int_or_long,
-        "bool": bool,
     }
     literal_python_typedict={
         "list": list,
         "tuple": tuple,
         "dict": dict,
         "set": set,
+        "bool": bool,
     }
-    val=None
     if typename in basic_python_typedict:
         if len(elementlist) > 1:
             raise ValueError("Got %d values for parameter %s" % (len(elementlist),paramname))
@@ -57,7 +102,7 @@ def evaluate_from_elements(xmldocu,elementlist,typename,paramname):
             raise ValueError("Got %d values for parameter %s" % (len(elementlist),paramname))
         elif len(elementlist) == 0:
             raise NameError("No element found")
-        return literal_python_typedict(ast.literal_eval(xmldocu.gettext(elementlist[0])))
+        return literal_python_typedict[typename](ast.literal_eval(xmldocu.gettext(elementlist[0])))
     elif typename=="nodeset":
         #import pdb as pythondb
         #pythondb.set_trace()
@@ -104,24 +149,33 @@ class stepparam(object):
             pass
         pass
 
-
-    def test_condition(self,outdoc,element,inputfilehref):
-        if not self.prxdoc.hasattr(self.element,"condition"):
-            return True
-        
-        condition=self.prxdoc.getattr(self.element,"condition")
-        
-        
-        namespaces=copy.deepcopy(self.element.nsmap)
-        if None in namespaces:
-            del namespaces[None]
-            pass
+    def get_xpath_variables(self,outdoc,inputfilehref):
 
         variables = {"outputfile":outdoc.get_filehref().get_bare_unquoted_filename(),
                      "outputfileurl":outdoc.get_filehref().absurl(),
                      "inputfile":inputfilehref.get_bare_unquoted_filename(),
                      "inputfileurl":inputfilehref.absurl(),
-                     }
+        }
+        
+        
+        return variables
+
+    def get_element_namespaces(self):
+        namespaces=copy.deepcopy(self.element.nsmap)
+        if None in namespaces:
+            del namespaces[None]
+            pass
+        return namespaces
+    
+    def test_condition(self,outdoc,element,inputfilehref):
+        if not self.prxdoc.hasattr(self.element,"condition"):
+            return True
+
+        
+        condition=self.prxdoc.getattr(self.element,"condition")
+        
+        namespaces=self.get_element_namespaces()
+        variables=self.get_xpath_variables(outdoc,inputfilehref)
 
         result=outdoc.xpathcontext(element,condition,variables=variables,namespaces=namespaces,noprovenance=True)
 
@@ -140,16 +194,42 @@ class stepparam(object):
             raise ValueError("test_condition: condition \"%s\" returned invalid result (type %s)" % (condition,result.__class__.__name__))
         pass
 
-    def evaluateas(self,typename):
+    def evaluateas(self,typename,outdoc,element,inputfilehref):
+        # Check for select= option
+        if self.prxdoc.hasattr(self.element,"select"):
+            # Select attribute... evaluate xpath in context
+            # of element we are operating on
+        
+            select=self.prxdoc.getattr(self.element,"select")
+            
+            namespaces=self.get_element_namespaces()
+            variables=self.get_xpath_variables(outdoc,inputfilehref)
+
+            selectresult=outdoc.xpathcontext(element,select,variables=variables,namespaces=namespaces)
+
+            if isinstance(selectresult,numbers.Number):
+                return evaluate_from_number(selectresult,typename,self.name)
+            elif isinstance(selectresult,list):
+                return evaluate_from_elements(outdoc,selectresult,typename,self.name)
+            elif isinstance(selectresult,bool):
+                return evaluate_from_bool(selectresult,typename,self.name)
+            elif isinstance(selectresult,basestring):
+                return evaluate_from_string(selectresult,typename,self.name)
+            else:
+                # Some kind of node
+                return evaluate_from_elements(outdoc,[selectresult],typename,self.name)
+            pass
+        # no select attribute
         return evaluate_from_elements(self.prxdoc,[self.element],typename,self.name)    
     pass
+
 
 
 def evaluate_params(paramdict,name,typename,outdoc,element,inputfilehref):
     params=paramdict[name]
     for param in params:
         if param.test_condition(outdoc,element,inputfilehref):
-            return param.evaluateas(typename)
+            return param.evaluateas(typename,outdoc,element,inputfilehref)
         pass
     raise ValueError("No value found for parameter %s for element %s" % (name,etxpath2human(outdoc.get_canonical_etxpath(element),outdoc.nsmap)))
 
