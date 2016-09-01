@@ -94,7 +94,10 @@ class install_lib_save_prefix(install_lib):
         for package in self.distribution.command_obj["build_py"].packages:
             install_dir=os.path.join(*([self.install_dir] + package.split('.')))
             fh=open(os.path.join(install_dir,"install_prefix.txt"),"w")
-            fh.write(self.distribution.command_obj["install"].prefix)
+            #fh.write(self.distribution.command_obj["install"].prefix)
+            # Fix for Ubuntu: install_data seems to be the prefix
+            # for where stuff is installed (?)
+            fh.write(self.distribution.command_obj["install"].install_data)
             fh.close()
             pass
         pass

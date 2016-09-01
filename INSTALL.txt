@@ -3,6 +3,7 @@ Prerequisites:
   python (version 2.7 or 3.x... 3.x is a bit of a work in progress)
   python-lxml (often distributed with operating system or Python distribution)
   numpy (often distributed with operating system or Python distribution)
+  pytz (Python timezone library; sometimes listed as 'python-tz')
   gtk2 and pygtk2 (on python2;  required to use GUI components)
   gtk3 and python bindings (on python3;  required to use GUI components)
   setuptools (often distributed with operating system or Python distribution)
