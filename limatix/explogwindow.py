@@ -451,14 +451,14 @@ class explogwindow(gtk.Window):
         #import pdb as pythondb
         #pythondb.set_trace()
         
-        # create context from fname and directory
-        (direc,filename)=os.path.split(fname)
-
-        href=dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc)+posixpath.sep,contexthref=dcv.hrefvalue("./")))
-
-
-        
         if result==RESPONSE_OK:
+            # create context from fname and directory
+            (direc,filename)=os.path.split(fname)
+
+            href=dcv.hrefvalue(pathname2url(filename),contexthref=dcv.hrefvalue(pathname2url(direc)+posixpath.sep,contexthref=dcv.hrefvalue("./")))
+            
+
+            
             self.new_explog(href)
         
             pass
