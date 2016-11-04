@@ -18,6 +18,14 @@ import csv
 import string
 import collections
 
+try:
+    from cStringIO import StringIO
+    pass
+except ImportError:
+    from io import StringIO
+    pass
+
+
 from . import timestamp as lm_timestamp
 from . import canonicalize_path
 
@@ -1021,7 +1029,7 @@ def suggest(docdict,processdict,processdictbyhrefc,processdictbyusedelement,elem
         (hrefc,uuid_or_mtime)=elementinfo
         (processuuidlist,messagelists)=elementdict[elementinfo]
         for message in messagelists["error"]: 
-            if message.startswith("WasGeneratedBy process uuids do not match for"):
+            if message.startswith("Object provenance does not match for"):
                 if elementinfo in processdictbyusedelement:
                     rerunprocess_uuids=processdictbyusedelement[elementinfo]
                     for rerunprocess_uuid in rerunprocess_uuids: 
@@ -1371,7 +1379,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                     pass
                 elif refuuids_or_mtime.startswith("fragcanonsha256="):
                     # Create canonicalization:
-                    canondoc=xmldoc.xmldoc.copy_from_element(xmldocu,foundelement[0],nsmap=prx_nsmap)
+                    canondoc=xmldoc.xmldoc.copy_from_element(xmldocu,foundelement[0],nsmap=foundelement[0].nsmap)
                     canonbuf=StringIO()
                     canondoc.doc.write_c14n(canonbuf,exclusive=False,with_comments=True)
                     matchstring="fragcanonsha256=" + hashlib.sha256(canonbuf.getvalue()).hexdigest()
@@ -1390,7 +1398,7 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
 
                 # sys.stderr.write("Compare \"%s\"\n        \"%s\"\n" % 
 
-                elementdict[(element_hrefc,refuuids_or_mtime)][1][warnlevel].append("WasGeneratedBy process uuids do not match for %s: %s specified in %s vs. %s actual. Referenced version has probably been overwritten. Access history: %s" % (element_hrefc.humanurl(),refuuids_or_mtime,referrer_hrefc.humanurl(),matchstring,history_stack))
+                elementdict[(element_hrefc,refuuids_or_mtime)][1][warnlevel].append("Object provenance does not match for %s: %s specified in %s vs. %s actual. Referenced version has probably been overwritten. Access history: %s" % (element_hrefc.humanurl(),refuuids_or_mtime,referrer_hrefc.humanurl(),matchstring,history_stack))
 
                 if refuuids_or_mtime.startswith("uuid="):
                     uuidstring=refuuids_or_mtime # mark the referred element as that is the real provenance

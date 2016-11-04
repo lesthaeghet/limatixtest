@@ -69,7 +69,7 @@ class dc_dbus_paramserver(dbus_service_Object):
             pass
 
         bus_name_obj=dbus.service.BusName(bus_name,sessionbus)  
-        dbus.service.Object.__init__(self,bus_name_obj,"/org.limatix/datacollect2/paramdb2")
+        dbus.service.Object.__init__(self,bus_name_obj,"/org/limatix/datacollect2/paramdb2")
         
         pass
 
