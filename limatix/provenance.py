@@ -1203,7 +1203,8 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
 
 
         if refuuids_or_mtime is not None and refuuids_or_mtime.startswith("mtime="):
-            errmsg="Attempting to specify mtime provenance %s for an element %s inside a file" % (refuuids_or_mtime,element_hrefc.humanurl())
+            # mtime specified on something with a fragment
+            errmsg="Attempting to specify mtime provenance %s for an element %s inside a file. Referrer=%s" % (refuuids_or_mtime,element_hrefc.humanurl(),referrer_hrefc.humanurl())
             
             if referrer_hrefc in processdictbyhrefc: 
                 processdict[processdictbyhrefc[referrer_hrefc]][2]["error"].append(errmsg)
@@ -1325,6 +1326,9 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                         if "usedwasgeneratedby" in usedtag.attrib:
                             uuids_or_mtime=str(usedtag.attrib["usedwasgeneratedby"])
                             pass
+                        elif "fragcanonsha256" in usedtag.attrib:
+                            uuids_or_mtime="fragcanonsha256="+usedtag.attrib["fragcanonsha256"]
+                            pass
                         elif "mtime" in usedtag.attrib:
                             uuids_or_mtime="mtime="+usedtag.attrib["mtime"]
                             pass
@@ -1365,6 +1369,12 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
                 elif refuuids_or_mtime.startswith("mtime="):
                     matchstring="mtime="+datetime.datetime.fromtimestamp(os.path.getmtime(xmldocu.get_filehref().getpath()),lm_timestamp.UTC()).isoformat()
                     pass
+                elif refuuids_or_mtime.startswith("fragcanonsha256="):
+                    # Create canonicalization:
+                    canondoc=xmldoc.xmldoc.copy_from_element(xmldocu,foundelement[0],nsmap=prx_nsmap)
+                    canonbuf=StringIO()
+                    canondoc.doc.write_c14n(canonbuf,exclusive=False,with_comments=True)
+                    matchstring="fragcanonsha256=" + hashlib.sha256(canonbuf.getvalue()).hexdigest()
                 else:
                     matchstring="ERROR_INVALID_UUID_CLASS"
                     pass

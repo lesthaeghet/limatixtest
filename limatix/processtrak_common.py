@@ -246,7 +246,7 @@ def create_outputfile(prxdoc,inputfilehref,outputfilehref,outputdict):
         #print("inputfileportion=%s" % (etree.tostring(inputfileportion[0])))
         #import pdb as pythondb
         #pythondb.set_trace()
-        outdoc=xmldoc.xmldoc.copy_from_element(inputfilecontent,inputfileportion[0],nsmap=prx_nsmap)
+        outdoc=xmldoc.xmldoc.copy_from_element(inputfilecontent,inputfileportion[0],nsmap=prx_nsmap)   # NOTE: prx_nsmap doesn't make much difference here because the nsmap of the element is copied in. prx_nsmap just makes our prefixes available through xmldoc
 
         # Create canonicalization from unmodified outdoc so that we can hash it
         outdoc_canon=StringIO()
