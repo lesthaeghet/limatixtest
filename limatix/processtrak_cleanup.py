@@ -167,7 +167,7 @@ class inputfile(object):
         ftype=cls.IFT_OTHERUNK
         xmldocu=None
         try:
-            xmldocu=xmldoc.xmldoc.loadhref(inputfilehref,nsmap=nsmap,readonly=True,use_locking=True)
+            xmldocu=xmldoc.xmldoc.loadhref(inputfilehref,nsmap=nsmap,readonly=True,use_locking=True,nodialogs=True)
             try: 
                 ftype=cls.detect_ftype(xmldocu)
                 pass

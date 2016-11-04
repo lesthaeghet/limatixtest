@@ -325,6 +325,7 @@ class xmldoc(object):
     extensions=None  # list of xpath extensions to provide by default
     num_backups=None # Number of backup files to keep when writing
     use_locking=None # Use file locking
+    nodialogs=None   # disable GUI dialogs
     debug=None       # Enable paranoid debugging?
     debug_last_serialized=None # for debugging... copy of last serialized version
     lastfileinfo=None # Class fileinfo for most recently seen on-disk copy
@@ -335,36 +336,36 @@ class xmldoc(object):
 
 
     @classmethod
-    def loadhref(cls,href,nsmap=None,readonly=True,use_databrowse=False,num_backups=1,use_locking=False,debug=False):
+    def loadhref(cls,href,nsmap=None,readonly=True,use_databrowse=False,num_backups=1,use_locking=False,nodialogs=False,debug=False):
         """ xmldoc.loadhref(href,...): Load in an existing file. See 
         main constructor docs for other parameters.
         NOTE: Will merge in xmldoc default nsmap into root element 
         unless you explicitly supply nsmap={}"""
 
-        return cls(href,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,debug=debug)
+        return cls(href,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,nodialogs=nodialogs,debug=debug)
 
     @classmethod
-    def loadfile(cls,filename,nsmap=None,readonly=True,use_databrowse=False,num_backups=1,use_locking=False,debug=False):
+    def loadfile(cls,filename,nsmap=None,readonly=True,use_databrowse=False,num_backups=1,use_locking=False,nodialogs=False,debug=False):
         """ xmldoc.loadfile(filename,...): Load in an existing file. See 
         main constructor docs for other parameters.
         NOTE: Will merge in xmldoc default nsmap into root element 
         unless you explicitly supply nsmap={}"""
         href=dc_value.hrefvalue(pathname2url(filename),contexthref=dc_value.hrefvalue("./"))
         
-        return cls(href,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,debug=debug)
+        return cls(href,maintagname=None,nsmap=nsmap,readonly=readonly,use_databrowse=use_databrowse,num_backups=num_backups,use_locking=use_locking,nodialogs=nodialogs,debug=debug)
 
     @classmethod
-    def newdoc(cls,maintagname,nsmap=None,num_backups=1,use_locking=False,contexthref=None,debug=False):
+    def newdoc(cls,maintagname,nsmap=None,num_backups=1,use_locking=False,contexthref=None,nodialogs=False,debug=False):
         """ xmldoc.newfile(maintagname,...): 
         Create a new in-memory document. See 
         main constructor docs for other parameters"""
 
 
         
-        return cls(None,maintagname=maintagname,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,use_locking=use_locking,contexthref=contexthref,debug=debug)
+        return cls(None,maintagname=maintagname,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,use_locking=use_locking,contexthref=contexthref,nodialogs=nodialogs,debug=debug)
 
     @classmethod
-    def fromstring(cls,xml_string,nsmap=None,num_backups=1,use_locking=False,contexthref=None,debug=False,force_abs_href=False):
+    def fromstring(cls,xml_string,nsmap=None,num_backups=1,use_locking=False,contexthref=None,nodialogs=False,debug=False,force_abs_href=False):
         """ xmldoc.fromstring(...): 
         Create a new in-memory document from a string. See 
         main constructor docs for other parameters.
@@ -379,7 +380,7 @@ class xmldoc(object):
 
         
         SIO=StringIO(xml_string)
-        newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,FileObj=SIO,use_locking=use_locking,contexthref=contexthref,debug=debug)
+        newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=False,use_databrowse=False,num_backups=num_backups,FileObj=SIO,use_locking=use_locking,contexthref=contexthref,nodialogs=nodialogs,debug=debug)
         SIO.close()
         
         if force_abs_href: 
@@ -389,7 +390,7 @@ class xmldoc(object):
         return newdoc
     
     @classmethod
-    def inmemorycopy(cls,xmldoc,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False):
+    def inmemorycopy(cls,xmldoc,nsmap=None,readonly=False,contexthref=None,nodialogs=False,debug=False,force_abs_href=False):
         # Create a new in-memory XMLDOC with a copy of the content of an existing xmldoc
         # Does fixups of xlink:href attributes to contexthref or contextdir
         # if contextdir and contexthref are None, it is presumed that context does
@@ -417,11 +418,11 @@ class xmldoc(object):
         ETreeObj=copy.deepcopy(xmldoc.doc)
         _xlinkcontextfixuptree(ETreeObj,doccontexthref,contexthref,force_abs_href=force_abs_href)
 
-        newdoc=cls(None,maintagname=None,nsmap=newnsmap,readonly=readonly,ETreeObj=ETreeObj,use_locking=False,contexthref=contexthref,debug=debug)
+        newdoc=cls(None,maintagname=None,nsmap=newnsmap,readonly=readonly,ETreeObj=ETreeObj,use_locking=False,contexthref=contexthref,nodialogs=nodialogs,debug=debug)
         return newdoc
 
     @classmethod
-    def copy_from_element(cls,xmldocu,etree_or_element,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False):
+    def copy_from_element(cls,xmldocu,etree_or_element,nsmap=None,readonly=False,contexthref=None,nodialogs=False,debug=False,force_abs_href=False):
         # Create a new xmldoc object by copying an element (and sub-elements)
         # or element tree object
 
@@ -452,11 +453,11 @@ class xmldoc(object):
             pass
         
 
-        return xmldoc.frometree(newetree,nsmap=nsmap,readonly=readonly,contexthref=contexthref,debug=debug,force_abs_href=force_abs_href)
+        return xmldoc.frometree(newetree,nsmap=nsmap,readonly=readonly,contexthref=contexthref,nodialogs=nodialogs,debug=debug,force_abs_href=force_abs_href)
     
     
     @classmethod
-    def frometree(cls,lxmletree,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False):
+    def frometree(cls,lxmletree,nsmap=None,readonly=False,contexthref=None,nodialogs=False,debug=False,force_abs_href=False):
         # Create an xmldoc object from an existing lxml ElementTree object
         # NOTE: Steals existing object and keeps using it internally!!!
         
@@ -474,7 +475,7 @@ class xmldoc(object):
         #    contexthref=dc_value.hrefvalue(pathname2url(contextdir))
         #    pass
 
-        newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=readonly,ETreeObj=lxmletree,use_locking=False,contexthref=contexthref,debug=debug)
+        newdoc=cls(None,maintagname=None,nsmap=nsmap,readonly=readonly,ETreeObj=lxmletree,use_locking=False,contexthref=contexthref,nodialogs=nodialogs,debug=debug)
 
         if force_abs_href: 
             # absolutize all xlinks
@@ -484,7 +485,7 @@ class xmldoc(object):
         return newdoc
 
 
-    def __init__(self,href,maintagname=None,nsmap=None,readonly=False,use_databrowse=False,num_backups=1,FileObj=None,ETreeObj=None,use_locking=False,contexthref=None,debug=False):  
+    def __init__(self,href,maintagname=None,nsmap=None,readonly=False,use_databrowse=False,num_backups=1,FileObj=None,ETreeObj=None,use_locking=False,contexthref=None,nodialogs=False,debug=False):  
         """ Main constructor fo xmldoc. WE STRONGLY RECOMMEND USING THE CLASS METHOD CONSTRUCTORS INSTEAD
         href:    File to map. May be None if we are creating a new 
                      document in write mode (maintagname != None). 
@@ -499,9 +500,11 @@ class xmldoc(object):
                          "dc": "http://limatix.org/datacollect",
                          "chx": "http://limatix.org/checklist",
                        }
-                     NOTE: Unless you supply nsmap={}, when loading an 
-                     existing document, the default nsmap will automatically
-                     be merged in to the root element.
+                     On creation of a blank document, these are put
+                     into the XML main tag. Otherwise, this nsmap is used
+                     to handle prefix mapping for all xmldoc accesses, 
+                     but may differ from any mapping within the XML 
+                     file.  
         readonly:    If True, force read-only mode (modifications can 
                      be made in memory, but not flushed to disk)
 
@@ -529,6 +532,8 @@ class xmldoc(object):
                      an exception occurs, the lock will be released.
         contexthref: If filename is None, this is the context for relative
                      xlink:href links. 
+        nodialogs:   If False, bring up a dialog box or print to stderr
+                     on errors. If True, raise an exception on errors
         debug:       Attempt to diagnose locking/use errors, etc.
 
 
@@ -595,6 +600,8 @@ class xmldoc(object):
         self.ro_lockcount=0
         self.rw_lockcount=0
         self.lockfd=-1
+
+        self.nodialogs=nodialogs
 
         if self.use_databrowse:
             assert(self.readonly)  # databrowse is inherently read-only
@@ -1312,7 +1319,7 @@ class xmldoc(object):
         if not "gtk" in sys.modules and not ("gi" in sys.modules and hasattr(sys.modules["gi"],"repository") and hasattr(sys.modules["gi"].repository,"Gtk")):
             # if nothing else has loaded gtk2 or gtk3
             # Just print exception
-            sys.stderr.write("Exception resyncing file %s\n%s: %s" % (self._filename,str(exctype.__name__),str(value)))
+            sys.stderr.write("Exception resyncing file %s\n%s: %s\n" % (self._filename,str(exctype.__name__),str(value)))
             return "cancel"  # text mode is non-interactive
         else : 
             loadgtk() # do our gtk imports
@@ -1501,9 +1508,9 @@ class xmldoc(object):
                             
                             pass
                         pass
-                    if not self.readonly:
-                        self._merge_rootnode_namespaces(self.nsmap)
-                        pass
+                    #if not self.readonly:
+                        #self._merge_rootnode_namespaces(self.nsmap)
+                    #    pass
                     # Note: _pull_in_rootnode_namespaces() removed because we shouldn't be using any namespace prefixes that we have not specified ourselves (lest a file with an unexpected mapping screw things up in weird ways
                     # self._pull_in_rootnode_namespaces()
                      
@@ -1579,12 +1586,15 @@ class xmldoc(object):
                 except:
                     # raise #!!!***
                     (exctype,value)=sys.exc_info()[:2]
-                    if exctype.__name__=="IOError" and initialload: 
+                    tback=traceback.format_exc()
+                    if self.nodialogs or (exctype.__name__=="IOError" and initialload):
                         # Don't bring up a dialog on initialload if 
                         # we had an IOerror. Just raise the exception back up
-                        raise
-                    tback=traceback.format_exc()
-                    result=self.postexcdialog(exctype,value,tback,initialload,cantretry=(FileObj is not None))
+                        result="cancel"
+                        pass
+                    else:
+                        result=self.postexcdialog(exctype,value,tback,initialload,cantretry=(FileObj is not None))
+                        pass
 
                     if lockfd != -1: 
                         # We left something locked... see also _unlock_ro() and _unlock_rw()
