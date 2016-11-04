@@ -1356,10 +1356,22 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
         else:
 
             # no specific tag. Look for recorded provenance
+            
             uuidstring=str(xmldocu.getattr(foundelement[0],"lip:wasgeneratedby","",namespaces={"lip": lip}))
-            if refuuids_or_mtime is not None and refuuids_or_mtime != uuidstring:
+            if refuuids_or_mtime is not None:
+                if refuuids_or_mtime.startswith("uuid="):
+                    matchstring=uuidstring
+                    pass
+                elif refuuids_or_mtime.startswith("mtime="):
+                    matchstring="mtime="+datetime.datetime.fromtimestamp(os.path.getmtime(xmldocu.get_filehref().getpath()),lm_timestamp.UTC()).isoformat()
+                    pass
+                else:
+                    matchstring="ERROR_INVALID_UUID_CLASS"
+                    pass
+                pass
+            if refuuids_or_mtime is not None and refuuids_or_mtime != matchstring:
                 # refuuids_or_mtime is what we were lead to believe (by the calling lip:process) generated this element
-                # uuidstring is what actually generated this element
+                # matchstring is what actually generated this element
 
                 # it is the calling lip:process, really, that has a problem
                 # !!! Should diagnose this better by looking up the two process elements !!!
@@ -1368,10 +1380,11 @@ def checkprovenance(history_stack,element_hrefc,refuuids_or_mtime,nsmap={},refer
 
                 # sys.stderr.write("Compare \"%s\"\n        \"%s\"\n" % 
 
-                elementdict[(element_hrefc,refuuids_or_mtime)][1][warnlevel].append("WasGeneratedBy process uuids do not match for %s: %s specified in %s vs. %s actual. Referenced version has probably been overwritten. Access history: %s" % (element_hrefc.humanurl(),refuuids_or_mtime,referrer_hrefc.humanurl(),uuidstring,history_stack))
+                elementdict[(element_hrefc,refuuids_or_mtime)][1][warnlevel].append("WasGeneratedBy process uuids do not match for %s: %s specified in %s vs. %s actual. Referenced version has probably been overwritten. Access history: %s" % (element_hrefc.humanurl(),refuuids_or_mtime,referrer_hrefc.humanurl(),matchstring,history_stack))
 
-                uuidstring=refuuids_or_mtime # mark the referred element as that is the real provenance
-
+                if refuuids_or_mtime.startswith("uuid="):
+                    uuidstring=refuuids_or_mtime # mark the referred element as that is the real provenance
+                    pass
                 pass
             else  :
                 elementdict[(element_hrefc,uuidstring)]=([],copy.deepcopy(messagelisttemplate)) # mark that we have done this

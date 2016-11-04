@@ -105,7 +105,7 @@ class infiledicts(object):
             self.otherxml[inputfilehref]=ifo
             pass
         elif ifo.ftype==ifo.IFT_OTHERUNK:
-            self.otherxml[inputfilehref]=ifo
+            self.otherunk[inputfilehref]=ifo
             pass
         else:
             assert()
@@ -165,6 +165,7 @@ class inputfile(object):
         inputfilehref=inputfilehref.fragless()
 
         ftype=cls.IFT_OTHERUNK
+        xmldocu=None
         try:
             xmldocu=xmldoc.xmldoc.loadhref(inputfilehref,nsmap=nsmap,readonly=True,use_locking=True)
             try: 
