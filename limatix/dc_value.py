@@ -1936,8 +1936,12 @@ class excitationparamsvalue(value) :
             self.t2=string.t2
             self.t3=string.t3
             
+            self.final=True
             return
-
+        elif string is None:
+            # blank
+            self.type=None
+            return 
         # otherwise string really should be a string. 
 
         # should provide string with initial GEN: removed
@@ -1972,6 +1976,9 @@ class excitationparamsvalue(value) :
         self.final=True
 
         pass
+
+    def isblank(self):
+        return self.type is None
     
     
     def __str__(self) :

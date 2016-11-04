@@ -763,6 +763,9 @@ def procsteppython_execfunc(scripthref,pycode_text,pycode_lineno,prxdoc,prxnsmap
 
         process_el=provenance.writeprocessprovenance(output,rootprocesspath,stepprocesspath,referenced_elements)
         
+        # !!!*** should add dcp:used tag referencing step definition with 
+        # prx file via sha256 hash of i18n canonicalization
+
         # write timestamps
         provenance.write_timestamp(output,process_el,"lip:starttimestamp",el_starttime)
         provenance.write_timestamp(output,process_el,"lip:finishtimestamp")
