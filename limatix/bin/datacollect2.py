@@ -345,7 +345,7 @@ Flags:
     
     if explogfile is not None and newlog:
         #sys.stderr.write("new_explog(%s)\n" % (explogfile))
-        explogwin.new_explog(hrefv(pathname2url(explogfile),contexthref=hrefv("./"),parentchecklisturl=parentchecklisturl,confighrefs=confighrefs)
+        explogwin.new_explog(hrefv(pathname2url(explogfile),contexthref=hrefv("./")),parentchecklisturl=parentchecklisturl,confighrefs=confighrefs)
         pass
     elif explogfile is not None and not newlog:
         #sys.stderr.write("open_explog(%s)\n" % (explogfile))
