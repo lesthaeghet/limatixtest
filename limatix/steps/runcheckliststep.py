@@ -910,26 +910,22 @@ class runcheckliststep(gtk.HBox):
 
 
     def printcallback(self,*args):
-        assert(0)
-        ###**** Needs updating
-        #self.update_status()
+
         checklisthref=None
-        if self.myprops["checklistpath"]=="":        
-            reldir=os.path.split(self.checklist.origfilename)[0]
-            for chklistdir in checklistdirs:
-                if not os.path.isabs(chklistdir):
-                    checklistdir=os.path.join(reldir,chklistdir)
-                    pass
-                if os.path.exists(os.path.join(checklistdir,self.myprops["checklistname"])):
-                    checklistfile=os.path.join(checklistdir,self.myprops["checklistname"])
-                    break
-                pass
-
+        if not self.myprops["inplacechecklist"].isblank():
+            # use a custom checklist... destdir is the same 
+            # location as the custom checklist
+            #checklisthref=dc_value.hrefvalue(self.myprops["customchecklist"],self.checklist.xmldoc.getcontexthref())
+            checklisthref=self.myprops["inplacechecklist"]
             pass
-        else :
-            checklistfile=os.path.join(self.myprops["checklistpath"],self.myprops["checklistname"])
+        elif not self.myprops["copychecklist"].isblank():
+            # use a standard checklist... destdir is the same 
+            # location as our checklist
+            checklisthref=self.myprops["copychecklist"]
             pass
 
+        checklistfile=checklisthref.getpath()
+        
         if checklistfile is None or not os.path.exists(checklistfile):
             nofiledialog=gtk.MessageDialog(type=MessageType_ERROR,buttons=ButtonsType_OK)
             nofiledialog.set_markup("Error: Requested checklist file %s not found" % (checklistfile))
@@ -940,9 +936,9 @@ class runcheckliststep(gtk.HBox):
         ## Change Direcotry to Temp Directory
         ###***!!! Shouldn't ever call os.getcwd except in a subprocess context!!!
         #cwd = os.getcwd()
-        #tmpdir = tempfile.mkdtemp()
+        tmpdir = tempfile.mkdtemp()
         #os.chdir(tmpdir)
-
+        
         # Get Specimen, Perfby, Date, Dest from Current Checklist
         specimen = str(self.checklist.paramdb["specimen"].dcvalue)
         perfby = str(self.checklist.paramdb["perfby"].dcvalue)
@@ -950,7 +946,7 @@ class runcheckliststep(gtk.HBox):
         dest = str(self.checklist.private_paramdb["dest"].dcvalue)
 
         # Run chx2pdf
-        subprocess.check_call(['/usr/local/bin/chx2pdf', checklistfile, specimen, perfby, date, dest], stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
+        subprocess.check_call(['chx2pdf', checklistfile, specimen, perfby, date, dest], stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno(),cwd=tmpdir)
 
         # Check for Output
         outfile = os.path.join(tmpdir, os.path.splitext(os.path.basename(checklistfile))[0] + '.pdf')
@@ -958,11 +954,12 @@ class runcheckliststep(gtk.HBox):
         # Trigger Launch of xdg-open
         if os.path.exists(outfile):
             subprocess.Popen(['xdg-open', outfile])
+            pass
         else:
             raise IOError("Error Opening PDF File %s" % outfile)
 
-        # Change Directory Back
-        os.chdir(cwd)
+        ## Change Directory Back
+        #os.chdir(cwd)
 
         pass   
 
