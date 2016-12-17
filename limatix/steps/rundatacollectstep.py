@@ -527,6 +527,8 @@ class rundatacollectstep(gtk.HBox):
     def determine_command(self):
 
 
+        #import pdb as pythondb
+        #pythondb.set_trace()
 
         commandlist=[]
         mkdir=None

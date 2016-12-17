@@ -3,6 +3,7 @@
 import sys
 import os
 import os.path
+import posixpath
 import string
 import datetime
 import traceback
@@ -221,7 +222,13 @@ Flags:
     dbuslink=dc_dbus_barcode(paramdb)
     
     
-    filehref=dc_value.hrefvalue(pathname2url(fname),contexthref=None)
+    # create context from fname and directory
+    (direc,filename)=os.path.split(fname)
+
+    if direc=="":
+        direc="."
+        pass
+    filehref=dc_value.hrefvalue(pathname2url(fname),contexthref=dc_value.hrefvalue(pathname2url(direc)+posixpath.sep,contexthref=dc_value.hrefvalue("./")))
     
     try: 
         standalone_checklist.open_checklist(filehref,paramdb,iohandlers)

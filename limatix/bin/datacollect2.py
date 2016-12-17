@@ -337,7 +337,7 @@ Flags:
     
     explogwin.dc_gui_init(guistate)
     
-    confighrefs=[ hrefv(pathname2url(configfile)) for configfile in configfiles ]
+    confighrefs=[ hrefv(pathname2url(configfile),contexthref=hrefv("./")) for configfile in configfiles ]
     
     if len(confighrefs)==0:
         confighrefs=None
@@ -345,11 +345,11 @@ Flags:
     
     if explogfile is not None and newlog:
         #sys.stderr.write("new_explog(%s)\n" % (explogfile))
-        explogwin.new_explog(hrefv(pathname2url(explogfile)),parentchecklisturl=parentchecklisturl,confighrefs=confighrefs)
+        explogwin.new_explog(hrefv(pathname2url(explogfile),contexthref=hrefv("./"),parentchecklisturl=parentchecklisturl,confighrefs=confighrefs)
         pass
     elif explogfile is not None and not newlog:
         #sys.stderr.write("open_explog(%s)\n" % (explogfile))
-        explogwin.open_explog(hrefv(pathname2url(explogfile)),confighrefs=confighrefs)
+        explogwin.open_explog(hrefv(pathname2url(explogfile),contexthref=hrefv("./")),confighrefs=confighrefs)
         pass
 
 
@@ -388,19 +388,20 @@ Flags:
 
     if explogwin.explog is not None and explogwin.explog.filehref is not None:
         for gui in guis:
-            guihref=hrefv(pathname2url(gui))
+            guihref=hrefv(pathname2url(gui),contexthref=hrefv("./")
             explogwin.open_gui(guihref)
+            #explogwin.open_gui(gui)
             pass
         
         for checklist in checklists:
-            checklisthref=hrefv(pathname2url(checklist))
+            checklisthref=hrefv(pathname2url(checklist),contexthref=hrefv("./"))
             
             explogwin.addtochecklistmenu(checklisthref)
             explogwin.open_checklist(checklisthref)
             pass
     
         for plan in plans:
-            planhref=hrefv(pathname2url(plan))
+            planhref=hrefv(pathname2url(plan),contexthref=hrefv("./")
             explogwin.open_plan(planhref)
             pass
         pass

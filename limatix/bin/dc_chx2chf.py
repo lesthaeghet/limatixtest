@@ -5,6 +5,21 @@ import os
 import urllib
 import os.path
 
+try:
+    # py2.x
+    from urllib import pathname2url
+    from urllib import url2pathname
+    from urllib import quote
+    from urllib import unquote
+    pass
+except ImportError:
+    # py3.x
+    from urllib.request import pathname2url
+    from urllib.request import url2pathname
+    from urllib.parse import quote
+    from urllib.parse import unquote
+    pass
+
 from lxml import etree
 
 #class dummy(object):
@@ -66,5 +81,8 @@ def main(args=None):
     infile=positionals[1]
     outfile=positionals[2]
     
-    dc2_misc.chx2chf(".",parent,".",infile,".",outfile)
+    dc2_misc.chx2chf(dc_value.hrefvalue(pathname2url(parent),contexthref=dc_value.hrefvalue("./")),
+                     dc_value.hrefvalue(pathname2url(infile),contexthref=dc_value.hrefvalue("./")),
+                     dc_value.hrefvalue(pathname2url(outfile),contexthref=dc_value.hrefvalue("./")))
+                     
     pass
