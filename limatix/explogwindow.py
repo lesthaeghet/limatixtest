@@ -1176,14 +1176,14 @@ class explogwindow(gtk.Window):
         
         if result==RESPONSE_OK:
             
-            self.open_gui(fname)
+            self.open_gui(dcv.hrefvalue(pathname2url(fname),href_context=dcv.hrefvalue("./")))
             pass
 
         pass
 
-    def open_gui(self,fname):
+    def open_gui(self,fhref):
         
-        (gladeobjdict,builder)=build_from_file(fname)
+        (gladeobjdict,builder)=build_from_file(fhref.getpath())
         dc_initialize_widgets(gladeobjdict,self.guistate)
         
         

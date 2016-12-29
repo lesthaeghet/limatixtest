@@ -314,12 +314,12 @@ class optionscontroller_xmlfile_class(simplecontroller):
         # Callback function to handle changes to a controller field
 
         options = []
+        valuelist = []
 
         try:
             paramdb = param.parent
             
             # Prepare to Fetch Filename
-            valuelist = []
             for subparam in fileparams:
                 # Pull Units if they Exist
                 units = None
@@ -376,7 +376,7 @@ class optionscontroller_xmlfile_class(simplecontroller):
             
         except:
             (exctype, excvalue) = sys.exc_info()[:2]
-            sys.stderr.write("%s: %s fetching options: %s\n" % (controlparam, str(exctype), str(excvalue)))
+            sys.stderr.write("%s: %s fetching options: %s\n%s: Query xpath was \"%s\"" % (controlparam, str(exctype), str(excvalue),str(controlparam),str(xpath % valuelist)))
         finally:
             paramdb[controlparam].options = options
             paramdb[controlparam].do_notify(paramdb[controlparam].NOTIFY_NEWOPTIONS)
@@ -394,10 +394,10 @@ def optionscontroller_startupoptions(paramdb, controlparam, filestring, filepara
     # Callback function to handle changes to a controller field
 
     options = []
-
+ 
+    valuelist = []
     try:        
         # Prepare to Fetch Filename
-        valuelist = []
         for subparam in fileparams:
             # Pull Units if they Exist
             units = None
@@ -454,7 +454,7 @@ def optionscontroller_startupoptions(paramdb, controlparam, filestring, filepara
         
     except:
         (exctype, excvalue) = sys.exc_info()[:2]
-        sys.stderr.write("%s: %s fetching options: %s\n" % (controlparam, str(exctype), str(excvalue)))
+        sys.stderr.write("%s: %s fetching options: %s\n%s: Query xpath was \"%s\"" % (controlparam, str(exctype), str(excvalue),str(controlparam),str(xpath % valuelist)))
     finally:
         paramdb[controlparam].options = options
         paramdb[controlparam].do_notify(paramdb[controlparam].NOTIFY_NEWOPTIONS)
@@ -1457,11 +1457,11 @@ class autocontroller_xmlfile_class(autocontrollerbase):
     @classmethod
     def xmlfileupdated(cls, param, condition, controlparam, filestring, fileparams, xpath, xpathparams, namespaces, **kwargs):
         # Callback function to handle changes to a controller field
+        valuelist = []
         try:
             paramdb = param.parent
             
             # Prepare to Fetch Filename
-            valuelist = []
             for subparam in fileparams:
                 # Pull Units if they Exist
                 units = None
@@ -1516,7 +1516,7 @@ class autocontroller_xmlfile_class(autocontrollerbase):
             
         except:
             (exctype, excvalue) = sys.exc_info()[:2]
-            sys.stderr.write("%s: %s creating value object: %s\n" % (controlparam, str(exctype), str(excvalue)))
+            sys.stderr.write("%s: %s creating value object: %s\n%s: Query xpath was \"%s\"" % (controlparam, str(exctype), str(excvalue),str(controlparam),str(xpath % valuelist)))
             if paramdb[controlparam].defunits is not None:
                 valueobj = paramdb[controlparam].paramtype("NaN", units=paramdb[controlparam].defunits)
             else:
@@ -1553,26 +1553,26 @@ def autocontroller_xmlfile(param, filestring, fileparams, xpath, xpathparams, na
     pass
 
 # DEPRECATED!!!  Do Not Use This Controller - Provided Only for Temporary Backwards Compatility - Will Be Removed
-def autocontroller_specimendb(param, specimenparam, dblocation, valuexpath):
-    sys.stderr.write("DeprecationWarning:  `autocontroller_specimendb` is deprecated - Please update dcc file with autocontroller_xmlfile\n")
-    if dbl is None: 
-        # specimen database not available.... allow manual control
-        return simplecontroller(param)
-        pass
-    else : 
-        return autocontroller_xmlfile_class(param, os.path.join(dblocation, '%s.sdb'), [specimenparam], valuexpath, [], namespaces={'specimen':'http://limatix.org/specimen'})
-    pass
+#def autocontroller_specimendb(param, specimenparam, dblocation, valuexpath):
+#    sys.stderr.write("DeprecationWarning:  `autocontroller_specimendb` is deprecated - Please update dcc file with autocontroller_xmlfile\n")
+#    if dbl is None: 
+#        # specimen database not available.... allow manual control
+#        return simplecontroller(param)
+#        pass
+#    else : 
+#        return autocontroller_xmlfile_class(param, os.path.join(dblocation, '%s.sdb'), [specimenparam], valuexpath, [], namespaces={'specimen':'http://limatix.org/specimen'})
+#    pass
 
-# DEPRECATED!!!  Do Not Use This Controller - Provided Only for Temporary Backwards Compatility - Will Be Removed
-def autocontroller_xducerdb(param, xducerparam, dblocation, valuexpath):
-    sys.stderr.write("DeprecationWarning:  `autocontroller_xducerdb` is deprecated - Please update dcc file with autocontroller_xmlfile\n")
-    if dbl is None: 
-        # specimen database not available.... allow manual control
-        return simplecontroller(param)
-        pass
-    else :
-        return autocontroller_xmlfile_class(param, os.path.join(dblocation, '%s.tdb'), [xducerparam], valuexpath, [], namespaces={'transducer':'http://limatix.org/transducer'})
-    pass
+## DEPRECATED!!!  Do Not Use This Controller - Provided Only for Temporary Backwards Compatility - Will Be Removed
+#def autocontroller_xducerdb(param, xducerparam, dblocation, valuexpath):
+#    sys.stderr.write("DeprecationWarning:  `autocontroller_xducerdb` is deprecated - Please update dcc file with autocontroller_xmlfile\n")
+#    if dbl is None: 
+#        # specimen database not available.... allow manual control
+#        return simplecontroller(param)
+#        pass
+#    else :
+#        return autocontroller_xmlfile_class(param, os.path.join(dblocation, '%s.tdb'), [xducerparam], valuexpath, [], namespaces={'transducer':'http://limatix.org/transducer'})
+#    pass
 
 class autocontroller_averagedwfm(autocontrollerbase):
     wfmname=None
