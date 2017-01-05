@@ -240,7 +240,7 @@ def add_to_traverse(infiles,pending,completed,newhref):
             pass
         except (URLError,HTTPError,IOError):
             # file not present
-            sys.stderr.write("WARNING: Unable to open URL %s: %s\n" % (newhref.humanurl(),str(sys.exc_info[1])))
+            sys.stderr.write("WARNING: Unable to open URL %s: %s\n" % (newhref.humanurl(),str(sys.exc_info()[1])))
             pass
         pass
     pass
