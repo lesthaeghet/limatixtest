@@ -30,7 +30,7 @@ Limatix is built with Python setuptools:
 To build from source package:
   python setup.py build
 
-To install into Python site-packages 
+To install into Python site-packages (as root)
   python setup.py install
   python setup.py install_data
 
