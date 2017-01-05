@@ -1,0 +1,58 @@
+_processtrak() 
+{
+    # Required Local Variables
+    local cur prev opts base
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # Potential Options
+    opts="-s -a -d -f -l -p --gtk3 --steps --files --help"
+
+    # Check for prx file
+    prxfile=$(echo "${COMP_WORDS[@]:0}" | grep -o [\sA-Za-z0-9_-.]*.prx)
+
+    if [[ ! -z $prxfile ]] &&  [[ -f $prxfile ]] ; then
+
+        case "${prev}" in
+            -s)
+                local steps=$(for x in `processtrak $prxfile --steps 2>/dev/null | tail -n +4`; do echo ${x} ; done )
+                COMPREPLY=( $(compgen -W "${steps}" -- ${cur}) )
+                return 0
+                ;;
+            -f)
+                local filenames=$(for x in `processtrak $prxfile --files 2>/dev/null | tail -n +4`; do echo ${x} ; done )
+                COMPREPLY=( $(compgen -W "${filenames}" -- ${cur}) )
+                return 0
+                ;;
+            -p)
+                _filedir -d
+                return 0
+                ;;
+            *)
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+                ;;
+        esac
+
+    else
+
+        if [[ ${cur} == -* ]] ; then
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+        fi
+
+        if [[ ${prev} == -p ]] ; then
+            _filedir -d
+            return 0
+        fi
+
+        if [ [${cur} != -*] -a [${prev} != -*] ] ; then
+            _filedir '@(prx)'
+            return 0
+        fi
+
+    fi
+    
+}
+complete -F _processtrak processtrak

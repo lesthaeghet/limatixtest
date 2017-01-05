@@ -1,0 +1,33 @@
+<glade-catalog name="dg_gui_widgettest" library="gladepython" domain="glade-3" depends="gtk+" language="python">
+<!-- see http://git.gnome.org./cgit/glade3/tree/doc/gladepython.sgml -->
+<!-- be sure to install glade3-libgladeui-devel -->
+  <init-function>glade_python_init</init-function>
+
+  <glade-widget-classes>
+
+    <glade-widget-class name="dg_value" generic-name="dg_value" title="Value with spinner and slider">
+      <properties>
+
+        <property id="testparam" query="True" default="0" name="Test parameter">
+	  <spec>glade_standard_int_spec</spec>
+ 	  <tooltip>This is the test parameter</tooltip>
+        </property>
+
+	<property id="size" query="False" default="2"/> <!-- prevent glade from asking us to size the hbox -->
+      </properties>
+    </glade-widget-class>
+
+    <!-- ... more  widget classes go here -->
+
+  </glade-widget-classes>
+
+  <glade-widget-group name="dg_gui_test_widgets" title="DG test widgets (Do not use)">
+
+    <glade-widget-class-ref name="dg_value"/>
+
+    <!-- ... widget class references go here -->
+
+  </glade-widget-group>
+
+
+</glade-catalog>

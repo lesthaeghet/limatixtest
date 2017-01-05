@@ -1,0 +1,2135 @@
+<html xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Limatix</title>
+    <style type="text/css"><![CDATA[
+
+    body {
+      counter-reset: counth2;
+    }
+    h1  {
+      counter-reset: counth2;
+
+    }
+    h2:before {
+      content: counter(counth2) ".\0000a0\0000a0";
+      counter-increment: counth2;
+    }
+    h2 {
+      counter-reset: counth3;
+    }
+    h3:before {
+      content: counter(counth2) "." counter(counth3) ".\0000a0\0000a0";
+      counter-increment: counth3;
+    }
+
+
+    td {
+      vertical-align: top; 
+    }
+]]></style>
+  </head>
+  <body>
+    <h1>Limatix</h1>
+    <h2>Introduction</h2>
+    <p>
+      The practice of experimental academic research has recently gotten
+      much more complicated because of the advent of computers and
+      automation. Physical handwritten laboratory notebooks are no
+      longer adequate to hold our gigantic data files. Both data and
+      analysis are rife with errors. <tt>Datacollect2</tt> is a tool to
+      help us work more consistenly, reduce errors, and automatically
+      record the structure of our experiments along with our results and
+      our data. A companion tool,
+      <tt>processtrak</tt> helps define consistent and repeatable
+      analysis processes, and a separate companion
+      package <tt>databrowse</tt> provides a web-based interface to
+      data repositories.
+    </p>
+    <p>
+      The idea of Datacollect2 is to take those procedures that we
+      follow on a routine basis -- the typical steps in whatever we do
+      -- and formalize them into computerized checklists. Controls to
+      command and query electronic instrumentation are integrated into
+      the checklist steps, making performing the checklists very
+      efficient.  The checklists then become the basis for creating
+      (automatically, of course) an experiment log that combines
+      electronic readouts with manual inputs, photographs, etc. The
+      experiment log and checklists create a cross-linked, navigable
+      record of the experiment.
+    </p>
+    <p>
+      The laboratory records of many scientists are a mess of
+      handwritten or electronic notes and large numbers of badly
+      organized data files and folders. Datacollect2 can help
+      record the natural structure of the experiment in a cross-linked
+      form that makes it discoverable. The computerized checklists,
+      rather than being "paperwork", make laboratory data collection
+      more efficient: Integration with instrumentation puts controls
+      right where you need them, and the well-defined processes help
+      reduce errors and waste.
+    </p>
+    <p>
+      The use of checklists in other industries such as aerospace and
+      medicine has dramatically reduced rates of errors in those
+      fields. Recording the filled checklists keeps a record of what
+      was done, and integration with electronic instrumentation allows
+      some data to be directly extracted from its source, reducing the
+      opportunity for transcription errors. When desired, the overall
+      plan for an experiment or sequence of experiments can itself be
+      represented in a checklist, helping to provide further context
+      (and providing a concrete outlet for experiment planning).
+    </p>
+    <h3>Datacollect2</h3>
+    <p>
+      Datacollect2 is a system for checklist-based experiment logging
+      -- it is a tool for recording what you are doing and what you
+      have done.  Datacollect2 <em>is not</em> a tool for creating
+      sophisticated integrated experiment control and data acquisition
+      systems ("virtual instruments"): Other tools such as Dataguzzler
+      and LabView are far more suited to that
+      task. Datacollect2 <em>is</em> a tool suited to recording your
+      use of virtual instruments, especially if the virtual
+      instruments provide a programmatic interface that can be used to
+      accept commands from and transmit output to Datacollect2. (Note:
+      As of this writing, a general-purpose Datacollect2 interface for
+      Dataguzzler does exist, but no such interface has yet been developed
+      for LabView.
+    </p>
+    <p>
+      Datacollect2 is built on open Web standards such as XML, XLink,
+      and the idea of the URL as a form of cross-reference.
+      Experiment logs and checklists are stored in XML text files,
+      which has unique advantages in being extensible and both human-
+      and machine-readable. XLink provides a standardized way to
+      define a cross-reference in XML, such as from an experiment log
+      to a checklist. The fact that XLink is standardized makes the
+      cross-reference discoverable using automated tools. 
+    </p>
+    <p>
+      Datacollect2 helps you create discoverable experiment logs,
+      cross-linked with checklists and data files, but the structure
+      is not very useful without a way to look at those experiment logs and
+      navigate the structure. The separate companion package
+      <tt>databrowse</tt> is a plug-in for web-server software that
+      creates a navigable and configurable online representation of your
+      data repository, with the ability to browse checklists and experiment
+      logs, follow cross links, and drill down into data files. It is
+      extendable via custom plug-ins to be able to analyze any type of
+      data file. 
+    </p>
+    <p>
+      An internal library within Datacollect2, <tt>xmldoc</tt>
+      provides a programmatic interface for extracting tabular data
+      from experiment logs. An internal class
+      library <tt>dc_value</tt> provides representations of numbers
+      with physical units, cross-references, and more.  The processing
+      tool, <tt>processtrak</tt>, is distributed along with
+      Datacollect2. It provides a framework for defining
+      data analysis and processing steps while keeping the intermediate
+      results well-organized.
+    </p>
+    <h3>ProcessTrak</h3>
+    <p>
+      The basic idea of <tt>processtrak</tt> is that you define
+      analysis and processing steps which transform the original
+      experiment log (<tt>.xlg</tt> file) into a processed experiment
+      log (<tt>.xlp</tt> file). The processed experiment log starts
+      out identical to the original experiment log, which is never
+      modified.  Each processing step then operates on the processed
+      log, adding additional information, perhaps generating processed
+      data files from the originals. Processing steps can be rerun as
+      needed and during debugging. <tt>processtrak</tt>
+      uses <em>provenance tracking</em> to help verify consistency of
+      the generated output.
+
+    </p>
+    <h2> Getting Started </h2>
+    <h3> Installation </h3>
+    <p>
+      See the file INSTALL.txt distributed with Limatix.
+    </p>
+    <h3>Datacollect2 QuickStart</h3>
+    <p>
+      For a simple demonstration of Datacollect2 capabilities,
+      copy the demonstration files into a new directory:
+    </p>
+    <ul>
+      <li>plans/thermalconductivity_crossply_meas.plx: This is a <em>plan file</em>, a checklist that represents the overall plan of what you are trying to do. In the case of this example, it is a plan for performing thermal conductivity measurements</li>
+      <li>checklists/thermalconductivity_prep.chx: This is a checklist for the per-specimen preparation required prior to data collection. This is a "measurement checklist", which means the button at the bottom becomes a "save measurement" button. </li>
+      <li>checklists/thermalconductivity_meas.chx: This is a checklist for the actual datacollection. It is also a "measurement checklist".
+      </li>
+      <li>conf/thermalconductivity.dcc: This is a datacollect configuration file, that represents the parameters to be recorded that are specific to this measurement.</li>
+    </ul>
+    <p>
+      To start, run the <tt>datacollect2</tt> program:<br/>
+      <img src="datacollect2_window.png"/><br/>
+      This is the main experiment log window. It provides a place to view
+      or update various parameters that are synchronized to the experiment log:
+      The current measurement number index (Measnum), the specimen ID (Specimen)s,
+      who is performing the experiment (Perfby), and the date or dates during which the experiment was performed. It also provides fields to record
+      the goal of your experiment, an automatically populated list
+      of photographs, and a field to record notes.
+    </p>
+    <h3>Creating a new experiment log</h3>
+    <p>
+      Use the File menu: File...New to create a new experiment log
+      in the same directory where you placed the above-listed files.
+      You will be asked whether the experiment
+      will involve a single specimen or multiple specimens. Select
+      "Multiple specimen" for now. 
+    </p><p>
+
+      This experiment requires additional measurement fields, beyond
+      those built into datacollect2. You need to load in a configuration
+      file to define those fields. From the File... menu select
+      "Load Custom Config" and browse to your copy of thermalconductivity.dcc.
+    </p>
+    <h3>Viewing and editing parameters</h3>
+    <p>
+      Start by viewing the parameters: From the "Gui" menu
+      select "Open paramdb editor" to see a table of currently available
+      parameters:<br/>
+      <img src="paramdb_editor.png"/><br/>
+      The table lists each parameter, its current value, the default units for that parameter (for numeric parameters), the value type, and the controller
+      in charge of the parameter. 
+    </p>
+    <p>
+      Try editing the "specimen" parameter by clicking on its
+      value field. Note that once you tab or carriage-return out of
+      editing the text, the "specimen" field of the main experiment log
+      window changes to match. This is because the two fields (in the
+      paramdb editor and in the experiment log window) both refer to the
+      same underlying parameter, and thus they remain synchronized. 
+    </p>
+    <p> <b>If you do not tab- or carriage-return out of editing the field
+	it will remain colored yellow, which indicates that it is
+	out of sync with the underlying parameter. You can press "Esc"
+	to cancel your change. Always be sure fields are colored gray
+	or green, indicating that the change was successful!</b>
+      </p>
+    <p>
+      Look at the 'Controller' column of the paramdb editor and notice
+      that the "Specimen" parameter uses the 'synced' controller. That
+      means the specimen parameter is (or can be) synchronized with a
+      file. The controller of a parameter mediates (or delegates
+      mediation) of requests to change its value. Some controllers
+      can be used to make parameters that represent the internal
+      settings of connected laboratory instruments. 
+    </p>
+    <h3>Manual editing of the experiment log</h3>
+    <p>
+      Without exiting from datacollect, open your experiment log using
+      a text editor:<br/> <img src="texteditor.png"/><br/> Note that
+      the specimen ID you entered is shown in the &lt;dc:specimen&gt;
+      tag. The experiment log is constantly updated as you change
+      'synced' parameters. Now change the specimen ID using your text
+      editor and save the file (it is a good idea to quit the text
+      editor as well).  Datacollect will not notice the change until
+      it rereads the file, usually because you have done something
+      else, such as changing another 'synced' parameter that requires
+      resyncing with the file.  So type something into the 'notes'
+      field and press 'tab' to confirm your change, and you will see
+      your manual edit to the experiment log file reflected in the
+      "Specimen" field alongside your new update to the 'notes' field!
+    </p>
+    <p>
+      One of the things that is very powerful about datacollect is
+      that you can do manual editing on-the-fly to go back and correct
+      mistakes or make changes to the experiment log that might not be
+      directly possible through the user interface. (Only the
+      experiment log is fully synchronized like this; be sure to close
+      plan files and checklists before editing them with external
+      tools)
+    </p>
+    <h3>Opening a plan</h3>
+    <p>
+      Go to the Plan menu... Open and select "thermalconductivity_crossply_meas.plx". This opens up the test plan you copied in earlier.
+      Try clicking the "Open thermalconductivity_prep.chx" button. It won't let you because it won't let you open a sub-checklist until this checklist has a name (that's to give you a chance to set parameters that might affect the file name). Checklists don't get names until a box has been checked. So in this case, just check and uncheck a box on the right-hand side. That assigns this checklist a name and saves the filled copy on disk. You can browse it with a text editor as "thermalconductivity_crossply_meas.plf". Unlike the experiment log, it is <em>NOT</em> safe to edit a filled checklist in a text editor while it is open
+      in datacollect (just close the checklist, and reopen it when you are done editing). 
+      
+    </p>
+    <h3>Opening a measurement checklist</h3>
+    <p>
+      Click the "Open thermalconductivity_prep.chx" button. Note
+      that the status next to that changes to "1 start/0 done"
+      (You can use the status pulldown to bring up this particular checklist). 
+    </p>
+    <p>
+      The thermalconductivity_prep.chx checklist is a "measurement checklist".
+      That means the button at the bottom is "Finish and save measurement"
+      rather than "Done", and when you click the "Finish and save measurement"
+      button, a new measurement (with snapshots of all parameters) is saved
+      to the experiment log.
+    </p>
+    <p>
+      When filling out this checklist, be sure to enter the specimen
+      ID and press return <em>before</em> any box is checked. Enter
+      something into the specimen ID field, press return, and then
+      check that first box. Checking the first box gives the checklist
+      a name. The window title will change to the new name of the
+      checklist and its name includes the specimen ID (That is why you
+      had to be careful to enter the specimen ID first). The filled
+      checklist name also begins with the measurement number
+      ("Measnum" box). The measurement number increments every time a measurement is
+      saved.
+    </p>
+    <p>
+      The specimen id was included in the filled checklist name because
+      the checklist has a special XML tag that tells it how to name
+      the filled checklist: &lt;dest autofilename="concat('thermalconductivity_prep_',dc:paramdb('specimen'),'.chf')"/&gt; 
+    </p>
+    <p>
+      In any case, check off the items in the checklist as if you were
+      performing the experiment.
+      Enter '.2 m' in the specimen length field, and notice how it
+      automatically converts your input from meters into millimeters.
+      That is because the field units were specified as mm in the
+      .dcc configuration file.
+    </p>
+    <p>
+      When done, type some notes into the "Notes" field, being sure to 
+      press &lt;tab&gt; after typing. Then press the "Finish and save measurement" button.
+      
+<!--      From the "Checklist" menu, select "Open". The file selector
+      should automatically open to the "checklists" folder of
+      datacollect's data installation directory. Pick the checklist
+      "testlist.chx": <br/>
+      <img src="checklist_window.png"/><br/>
+      This is an example of a "measurement checklist": One that saves
+      a measurement to the experiment log when the
+      "Finish and save measurement" button at the bottom is selected. Go
+      through and check off all the items. You can adjust some of the
+      parameters if you'd like, or enter some notes.  -->
+    </p>
+    <h3>Saving a measurement</h3>
+    <p>
+      When you press the "Finish and save measurement" button at the
+      bottom of a measurement checklist, datacollect will both mark
+      the checklist as "done" and add a measurement to the experiment
+      log. The measurement will be represented by a
+      &lt;dc:measurement&gt; tag in the experiment log containing the
+      current set of parameter values from the parameter database (except
+      for parameters configured with the hide_from_meas flag set):
+      <pre>
+	&lt;dc:measurement&gt;
+	  &lt;dc:measnum&gt;1&lt;/dc:measnum&gt;
+	  &lt;dc:recordmeastimestamp&gt;2016-03-23T23:27:26-05:00&lt;/dc:recordmeastimestamp&gt;
+	  &lt;chx:clinfo&gt;testlist_V1._3/23/16&lt;/chx:clinfo&gt;
+	  &lt;chx:cltitle&gt;Test checklist&lt;/chx:cltitle&gt;
+	  &lt;dc:specimen&gt;S02-AA-19&lt;/dc:specimen&gt;
+	  &lt;dc:hostname&gt;gavroche&lt;/dc:hostname&gt;
+	  &lt;dc:measphotos/&gt;
+	  &lt;dc:measchecklist xlink:href="2016-03-23_files/0000-thermalconductivity_prep_S02-AA-19.chf"/&gt;
+	  &lt;dc:date&gt;2016-03-23&lt;/dc:date&gt;
+	  &lt;dc:perfby&gt;&lt;/dc:perfby&gt;
+	  &lt;dc:notes&gt;&lt;/dc:notes&gt;
+	&lt;/dc:measurement&gt;
+      </pre>
+      The measurement entry in the experiment log always stores the
+      parameter values <i>from the instant the "Finish and save measurement"
+	button was pressed.</i> The experiment log also gets (in the &lt;dc:measchecklist&gt; tag) a hyperlink to the filled checklist. Individual parameter values from steps marked as &lt;intermediate/&gt; are captured when the step was checked and stored in the filled checklist. The value for the same parameter stored in the experiment log will be different if the parameter changed value between when the step was checked and when the "Finish and save measurement" button was pressed.      
+    </p><p>
+      Notice also that datacollect has automatically created a "_files" directory to store files from this experiment.  This directory is where it will put filled-out checklists, and if you have data files from other software, this directory is probably where you should put them. 
+      </p>
+    <h3>Performing more measurements</h3>
+    <p>
+      You can perform additional measurements (in this case prepare more samples) either by hitting the "Reset" button at the bottom of the completed checklist
+      or by pressing the "Open thermalconductivity_prep.chx" button in the plan (don't click the 'Switch to Read/Write' button at the top; that will attempt to reload your newly completed checklist, and require synchronization of the parameters shown at the top, including Measnum, which has just incremented).
+      Notice that when press the "Reset" or "Open" buttons, the status shown in the plan updates.
+      You could also go back to the main datacollect experiment log window and
+      select "Open custom checklist" from the "Checklist" menu, but that
+      would not link the new checklist to the plan, so it is usually best
+      avoided.
+    </p>
+      
+    <h3>Checklists and Plans</h3>
+    <p>
+      Checklists and plans are generally treated similarly by
+      datacollect and have identical file formats and structures. They
+      are just listed separately because they are conceptually
+      different. A checklist is for a routine process that may well be
+      performed repetitively. A plan is an intended series of tasks and
+      is usually custom written or modified for the particular
+      task at hand.
+    </p><p> When opening checklists you have the option of using the
+      regular "Open" option (for standard or centrally-located
+      checklists) or the "Open custom checklist" option. These options
+      are the same except for how the original checklist is
+      cross-referenced: In the case of the regular "Open" option the
+      cross-reference is an absolute reference. In the case of the
+      custom option, the cross-reference is a relative link to a file
+      that is presumed to be stored relative to your data
+      directory. So with the custom option, if you move the data tree
+      around, since the custom checklist is presumably stored
+      alongside the data the cross reference will still work after the
+      data tree is moved. With the regular "Open" option the
+      assumption is that the standard or centrally located checklist
+      won't move with the data so an absolute reference is necessary.
+      
+    </p><p>
+      Unfilled checklists use the ".chx" filename extension
+      (CHecklistXml). Filled checklists use the ".chf" extension
+      (ChecklistFilled). Similarly, unfilled plans use the ".plx"
+      extension (PLanXml) and filled plans use the ".plf" extension
+      (PLanFilled). 
+    </p>
+    <p>
+      Checklists and plans can use special kinds of steps. The example plan uses a special kind of step "runchecklist" to support opening the "thermalconductivity_prep.chx" and "thermalconductivity_meas.chx" checklists. Likewise the "thermalconductivity_prep.chx" uses a "dc_param" step to provide the specimen entry box at the top and the specimen length box farther down. The "thermalconductivity_meas.chx" also uses a "hrefbutton" step to give you a way to reference a saved data file. 
+    </p>
+    <p>
+      In most cases, parameters are saved to the experiment log when you press
+      the "Save Measurement" button, and are not saved to the checklist. When
+      you revisit an old checklist you will see the current parameter values
+      (since the widgets are active and connected to the parameter database),
+      not the historical parameter values from when the checklist was completed.
+      This is because the design intent of datacollect is to snapshot the
+      current parameter values when you press the 'save measurement' button,
+      and because values in the experiment log will be easier to access than
+      values buried in a checklist.
+    </p>
+    <p>
+      Nevertheless, sometimes you want to store an intermediate parameter value
+      in a checklist,
+      before saving the entire measurement. Storing an intermediate is indeed possible and will result
+      in different behavior: The entry box for the parameter will track the
+      parameter database only when the step is unchecked. When the step is checked,
+      the displayed value is fixed and stored into the filled checklist, and the
+      entry box is grayed out. Intermediate parameter storage mode is enabled
+      by adding a &lt;chx:intermediate/&gt; element to the &lt;chx:checkitem&gt;
+      element for the checklist step. Marking an checklist parameter step as
+      intermediate does not prevent the parameter from being saved to the
+      experiment log (use the hide_from_meas parameter on creation in the .dcc file
+      to accomplish that), not does it ensure that the value saved to the
+      experiment log and the value from the checklist are the same. If the
+      parameter is changed between checking the checklist box and saving
+      the measurement to the experiment log, then the stored values will be different!
+    </p>
+    <h3>ProcessTrak QuickStart</h3>
+    <p>
+      The doc/processtrak_example directory includes a complete example of
+      the use of ProcessTrak for data analysis.
+Thanks to Joseph Hynek for providing the data and for his permission
+to share the data.</p><p>
+It is from an RF (radio frequency) survey of the Creston, IA area.
+The bulk data files are in the creston_jan2016/ subdirectory.
+RF spectrum data was captured from a vehicle and stored in .csv format.
+Simultaneously, GPS tracking data was captured using a cellphone.
+The two datasets are merged to create geographic maps of estimated RF intensity
+at different frequencies.
+</p><p>
+
+You can adjust the comments in the process_spectrum.prx file to use
+<em>either</em> the creston_jan2016.xlg experiment log file as input <em>or</em> the
+creston_jan2016.xls spreadsheet file as input. To use the spreadsheet file
+you will need to have the xlrd Python package installed.
+</p>
+    <p>
+      A ProcessTrak process consists of a series of steps that operate on experiment logs. In this case, there are six steps listed in the process_spectrum.prx file: 
+    </p>
+    <table>
+      <tr><th>Step</th><th>Description</th></tr>
+      <tr><td>copyinput</td><td>(this step is always implicitly present,
+                       and copies the experiment log to the
+	  processed experiment log.) </td></tr>
+      <tr><td>extract_rflog_entries</td><td>Extract data from the rflog csv files into
+                       the XML experiment log </td></tr>
+<tr><td>combine_freqband_lines</td><td>Merge adjacent spectrum entries for different
+                       frequency subbands into a merged spectrum
+		       covering the entire frequency band of
+		       interest</td></tr>
+<tr><td>mergegps</td><td>               Merge in GPS data by aligning times.</td></tr>
+<tr><td>energymap </td><td>             Generate .png images of RF energy at different
+                       frequencies using matplotlib. Also create .kml
+		       (Google Earth) files for rendering these images
+		       as geographic overlays.</td></tr>
+<tr><td>generatespreadsheet</td><td>    Generate a summary spreadsheet listing the
+    frequencies, .png images, and .kml overlays.</td></tr>
+    </table>
+    <p>
+      ProcessTrak currently runs from the command line shell. Start in the example directory and run <tt>processtrak process_spectrum.prx --steps</tt>. This will list
+      the available steps:
+    </p>
+    <pre>
+List of steps for -s option
+---------------------------
+copyinput      (WILL OVERWRITE CURRENT OUTPUT)
+extract_rflog_entries
+combine_freqband_lines
+mergegps
+energymap
+generatespreadsheet
+    </pre>
+    <p>
+      First, run the copyinput step: <tt>processtrak process_spectrum.prx -s copyinput</tt>. This copies the input file (either creston_jan2016.xls or creston_jan2016.xlg, depending on which is commented out in the .prx file) to creston_jan2016.xlp, the processed experiment log:
+    </p>
+    <pre>
+&lt;?xml version='1.0' encoding='UTF-8'?&gt;
+&lt;dc:experiment xmlns:prx="http://limatix.org/processtrak/processinginstructions" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ls="http://limatix.org/spreadsheet" xmlns:lip="http://limatix.org/provenance" xmlns:dcv="http://limatix.org/dcvalue" xmlns:dc="http://limatix.org/datacollect" xmlns:pt="http://limatix.org/processtrak" lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"&gt;
+  &lt;dc:summary lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"&gt;
+    &lt;dc:dest xlink:href="creston_jan2016/" lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"/&gt;
+  &lt;/dc:summary&gt;
+  &lt;dc:measurement lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"&gt;
+    &lt;dc:rflog xlink:href="creston_jan2016/creston_rf1.csv" lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"/&gt;
+  &lt;/dc:measurement&gt;
+  ...
+  &lt;dc:measurement lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"&gt;
+    &lt;dc:gpslog xlink:href="creston_jan2016/Creston8.gpx" lip:wasgeneratedby="uuid=db7cf5e5ab34f14132979bd1eace790b3c7eff76;"/&gt;
+  &lt;/dc:measurement&gt;
+  &lt;lip:process uuid="4f8ff3651f8e075155a221db7fd9f66a89e1e50c"&gt;
+    &lt;lip:wascontrolledby&gt;
+      &lt;lip:prxfile xlink:href="process_spectrum.prx" xlink:type="simple" warnlevel="info" type="href" mtime="2016-07-11T18:07:02.099510+00:00" lip:timestamp="2016-07-11T18:07:02.099510+00:00"/&gt;
+    &lt;/lip:wascontrolledby&gt;
+    &lt;lip:starttimestamp&gt;2016-07-11T17:07:34.416009-05:00&lt;/lip:starttimestamp&gt;
+    &lt;lip:hostname pid="7780" uid="1667" username="sdh4"&gt;thermal.cnde.iastate.edu&lt;/lip:hostname&gt;
+    &lt;lip:argv&gt;['/usr/bin/processtrak', 'process_spectrum.prx', '-s', 'copyinput']&lt;/lip:argv&gt;
+    &lt;lip:inputfile xlink:href="creston_jan2016.xlg" xlink:type="simple"/&gt;
+    &lt;lip:target xlink:href="" xlink:type="simple"/&gt;
+    &lt;lip:process uuid="db7cf5e5ab34f14132979bd1eace790b3c7eff76"&gt;
+      &lt;lip:used xlink:href="creston_jan2016.xlg" xlink:type="simple" warnlevel="warning" type="href" mtime="2016-07-11T21:45:06.136009+00:00"/&gt;
+      &lt;lip:action&gt;copyinput&lt;/lip:action&gt;
+      &lt;lip:starttimestamp&gt;2016-07-11T17:07:34.417219-05:00&lt;/lip:starttimestamp&gt;
+      &lt;lip:finishtimestamp&gt;2016-07-11T17:07:34.427022-05:00&lt;/lip:finishtimestamp&gt;
+    &lt;/lip:process&gt;
+    &lt;lip:finishtimestamp&gt;2016-07-11T17:07:34.428232-05:00&lt;/lip:finishtimestamp&gt;
+  &lt;/lip:process&gt;
+&lt;/dc:experiment&gt;
+    </pre>
+    <p>
+      The processed experiment log looks intimidating with lots of complicated numbers, but most of that is just the provenance, history, and cross-references used to
+      implement <em>traceability</em>: Being able to identify where your outputs came from. 
+    </p>
+    <p>
+      In particular, note the <tt>&lt;dc:dest&gt;</tt> indicating where to store output.
+      files and a series of <tt>&lt;dc:measurement&gt;</tt> tags with rflog and gpslog content that correspond to the input experiment log.
+      Also look at the <tt>&lt;lip:process&gt;</tt> section at the bottom. This section stores a record of the <tt>copyinput</tt>operation, including what inputs were used, what the parameters were, etc. Within the main <tt>&lt;lip:process&gt;</tt> there is a sub-<tt>&lt;lip:process&gt;</tt> with (in the above case) a uuid= attribute (universally-unique identifier) starting with "db7c". The various tags above have a <tt>lip:wasgeneratedby=</tt> attribute that refers to this same uuid. That is ProcessTrak's record of where those tags came from.
+    </p>
+    <p>
+      Now run the remaining steps in sequence and watch the file grow. 
+      The <tt>extract_rflog_entries</tt> step adds a bunch of &lt;spectrumlog&gt;
+      tags. The <tt>combine_freqband_lines</tt> step adds &lt;mergedspectrumlog&gt;
+      tags that combine information from multiple &lt;spectrumlog&gt; tags.
+      Notice how additional <tt>&lt;lip:process&gt;</tt> tags are generated for each of these steps.
+    </p>
+    <p>
+      Now is a good time to look at <tt>process_spectrum.prx</tt> in more
+      depth. AT the top, the input files are specified. Then with <tt>&lt;elementmatch&gt;</tt> and <tt>&lt;inputfilematch&gt;</tt>, default constraints for which elements and which files to operate on. Then a series of steps, with parameters supplied as needed, and with links to the Python scripts for executing those steps.
+    </p>
+    <p>
+       ProcessTrak provide two tools: pt_checkprovenance and
+      pt_cleanup to help keep your processed results neat and tidy,
+      and to verify consistency.  Try
+      running <tt>pt_checkprovenance</tt>
+       on <tt>creston_jan2016.xlp</tt>.  This tool walks the provenance graph
+       (the lip:wasgeneratedby and lip:used references) to determine if there
+       are any errors or inconsistencies in the generated output.
+       It should pass without
+      warnings or errors. Now rerun an earlier step without rerunning
+      the later step, and rerun <tt>pt_checkprovenance</tt>.  It
+      will give errors. You can see the details of the errors by
+       adding the "-v" option. If you rerun the later steps in order and
+       return <tt>pt_checkprovenance</tt> you will find the errors have cleared.
+       The <tt>pt_checkprovenance</tt> tool is very useful in making sure your
+       output is consistent and all steps have been rerun as needed.
+    </p>
+    <p>
+      Now try running <tt>mergegps</tt> twice. The fact that you have run a step
+      twice means that there is excess information in the processed experiment log
+      about the extra run, and perhaps excess or obsolete data that shouldn't
+      be there anymore.  The <tt>pt_cleanup</tt> tool will remove this and other
+      unneeded, obsolete information. Try: <tt>pt_cleanup process_spectrum.prx -h</tt>
+      To remove obsolete elements from the processed experiment log, use the "-b" option (there shouldn't be any in this case). You should be able to clean up excess provenance (excess <tt>&lt;lip:process&gt;</tt> tags) from the experiment log with the "-p" option. You can also use this tool to clean out the destination directly with the "-d" option.
+    </p>
+    <p>
+      Be careful using the <tt>pt_cleanup</tt> "-d" option to clean out the destination directory. It will ask you before it deletes anything, but it will want to delete anything it can't find a reference to. So if your destination directory is not a sub-directory or if you have manually added files to it, or if there are outputs that were never recorded in the experiment log, it might identify these for deletion.
+    </p>
+    <p>
+      If you want to cleanup generated files from the destination directory,
+      reset the experiment log by running the <tt>copyinput</tt> step (this
+      completely empties the experiment log). Then use <tt>pt_cleanup</tt> with
+      the "-d" option and it will offer to delete all of the processing outputs. 
+    </p>
+    <p>
+      The net result of using ProcessTrak is the ability to manage complicated multi-step processes while minimizing the need to re-run steps. Outputs are kept in a centralized location, with tools to cleanup obsolete results (<tt>pt_cleanup</tt>) and verify tracability of your results through the processing chain (<tt>pt_checkprovenance</tt>). 
+    </p>
+      
+
+      
+    <h2> Datacollect2 Building Blocks </h2>
+    <h3>XML, XPath, and XLink</h3>
+    <p>
+      The most fundamental building block of Datacollect2 is XML, which is
+      a data model usually represented as text with opening and
+      closing tags in brackets, similar to mid-1990's HTML. Here is a very
+      simple experiment log:
+    </p>
+    <pre>
+&lt;?xml version='1.0' encoding='UTF-8'?&gt;
+&lt;dc:experiment xmlns:dc="http://limatix.org/datacollect"
+	       xmlns:xlink="http://www.w3.org/1999/xlink"&gt;
+  &lt;dc:summary&gt;
+    &lt;dc:specimen&gt;A53-1394Q&lt;/dc:specimen&gt;
+    &lt;dc:perfby&gt;Holland&lt;/dc:perfby&gt;
+    &lt;dc:date&gt;2016-03-01&lt;/dc:date&gt;
+    &lt;dc:dest xlink:href="A53-1394Q_test_files/"/&gt;
+    &lt;dc:measnum&gt;1&lt;/dc:measnum&gt; &lt;!-- This is a comment --&gt;
+    &lt;dc:checklists/&gt;
+  &lt;/dc:summary&gt;
+&lt;/dc:experiment&gt;
+    </pre>
+    <p>
+      The first line (optional) marks this file as XML. The basic
+      component of XML is the <em>element</em>, for
+      example <tt>&lt;dc:date&gt;2016-03-01&lt;/dc:date&gt;</tt> which
+      is defined by opening and
+      closing <em>tags</em>, <tt>&lt;dc:date&gt;</tt>
+      and <tt>&lt;/dc:date&gt;</tt> respectively, and whatever is
+      enclosed by those tags. The structure is hierarchical:
+      The <tt>&lt;dc:summary&gt;</tt> element contains
+      the <tt>&lt;dc:specimen&gt;</tt>, <tt>&lt;dc:perfby&gt;</tt>, <tt>&lt;dc:dest&gt;</tt>, <tt>&lt;dc:measnum&gt;</tt>,
+      and <tt>&lt;dc:checklists&gt;</tt>
+      tags. The <tt>&lt;dc:dest&gt;</tt> tag has
+      an <em>attribute</em>, <tt>xlink:href</tt> with
+      value <tt>A53-1394Q_test_files/</tt> representing
+      the <em>relative URL</em> of an <em>XLink</em> cross linked
+      directory (folder).
+    </p>
+    <p>
+      All opening tags (no leading slash) must have corresponding
+      closing tags (with leading slash). The exception is illustrated
+      in the <tt>&lt;dc:checklists&gt;</tt> tag, above. The form with
+      a trailing slash &lt;dc:checklists/&gt; is a shorthand for the
+      opening tag immediately followed by the closing tag, with no
+      content in between.
+    </p>
+    <p>
+      An XML document must have a single <em>root</em> element, in
+      this case the <tt>&lt;dc:experiment&gt;</tt> element on the
+      second, third, and last lines. (XML structures that do not have
+      a single root are known as <em>fragments</em>.)
+      The <tt>&lt;dc:experiment&gt;</tt> tag on the second and third
+      lines has two <em>namespace declarations</em> that look like
+      attributes. They define what namespaces are referred to by the <tt>dc:</tt> and
+      <tt>xlink:</tt>. While the namespace values look like URLs, the URLs are
+      never accessed directly, just used as unique identifiers. A
+      namespace declaration with no prefix, e.g.
+      <tt>xmlns="http://limatix.org/checklist"</tt>
+      defines the <em>default namespace</em> that applies to tags that have no prefix.
+      Within that definition, a <tt>&lt;checkitem&gt;</tt> tag
+      would be interpreted in the <tt>http://limatix.org/checklist</tt> namespace even though it doesn't have a prefix. 
+    </p>
+    <p>
+      A segment of text in an XML document is known as a <em>text node</em>. Text nodes, elements, comments, and <em>processing instructions</em> (which we will not discuss in detail) are collectively known as <em>nodes</em>
+    </p>
+    <p>
+      An attribute named <tt>xlink:href</tt> (i.e. named <tt>href</tt>
+      in the <tt>http://www.w3.org/1999/xlink</tt> namespace) is the
+      XLink standard way of denoting a cross reference. XLink defines
+      other possible attributes as well, such
+      as <tt>xlink:arcrole</tt>, which is used to specify how the
+      cross reference should be interpreted. For example, within
+      Datacollect2 we use an <tt>xlink:arcrole</tt>
+      of <tt>http://limatix.org/linktoparent</tt> to
+      represent a reverse cross reference to the parent of a document.
+    </p>
+    <p>
+      Because the attribute names and namespace for XLink attributes are
+      unique, the structure of cross-references can be discovered simply
+      for searching for those attributes, without otherwise needing to
+      understand the particular XML documents being searched themselves.
+      XLink cross references are URLs, not filenames; they always use
+      forward slash ('/') to refer to subdirectories or subfolders, never
+      back slash ('\'), regardless of platform. The parent directory/parent
+      folder can be referenced with '..'. 
+      XLink cross references can be relative (no <em>transport protocol</em> such as http:// and no leading slash), server- or filesystem-absolute (with leading slash), or world-absolute (full URL with transport protocol). Please note
+      that while the Datacollect2 libraries will correctly manipulate
+      world-absolute URLs, the current version is limited to accessing
+      local files, typically by realtive URLs. 
+    </p>
+    <p>
+      In processing an experiment log, it is often necessary to
+      refer to a particular element within an XML file. This can
+      be done by specifying its XPath. For example, in the above
+      XML file, the &lt;dc:perfby&gt; element could be identifed
+      by the absolute XPath <tt>/dc:experiment/dc:summary/dc:perfby</tt>.
+      XPaths can also be specified as relative to a particular
+      <em>context node</em>, which defaults to the root element
+      (in this case the <tt>&lt;dc:experiment&gt;</tt> tag). As
+      a relative path from the default context node, the
+      path to the &lt;dc:perfby&gt; element would be
+      specified as <tt>dc:summary/dc:perfby</tt>. The context node
+      itself can always be referenced with a single period ("<tt>.</tt>").
+      A parent element can be referenced with a double period ("<tt>..</tt>").
+      For example, relative to the <tt>&lt;dc:perfby&gt;</tt> element as
+      context node, the path to the <tt>&lt;dc:summary&gt;</tt> element
+      would be ".." and the path to the <tt>&lt;dc:experiment&gt;</tt>
+      element would be <tt>"../.."</tt>. 
+    </p>
+    <p>
+      An XPath like <tt>dc:summary/dc:perfby</tt> would match multiple
+      elements if, for example, there were
+      multiple <tt>&lt;dc:summary&gt;</tt> and/or
+      multiple <tt>&lt;dc:perfby&gt;</tt> tags present.
+      <tt>dc:summary/dc:perfby[1]</tt> would return the
+      first <tt>dc:perfby</tt> element within each <tt>dc:summary</tt>
+      element. More sophisticated constraints are also possible.
+      For example to match a <tt>dc:measurement</tt> element containing
+      a <tt>dc:measnum</tt> element with the particular value 5, use
+      <tt>dc:measurement[dc:measnum='5']</tt>. XPaths can also refer
+      to attributes by referring to them with a leading at sign ("@").
+      For example in the above XML example the cross reference would
+      be identified with <tt>dc:summary/dc:dest/@xlink:href</tt>. Note
+      that namespace prefixes (<tt>dc:</tt> and <tt>xlink:</tt> in this case)
+      are always needed when referring to namespaced elements, even when
+      a default namespace has been set (with <tt>xmlns=...</tt>, as described above). 
+    </p>
+    <h3>Experiment Logs</h3>
+    <p>
+      The experiment log (<tt>.xlg</tt>) is intended as a record of what was done in
+      a particular experiment. It includes both summary information
+      and a sequence of measurements. Datacollect stores the experiment log
+      as an XML file. Here is an example experiment log:
+    </p>
+    <pre>
+&lt;?xml version='1.0' encoding='UTF-8'?&gt;
+&lt;dc:experiment xmlns:dc="http://limatix.org/datacollect"
+	       xmlns:xlink="http://www.w3.org/1999/xlink"&gt;
+  &lt;dc:summary&gt;
+    &lt;dc:specimen&gt;A53-1394Q&lt;/dc:specimen&gt;
+    &lt;dc:perfby&gt;Holland&lt;/dc:perfby&gt;
+    &lt;dc:date&gt;2016-03-01&lt;/dc:date&gt;
+    &lt;dc:dest xlink:href="A53-1394Q_test_files/"/&gt;
+    &lt;dc:measnum&gt;3&lt;/dc:measnum&gt; &lt;!-- This is a comment --&gt;
+    &lt;dc:checklists&gt;
+      &lt;dc:checklist xlink:href="A53-1394Q_test_files/voltagemeas_1.chf"/&gt;
+      &lt;dc:checklist xlink:href="A53-1394Q_test_files/voltagemeas_2.chf"/&gt;
+    &lt;/dc:checklists&gt;
+  &lt;/dc:summary&gt;
+  &lt;dc:measurement&gt;
+    &lt;dc:measnum&gt;1&lt;/dc:measnum&gt;
+    &lt;dc:measchecklist xlink:href="A53-1394Q_test_files/voltagemeas_1.chf"/&gt;
+    &lt;dc:voltage dcv:units="Volts"&gt;23.2&lt;/dc:voltage&gt;    
+  &lt;/dc:measurement&gt;
+  &lt;dc:measurement&gt;
+    &lt;dc:measnum&gt;2&lt;/dc:measnum&gt;
+    &lt;dc:measchecklist xlink:href="A53-1394Q_test_files/voltagemeas_2.chf"/&gt;
+    &lt;dc:voltage dcv:units="Volts"&gt;41.1&lt;/dc:voltage&gt;    
+  &lt;/dc:measurement&gt;
+&lt;/dc:experiment&gt;
+    </pre>
+    <p>
+      The &lt;dc:experiment&gt; element represents the entire experiment (sequence of measurements). It consists of summary data (the &lt;dc:summary&gt; element) which specifies parameters that are (nominally, at least) common to the entire experiment:
+      <ul>
+	<li><b>&lt;dc:specimen&gt;</b>: The specimen (only included in the summary if datacollect is running in single-specimen mode)</li>
+	<li><b>&lt;dc:perfby&gt;</b>: The person performing the measurement</li>
+	<li><b>&lt;dc:date&gt;</b>: The date or dates of the measurement</li>
+	<li><b>&lt;dc:dest&gt;</b>: Relative URL where files from the experiment are to be stored</li>
+	<li><b>&lt;dc:measnum&gt;</b>: The next measurement number to store</li>
+	<li><b>&lt;dc:checklists&gt;</b>: References to each checklist completed during this experiment</li>
+      </ul>
+      Following the summary is a sequence of <b>&lt;dc:measurement&gt;</b> elements, each of which represents one of the multiple measurements that make up this experiment log. Each &lt;dc:measurement&gt; element contains
+      <ul>
+	<li><b>&lt;dc:measnum&gt;</b>: The measurement number of this &lt;dc:measurement&gt; element.</li>
+	<li><b>&lt;dc:measchecklist&gt;</b>: A hyperlink to the filled checklist corresponding to this measurement.</li>
+	<li>Additional elements corresponding to entries of the parameter database at the time the measurement was saved. All parameter database entries are saved except those configured with the parameter <tt>hide_from_meas=True</tt>.</li>
+      </ul>
+      Each &lt;dc:measurement&gt; element corresponds conceptually to a measurement process. The &lt;dc:measurement&gt; element essentially stores a snapshot of the parameter database from the time the measurement was saved. The &lt;dc:measurement&gt; is generated when the 'Done' button at the bottom of a checklist marked with the <tt>done_is_save_measurement=true</tt> flag is pressed, or when the save measurement button in a <tt>savemeasurementstep</tt> of a checklist is pressed. 
+    </p>
+    <p> Saving the measurement adds a &lt;dc:measurement&gt; tag to the experiment log, stores snapshots values from all parameter database entries that did not have hide_from_meas=True specified, copies any <tt>autoexp</tt> elements automatically run experiments from the measurement checklist, increments <tt>measnum</tt>, and resets values of all parameter database entries which were configured with reset_with_meas_record=True. 
+    </p>
+    
+    <p>
+      The experiment log can be manually edited using an external text
+      editor at any time. Datacollect2 synchronizes access to the
+      experiment log using Python's fcntl.flock() on UNIX/Linux
+      platforms or LockFileEx() on NT platforms. If you are using a
+      text editor that may ignore such locking, avoid saving the experiment
+      log while simultaneously performing an action in datacollect.
+      Also be sure to reload the latest version of the experiment log before making manual changes. Datacollect2 always attempts to intelligently merge
+      manual changes with automatic changes to the experiment log, but
+      occasionally there will be an error (such as malformed XML in the
+      manually edited file) or a manual merge process will be needed.
+      In this case a dialog box will be opened for you to select which changes
+      to keep and/or perform a manual merge.
+    </p>
+    <h3>Checklists</h3>
+    <p>
+      Datacollect is built on the idea of documenting processes through
+      checklists. Checklists are represented as XML files corresponding to
+      either blank (<tt>.chx</tt>) or filled (<tt>.chf</tt>) checklists.
+      The checklist consists of some front matter followed by a sequence of
+      steps:
+    </p>
+    <pre>
+&lt;chx:checklist xmlns:chx="http://limatix.org/checklist" xmlns:xlink="http://www.w3.org/1999/xlink" filled="false" done="false" done_is_save_measurement="true"&gt;
+  &lt;chx:clinfo&gt;identification_and_version_of_this_checklist&lt;/chx:clinfo&gt;
+  &lt;chx:cltitle&gt;Title of this checklist&lt;/chx:cltitle&gt;
+  &lt;chx:specimen&gt;12-12345&lt;/chx:specimen&gt;
+  &lt;chx:perfby&gt;Holland&lt;/chx:perfby&gt;
+  &lt;chx:dest autofilename="concat('measvoltage_',chx:specimen,'_',dc:paramdb('perfby'),'.chf')"/&gt;
+  &lt;chx:checkitem title="Step 1 title"&gt;
+    &lt;chx:description&gt;Step 1 description goes here&lt;/chx:description&gt;
+  &lt;/chx:checkitem&gt;
+  &lt;chx:checkitem class="textentry" title="Step 2 title"&gt;
+    &lt;chx:description&gt;Step 2 description goes here. Step 2 provides an entry for manual input.&lt;/chx:description&gt;
+  &lt;/chx:checkitem&gt;
+  &lt;chx:initialtext&gt;
+    Initial text for the entry
+  &lt;/chx:initialtext&gt;
+  &lt;chx:width&gt;40&lt;/chx:width&gt;
+
+&lt;/chx:checklist&gt;
+    </pre>
+    <p>
+      Attributes within the main &lt;chx:checklist&gt; tag of the checklist specify whether this checklist is one that has been filled out (<tt>filled</tt>) and one that has been marked as "done" (<tt>done</tt>). A special attribute (<tt>done_is_save_measurement</tt>) specifies that the "Done" button normally at the bottom of the checklist should be replaced by a "Save measurement" button, and that selecting that button should record the current measurement to the experiment log.
+    </p>
+    <p>
+      Front matter parameters identify the checklist (<tt>&lt;chx:clinfo&gt;</tt>), specify a title (<tt>&lt;chx:cltitle&gt;</tt>), specify the specimen (<tt>&lt;chx:specimen&gt;</tt>), and specify who performed the work (<tt>&lt;chx:perfby&gt;</tt>). An additional parameter (<tt>&lt;chx:dest&gt;</tt>) can specify a default destination directory and/or provide attributes <tt>autofilename</tt> and/or <tt>autodcfilename</tt> that tell dc_checklist and datacollect how to name the filled checklist (see below for more information)
+    </p>
+    <p>
+      The checklist contains a sequence
+      of <tt>&lt;chx:checkitem&gt;</tt> elements representing the
+      steps in the checklist. The <tt>&lt;chx:checkitem&gt;</tt> element
+      can have a <tt>title</tt> attribute that will specify the step title. It
+      can also have a <tt>class</tt> attribute that specifies an alternative stepclass which
+      gives the step extra functionality
+      beyond the usual checkbox. 
+    </p>
+    <p>
+      The <tt>&lt;chx:checkitem&gt;</tt> element usually contains a nested &lt;chx:description&gt; element
+      that specifies the textual description of the step. The &lt;chx:description&gt; supports basic HTML-style
+      markup. Additional elements can provide parameters for the stepclass. The second step of the above example
+      uses a "textentry" stepclass which provides an entry box for filling a value into the checklist. It then
+      provides additional parameters <tt>&lt;chx:initialtext&gt;</tt> and <tt>&lt;chx:width&gt;</tt> for the
+      "textentry" step. Once filled, the entered value will appear as a <tt>&lt;chx:text&gt;</tt> element within
+      the <tt>&lt;chx:checkitem&gt;</tt>. Documentation for the various
+      possible steps is included in an appendix, below. 
+    </p>
+    <h4>The &lt;chx:dest&gt; tag and naming of filled checklists</h4>
+    <p>
+      The &lt;chx:dest&gt; tag is used to supply information used in
+      setting the filename for the filled checklist. When a checklist
+      is filled out using <tt>dc_checklist</tt>
+      or <tt>datacollect2</tt>, it is saved and given a filename as
+      soon as possible -- usually once the first checkbox has been
+      checked (the current version of the HTML/Javascript web
+      interface does not save until the save button at the bottom is
+      manually checked).      
+    </p>
+    <p>
+      The &lt;chx:dest&gt; specifies three things: First, a default directory to store the filled checklist, via its <tt>xlink:href=</tt> attribute (i.e. a hypertext reference). This is primarily used by <tt>dc_checklist</tt>, and not by <tt>datacollect2</tt>. Second, a rule to determine the filename for the filled checklist, via its <tt>autofilename=</tt> attribute. Third, a rule specified as the <tt>autodcfilename=</tt> attribute that overrides the <tt>autofilename=</tt> attribute to determine the filename for the filled checklist when used in <tt>datacollect2</tt>. 
+    </p>
+    <p>
+      The filename rules are given as XPath expressions, usually formed by
+      concatenation, e.g. 
+    </p>
+    <pre>
+      concat('checklist_name','_',chx:specimen,'.chf')
+    </pre>
+    <p>
+      The XPath expressions are evaluated in the context of the &lt;chx:checklist&gt; element, so they can refer to values that might be saved within
+      the checklist. The above example extracts the specimen ID from the
+      &lt;chx:specimen&gt; element of the checklist file to use in the
+      name for the filled checklist.
+    </p>
+    <p>
+      Parameter database values are also available to the XPath expression
+      via the custom XPath function dc:paramdb(). An alternative to the
+      above that extracts the specimen ID directly from the parameter database
+      rather than from the checklist file would be:
+    </p>
+    <pre>
+      concat('checklist_name','_',dc:paramdb('specimen'),'.chf')
+    </pre>
+    <p>
+      Note that if the checklist is a measurement checklist, the
+      measurement number (<tt>measnum</tt>) will be automatically
+      added prior to the extension. If the file already exists, an
+      additional index number will be generated. Since the filename
+      rules are passed as XML attributes, if you use double-quotes
+      to delineate the the attribute value, be sure to use single
+      quotes, as above, to delineate the XPath strings, as above.
+    </p>
+      
+    <h4>Manually modifying filled checklists</h4>
+    <p>
+      Do not manually modify the on-disk copy of a filled checklist
+      while datacollect or dc_checklist has it open. If you need to
+      modify a checklist manually, close it completely. You can leave
+      datacollect running; just reopen the checklist (from the list of checklists in the checklists menu) once you have saved your changes. 
+    </p>
+    <h3>Plans</h3>
+    <p>
+      Plans are treated nearly identically to  checklists. The primary difference is conceptual: A plan is usually custom-created for the experiment and
+      run once or perhaps repeated a few times at most, whereas a checklist
+      represents a standard practice. 
+    </p>
+    <h3>The Parameter Database</h3>
+    <p>
+      The parameter database is Datacollect's internal representation
+      of the current parameters of the measurement and experimental
+      equipment. It includes both the summary parameters (stored within
+      the <tt>dc:summary</tt> element of the experiment log) and the
+      measurement parameters, which are stored each time a measurement
+      is saved. 
+    </p>
+    <p>
+      Each entry in the parameter database is configured with
+      a data type (a value class from <tt>datacollect2.dc_value</tt>) and a
+      particular <i>controller</i>. The controller is the
+      arbiter of the parameter's value. Requests to change the value
+      of the parameter go through the controller, which is free to delegate
+      responsibility for example to external measurement hardware.
+    </p>
+    <p>
+      Within datacollect the menu item "Gui...Open paramdb editor" opens
+      an interactive parameter database viewer and editor. You can also
+      use the <tt>dc_glade</tt> external command to run a version of the <tt>glade</tt> GUI builder to create interactive control windows containing
+      widgets that manipulate parameter database entries.
+      When creating a GUI, be sure to name the top level window "guiwindow"
+      and save as a GtkBuilder <tt>.glade</tt> file. Within Datacollect2
+      you can simply open from the menu item "Gui...Open".
+    </p>
+    <p>
+      Parameter database entries are configured in the datacollect
+      configuration (.dcc) file using Python code as follows:
+    </p>
+    <pre>
+      paramdb.addparam("paramname",valueclass)
+    </pre>
+    <p>
+      The <tt>addparam()</tt> function also takes several optional
+      keyword parameters:
+    </p>
+    <table>
+      <tr><th>keyword</th><th>value</th></tr>
+      <tr><td>options</td><td>list of suggested possible values</td></tr>
+      <tr><td>defunits</td><td>default units for this parameter (numericunits and similar valueclasses only)</td></tr>
+      <tr><td>displayfmt</td><td>printf-style format string for printing this parameter (numeric valueclasses only)</td></tr>
+      <tr><td>hide_from_meas</td><td>True or False: Inhibit inclusion of this parameter in the <tt>&lt;dc:measurement&gt;</tt> element when a measurement is saved</td></tr>
+      <tr><td>reset_with_meas_record</td><td>True or False: Reset this parameter to blank after each measurement is recorded. This flag should generally be set for parameters which lose meaning between measurements, for example the name of the file storing the data from the current measurement.</td></tr>
+      <tr><td>dangerous</td><td>True or False: Setting this parameter is somehow potentially dangerous, so that it should be inhibited from being set automatically (e.g. when parameters are loaded from a file).</td></tr>
+      <tr><td>non_settable</td><td>True or False: Specify that this parameter is not generally settable by the user</td></tr>
+      <tr><td>save_extension</td><td>For parameters that support a save operation, the filename extension to use when saving. </td></tr>
+    </table>
+    <p>
+      The parameter database can also be accessed externally using the DBus interprocess communication (IPC) library, if DBus support is correctly installed and configured. For example:
+      <pre>
+	from limatix.dc_dbus_paramclient import dc_param
+	from limatix.dc_dbus_paramclient import dc_requestval
+	from limatix.dc_value import stringvalue
+	
+	# Read a parameter as a limatix.dc_value.value object
+	paramval=dc_param("my_parameter_name")
+	print(paramval)
+	
+	# Assign a parameter
+	actualval=dc_requestval("my_parameter_name",stringvalue("parameter_value"))
+	print(actualval)
+      </pre>
+      
+    </p>
+    
+    <h2>Integration with Measurement Hardware</h2>
+    <p>
+      Datacollect is most powerful when integrated with digital
+      measurement instrumentation to automatically record measurement
+      values and/or control the measurement process from within
+      datacollect checklists. There are two methods
+      for performing such integration:
+    </p>
+    <ol>
+      <li>Connecting Datacollect parameters to instrumentation parameters</li>
+      <li>Embedding pre-existing instrumentation widgets (controls) into checklist steps.</li>
+    </ol>
+    <p>
+      We will discuss method 1 in more detail here. Method 2 is accomplished by creating a custom checklist step that contains and wraps your instrumentation widget. The process for creating custom checklist steps is described below in the appendix on extending datacollect2. 
+    </p>
+    <p>
+      In trying to connect datacollect parameters to instrumentation,
+      remember that Datacollect2 <em>is not</em> a tool for creating
+      virtual instruments. In interfacing to complicated interconnected
+      measurement hardware you usually need a separate abstraction layer
+      representing the interconnected hardware in a coherent virtual
+      instrument model. To most easily interoperate with Datacollect2, the
+      virtual instrument model should: 
+    </p>
+    <ul>
+      <li>Provide methods for getting and setting parameters and obtaining measured values</li>
+      <li>Provide a method for saving the current result set to a file</li>
+      <li>Provide an abstraction that ensures consistency of measured values.
+	For example, if measurements are performed continuously but the measurements that matter are those related to a particular excitation, the virtual instrument abstraction should snapshot the measurements at the correct time(s) so as to present a coherent picture.</li>
+    </ul>
+    <p>
+      If <tt>dataguzzler</tt> is used to create the virtual instrument model, then paramdb2.dgcontroller can be used to connect Datacollect parameters to dataguzzler parameters. Custom Datacollect2 widgets and custom checklist steps for controlling Dataguzzler are built in to Dataguzzler. 
+    </p>
+    <p>
+      The challenge in interacting with instrumentation is that the instrumentation is often slow to respond and is rarely designed to handle control input from more than one source. Instrumentation code is much easier to write when it is
+      single threaded, but to maintain reasonable interactive GUI performance
+      it can't run in the same thread as the GUI.
+    </p>
+    <p>
+      The solution is to create a single-threaded class that
+      represents your virtual instrument (or a portion of your virtual
+      instrument) and then to wrap this class using
+      datacollect2.threadserializedwrapper, which creates a separate
+      thread to run the virtual instrument and dispatches method calls
+      to that thread. The procedure for using <tt>threadserializedwrapper</tt> is as follows:
+    </p>
+    <ol>
+      <li>
+	Develop and test your class outside of datacollect. Verify
+	all functionality
+      </li>
+      <li>
+	Include methods for setting each controllable parameter, and getting
+	each controllable parameter and each result. The <tt>set()</tt> methods should take a <tt>datacollect2.dc_value.value</tt> subclass instance as a parameter in addition to <tt>self</tt> and return the resulting <tt>datacollect2.dc_value.value</tt> instance that was actually achieved. Likewise the <tt>get()</tt> methods should also return a <tt>datacollect2.dc_value.value</tt> instance.
+      </li>
+      <li>
+	If applicable, also include method(s) for saving the measurement result
+	to disk. Such methods should take a <tt>datacollect2.dc_value.hrefvalue</tt> instance, representing the desired file, as a parameter in addition to <tt>self</tt>, and return the same object once the save is complete.
+      </li>
+      <li>
+	Create a custom datacollect configuration (.dcc) file. Call <tt>threadserializedwrapper.wrapserialized</tt>, e.g. <tt>wrapped_virtual_instrument_class=threadserializedwrapper.wrapserialized(my_virtual_instrument_class)</tt> which returns a wrapped class, then instantiate the wrapped class as if you were instantiating the original, e.g. <tt>virtual_instrument=wrapped_virtual_instrument_class(virtual_instrument_class_constructor_parameters)</tt>.
+      </li>
+      <li>
+	<p>
+	  Within the datacollect configuration add each controllable parameter or measured value using <tt>paramdb.addparam()</tt>. Be sure to supply the correct <tt>datacollect2.dc_value.value</tt> subclass and other keyword parameters (see parameter database discussion, above). For the <tt>build=</tt> parameter,
+	  supply a lambda that uses paramdb2.threadserializedcontroller, e.g.
+	</p>
+	<pre>
+	  build=lambda param:
+                 paramdb2.threadserializedcontroller(param,virtual_instrument,
+                                                     virtual_instrument.get_emissivity,
+                                                     virtual_instrument.set_emissivity,
+                                                     pollms=2000.0))
+	</pre>
+	<p>
+	  You can alernatively supply a <tt>save()</tt> method as a
+	  <tt>saver=</tt> keyword parameter to <tt>threadserializedcontroller</tt> for a parameter that represents a saved data file. 
+	</p>
+      </li>
+      <li>
+	When running Datacollect2, you can "Gui...Open paramdb editor" from
+	the main window menu to
+	manipulate the parameters. When building checklists you can
+	insert steps with <tt>class="dc_param"</tt> and &lt;paramname&gt;
+	to add parameter viewers or controllers directly into your
+	checklist. You can use the <tt>dc_glade</tt> GUI builder and
+	use the <tt>adjustparamreadout</tt> Datacollect2 widget to
+	create control panels and then load these from Datacollect2 with
+	"Gui... Open" from the menus. 
+      </li>
+    </ol>
+    
+    <h2>ProcessTrak</h2>
+    <p>
+      ProcessTrak is a tool for defining step-by-step processing procedures
+      for data analysis. It helps avoid the unbounded need for confusing
+      arrays of intermediate files by storing as much information
+      in a single processed experiment log that is updated by each
+      processing step. 
+    </p>
+    <p>
+      Processing steps can be written in Python. The sequence of steps is
+      defined in a ".prx" (processing XML) file. Each step operates
+      on a set of XML elements in the processed experiment log,
+      selected by an XPath expression. Values from sub-elements from the experiment
+      log can be passed automatically. See the example
+      <a href="prx_example.prx">prx_example.prx</a> for an illustration
+      of the structure of a ".prx" file. 
+    </p>
+    <p>
+      processtrak is currently run from the command line. <tt>processtrak prx_file.prx --steps</tt> will list the runnable steps. Then you can run a step with, for example, <tt> processtrak prx_file.prx -s first_step</tt>. The first time you execute a step, it will copy the original experiment log (.xlg) to a "processed experiment log" (.xlp). All further operations will be on the processed .xlp file so that the original experiment log remains untouched.
+    </p>
+    <p>
+      The processing steps are Python scripts that can be embedded in the .prx file or be referenced as external .py files. The processing script itself is defined as a function usually called called "run" which is called once per matching XML element in the processed experiment log, and takes specially named arguments:
+    </p>
+    <table>
+      <tr><th>name of argument</th><th>meaning</th></tr>
+      <tr><td>Any parameter explicitly specifed in .prx file, optionally with a suffix appended</td><td>Value from .prx file, interpreted according to suffix, as below</td></tr>
+      <tr><td>_xmldoc</td><td>datacollect2.xmldoc.xmldoc instance for the processed experiment long</td></tr>
+      <tr><td>_element</td><td>XML element to be operated on by the step</td></tr>
+      <tr><td>_dest_href</td><td>datacollect2.dc_value.hrefvalue pointing at destination directory where whiles should be written</td></tr>
+      <tr><td>The name of a sub-element of the XML element being operated on. If the sub-element is in a namespace then an underscore replaces the colon separating the namespace prefix. Optionally the name can have a suffix, which will cause the element to be interpreted according to the suffix.  </td><td>
+No suffix means pass the element. A suffix of "_doc" means pass the xmldoc object containing the element. A suffix of "str", "float", "int", or "bool" means interpret the element content as the corresponding Python type. A suffix of "list", "tuple", "dict" or "set" means interpret the element content as a Python literal and cast to the specified type. A suffix of a dc_value value class name, e.g. "numericunits", "href", or "xmltree" will intrepret the element as an instance of the corresponding limatix.dc_value class</td></tr>
+    </table>
+    See the attached slides <a href="processtrak.pdf">processtrak.pdf</a> for more information.
+    <h3>Paremeters with ProcessTrak</h3>
+    Parameters are specified with a &lt;param&gt; tag 
+    <h3>Parallel processing with ProcessTrak</h3>
+    <p>
+      Parallel processing is usually best done within your step by calling
+      C or C++ computation routines that use OpenMP or similar.
+      It is also possible to run multiple copies of ProcessTrak
+      simultaneously on the same .prx file and experiment log.
+      ProcessTrak uses file locking to ensure synchronization.
+      For this to be useful, you need to rename your "run" function
+      to "rununlocked" and make sure it does not access the experiment
+      log or use any elements within the experiment log (it can
+      accept parameters that have been converted from the experiment
+      log, e.g. hrefs, ints, strings, and it can also return outputs
+      that will be added to the experiment log).
+      A future version of ProcessTrak might use Python's multiprocessing
+      module to automatically run steps in parallel. 
+    </p>
+    <h2>Appendix: Checklist/plan step classes</h2>
+    <h3>button</h3>
+    <p>
+      The <tt>button</tt> step displays a button that can can be used to trigger an event.
+    </p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>param</b>: Name of the parameter database entry to assign when the button is pressed</li>
+      <li><b>value</b>: String value to assign to the parameter database entry</li>
+      <li><b>buttonlabel</b>: Label to put on the button </li>
+    </ul>
+
+    <h3>dc_imagereadout</h3>
+    <p>
+      The <tt>dc_imagereadout</tt> step displays a parameter database
+      entry that is an image within the checklist step alongside the description.
+    </p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>paramname</b>: Name of the parameter database entry containing image values</li>
+      <li><b>imagewidth</b>: Maximum image width to scale image to, or -1 for unset</li>
+      <li><b>imageheight</b>: Maximum image height to scale image to, or -1 for unset</li>
+      <li><b>intermediate</b>: Boolean representing whether the parameter database entry is to be considered an intermediate parameter. Intermediate step parameters are saved to the XML checklist file when the step is checked, and the widgets freeze when the checklist is read-only or once the checkbox is checked. Non-intermediate parameters are not saved to the checklist (but will in most circumstances be saved to the experiment log when a measurement is saved). </li>
+      
+    </ul>
+    
+    <h3>dc_param</h3>
+    <p>
+      The <tt>dc_param</tt> step allows manual adjustment of a
+      textual or numeric parameter database
+      entry within the checklist step alongside the description.
+      This is probably the most commonly used alternative stepclass.
+    </p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>paramname</b>: Name of the parameter database entry to adjust</li>
+      <li><b>labelmarkup</b>: Markup string for the label next to the entry box.</li>
+      <li><b>intermediate</b>: Boolean representing whether the parameter database entry is to be considered an intermediate parameter. Intermediate step parameters are saved to the XML checklist file when the step is checked, and the widgets freeze when the checklist is read-only or once the checkbox is checked. Non-intermediate parameters are not saved to the checklist (but will in most circumstances be saved to the experiment log when a measurement is saved). </li>
+    
+    </ul>
+    <h3>dc_selectableparam</h3>
+    <p>
+      Like dc_param (above) but provides a pull-down of preselected options
+    on top of the manual value entry. The options are set when the parameter
+      is configured (.dcc file) using the options=["value1", "value2"] parameter.
+    </p>
+    <h4>Parameters</h4>
+    (Parameters of dc_selectableparam steps are identical to those of dc_param steps)
+    <h3>runchecklist</h3>
+    <p>
+      The <tt>runchecklist</tt> step opens a sub-checklist or sub-plan. 
+    </p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>copychecklist</b>: Hypertext reference to checklist or plan
+	to open, assuming the checklist is to be copied into our destination location. </li>
+      <li><b>inplacechecklist</b>: Hypertext reference to checklist or plan
+	to open, assuming the checklist is to be used in-place. That is, it will be copied from .chx or .plx into .chf or .plf respectively, but the filename will not otherwise be changed no will it be moved into our destination location.</li>
+    
+    </ul>
+
+
+    <h3>rundatacollect</h3>
+    <p>
+      The <tt>rundatacollect</tt> step is used in plans (and perhaps
+      occasionally checklists) that are run
+      using the <tt>dc_checklist</tt> program, as opposed to with
+      <tt>datacollect</tt>.
+      The <tt>rundatacollect</tt> step triggers running the
+      <tt>datacollect</tt> program with predetermined parameters.
+    </p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>buttonlabel</b>: Text for the label on the button used to trigger running datacollect.</li>
+      <li><b>datacollectconfig</b>: First datacollect configuration file to load</li>
+      <li><b>datacollectconfig2</b>: Second datacollect configuration file to load</li>
+      <li><b>datacollectconfig3</b>: Third datacollect configuration file to load</li>
+      <li><b>dcparamdb</b>: Datacollect paramdb (.dpd) file to load settings and parameters from </li>
+      <li><b>planfile</b>: Plan (.plx) file to run in datacollect. </li>
+      <li><b>suffix</b>: Suffix on planfile for experiment log and
+	filled plan to create
+	(before .xlg). i.e. planfile_suffix.xlg and planfile_suffix.plf,
+      </li>
+      <li><b>gui</b>: First GUI (.glade file) to open (optional)</li>
+      <li><b>gui2</b>: Second GUI (.glade file) to open (optional)</li>
+      <li><b>gui3</b>: Third GUI (.glade file) to open (optional)</li>
+      <li><b>multispecimen</b>: Boolean (true/false) specifiying if datacollect should be run in multispecimen mode.</li>
+    </ul>
+
+
+    <h3>runmatlabscript</h3>
+    <p>
+      The <tt>runmatlabscript</tt> step runs a MATLAB function and captures the output. The script can use DBus to access datacollect parameters. 
+    </p>
+    <h4>Parameters</h4>
+    <tt>runmatlabscript</tt> has all of the <tt>runscript</tt> parameters except for <b>command</b>, plus the following:
+    <ul>
+      <li><b>matlabfuncall</b>: The MATLAB function call to make. matlabfuncall should have a '%(id)s' where the id should be substituted and a '%(basename)s' where the base of the output file name should be substituted note: current directory will be the destination location and files should be output there.</li>
+      <li><b>matlabfundir</b>: The directory in which the desired MATLAB function is defined. It will be prepended to the MATLABPATH environment variable before MATLAB is run.</li>
+    </ul>
+
+
+    <h3>runscript</h3>
+    <p>
+      The <tt>runscript</tt> step runs an external script or program and captures the output. The script can use DBus to access datacollect parameters. It can define an XML structure to pass back to datacollect using the datacollect2.dc_dbus_paramclient.dc_automeas class and its saveautomeas() method. 
+    </p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>scriptlog</b>: The name of a parameter database entry in which to save the output log from the script. If blank, the output log will be saved only in the checklist itself, not in the parameter database. You probably want to configure this parameter database entry with reset_with_meas_record=True so that every time the measurement is saved, the log is reset. </li>
+      <li><b>buttonlabel</b>: Text for the label on the button used to trigger the script.</li>
+      <li><b>command</b>: The command to run. Command should have a "%(id)s" where the (unique) id should be substituted and a %(basename)s where the base of the output file name should be substituted. Note: The current directory for the script will be the destination location and files should be output there.</li>
+      <li><b>viewautoexp</b>: A Boolean (true/false) that indicates whether or not  there should be a button to open a viewer that will show the autoexp/automeas tags within the checklist.</li>
+      <li><b>autoexp</b> (Filled only): Saved XML structure from the automatic experiment. </li>
+    </ul>
+
+    <h3>savebutton</h3>
+    <p>
+      The <tt>savebutton</tt> step has a button that triggers some
+      sort of save or snapshot operation to store measured results in
+      files.  Triggers up to three save operations. Note that the
+      parameters may not be saved simultaneously --
+      the <tt>savebutton</tt> step may bring up file selection or
+      confirmation dialogs in between saving the parameters.
+    </p>
+    <p>
+      To use the <tt>savebutton</tt> step, configure 1-3 parameter database
+      entries that store hypertext references for the file(s) that will be
+      saved. In the .dcc file:
+    </p>
+    <pre>
+      paramdb.addparam("datafile",datacollect2.dc_value.hrefvalue,reset_with_meas_record=True,dangerous=True,save_extension="dat",build = lambda param: ... )
+    </pre>
+    <p>
+      The parameter database entry needs to be built (<tt>build=</tt> parameter)
+      with a controller that provides a perform_save() method that will save the desired data in the specified file. For example, if you have abstracted your hardware interface in a class wrapped by datacollect2.threadserializedwrapper, then you would use datacollect2.paramdb2.threadserializedcontroller with its <tt>saver=</tt> parameter set to your save method. Specifically, your build parameter might be:
+    </p>
+    <pre>
+      build=lambda param:
+      datacollect2.paramdb2.threadserializedcontroller(param,
+                                                       wrapped_instance_of_hardware_interface,
+                                                       saver=wrapped_instance_of_hardware_interface.save_method)
+    </pre>
+    <p>
+      The <tt>save_method</tt> would take a single parameter, a hypertext
+      reference value with the file to save as, and return this value
+      when complete. For example:
+    </p>
+    <pre>
+      def save_thermaldata(self,hrefvalue):
+        filename=hrefvalue.getpath()
+        ### Place code to save current data to file here
+        return hrefvalue
+    </pre>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>buttonlabel</b>: Text for the label on the button used to trigger the save operation.</li>
+      <li><b>paramname</b>: Name of the first parameter database entry on which to perform the save operation.</li>
+      <li><b>paramname2</b>: Name of the second parameter database entry on which to perform the save operation.</li>
+      <li><b>paramname3</b>: Name of the third parameter database entry on which      <li><b>intermediate</b>: Boolean representing whether the parameter database entry is to be considered an intermediate parameter. Intermediate step parameters are saved to the XML checklist file when the step is checked, and the widgets freeze when the checklist is read-only or once the checkbox is checked. Non-intermediate parameters are not saved to the checklist (but will in most circumstances be saved to the experiment log when a measurement is saved). </li>
+      to perform the save operation.</li>
+    </ul>
+    <h3>savemeasurement</h3>
+    <p>
+      The <tt>savemeasurement</tt> step includes a button that triggers
+      saving a measurement to the experiment log. This is equivalent to
+      pressing the done button of a 'done_is_save_measurement' checklist.
+      It adds a &lt;dc:measurement&gt; tag to the experiment log, stores snapshots values from all parameter database entries that did not have hide_from_meas=True specified, copies any <tt>autoexp</tt> automatically run experiments from the measurement checklist, increments <tt>measnum</tt>, and resets values of all parameter database entries which were configured with reset_with_meas_record=True. 
+    </p>
+    <h4>Parameters</h4>
+    <p>(none)</p>
+    <h3>textentry</h3>
+    <p>
+      The <tt>textentry</tt> step provides an entry box in which a value can be entered. The entry box is not mapped to any parameter database entry; the value entered is only stored in the filled checklist. This step is supported outside of datacollect, including by the standalone HTML/Javascript checklist editor provided by the datacollect2-qautils package. 
+    </p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>initialtext</b>: Default text to be placed in the entry box on checklist reset </li>
+      <li><b>text</b> (filled checklist only): Text that has been entered into the entry box.</li>
+      <li><b>width</b>: Desired text box width in characters.</li>
+    </ul>
+
+
+    <h3>textgraphic</h3>
+    <p>
+      The <tt>textgraphic</tt> step provides an image alongside the description. This step is supported outside of datacollect, including by the standalone HTML/Javascript checklist editor provided by the datacollect2-qautils package. 
+    </p>
+    <p>
+      Please note that the image itself does not get copied or moved when the checklist is filled out, so the filled checklist will keep a hypertext reference to the original image file.
+    </p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>image</b>: A hypertext reference (specify with xlink:href attribute) to the image to display </li>
+      <li><b>width</b>: Width (in pixels) to scale the image to. A value of 0 indicates that the original size of the image should be used. </li>
+    </ul>
+    <h3>text</h3>
+    <p>
+      The <tt>text</tt> step is the default step that just includes a
+      text description with an optional title attribute.  
+    </p>
+    <h4>Parameters</h4>
+    <p>(none)</p>
+    
+    <h2>Appendix: Value data type classes</h2>
+    <p>
+      All value data type classes are instances of the abstract
+      superclass <tt>datacollect2.dc_value.value</tt>. They wrap the
+      underlying Python representation, sometimes adding functionality
+      such as adding unit management to numeric types.  These classes
+      are <em>final</em>: Once instantiated they should not be
+      changed. Therefore references can be passed around freely without
+      concern that the referenced object might be modified.  They
+      generally implement the following methods:
+    </p>
+    <table>
+      <tr><th>Method name</th><th>mandatory parameters</th><th>function</th></tr>
+      <tr><td>__init__</td><td>Wrapped or unwrapped value to for the new instance</td><td>Constructor</td></tr>
+      <tr><td>isblank</td><td>(none)</td><td>Return whether or not the value of this instance qualifies as blank</td></tr>
+      <tr><td>__unicode__</td><td>(none)</td><td>Return unicode representation</td></tr>
+      <tr><td>__str__</td><td>(none)</td><td>Return string representation</td></tr>
+      <tr><td>__eq__</td><td>Another wrapped or unwrapped value</td><td>Determine whether this instance is equal to the other value</td></tr>
+      <tr><td>xmlrepr</td><td>(xmldocu,element)</td><td>Store an XML representation in the specified element within the specified xmldoc instance xmldocu</td></tr>
+      <tr><td>fromxml (classmethod)</td><td>(xmldocu,element)</td><td>Create and return an instance of this class by extracting the value from the specified element of the specified xmldoc instance xmldocu</td></tr>
+      <tr><td>merge (classmethod)</td><td>(parent,descendentlist)</td><td>Attempt to merge multiple, possibly inconsistent desecendents of parent</td></tr>
+      <tr><td>value</td><td>(none)</td><td>Return underlying value</td></tr>
+    </table>
+
+    <h3><tt>datacollect2.dc_value.xmltreevalue</tt></h3>
+    <p>
+      xmltreevalue represents arbitrary XML content as an XML tree. It can be initialized from a datacollect2.xmldoc object, an element, or a seriaized XML string. Special methods: 
+    </p>
+    <table>
+      <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
+      <tr><td>get_xmldoc</td><td>(nsmap=None,contexthref=None,force_abs_href=False)</td><td>Return a copy of the underlying datacollect2.xmldoc.xmldoc instance, with the specified nsmap or HREF context overrides</td></tr>
+    </table>
+
+    <h3><tt>datacollect2.dc_value.stringvalue</tt></h3>
+    <p>
+      stringvalue represents a regular or unicode string.
+      Unicode support may be unreliable under Python 2, but should
+      work normally under Python 3. (No special methods) 
+    </p>
+
+
+    <h3><tt>datacollect2.dc_value.hrefvalue</tt></h3>
+    <p>
+      hrefvalue represents a hypertext reference in a particular context.
+      Context represents the source of the cross-reference and
+      the components from which that source was assembled. It can be initialized from a URL or from another hrefvalue object. If providing a URL you can
+      provide an optional contexthref keyword argument specifying
+      the context for the URL that will be used if the URL is relative.
+    </p>
+    <p>
+      If you want to reference a file name or path, you must convert
+      the file name or path to a relative or absolute URL before creating the
+      hrefvalue. Use <tt>urllib.pathname2url()</tt> (Python 2.x) or <tt>urllib.request.pathname2url()</tt> (Python &gt;= 3.0) to perform the conversion.
+      If you are referencing just a file name (no path separators), you may
+      alternatively use <tt>urllib.quote()</tt> (Python 2.x) or <tt>urllib.parse.quote()</tt> (Python 3.x) to do the conversion. <b>If the path might be relative, then you must provide the current directory as context! i.e. the additional contructor parameter contexthref=dc_value.hrefvalue("./")</b>
+    </p>
+    <p>
+      Special methods: 
+    </p>
+    <table>
+      <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
+      <tr><td>ismem</td><td>(none)</td><td>Return whether this is an in-memory (mem://) URL</td></tr>
+      <tr><td>ishttp</td><td>(none)</td><td>Return whether this is an HTTP (http://) URL</td></tr>
+      <tr><td>isfile</td><td>(none)</td><td>Return whether this is an FILE (file:// or no specified protocol) URL</td></tr>
+      <tr><td>humanurl</td><td>(none)</td><td>Return most human-readable form of the full, absolute URL. Note that this is NOT a file path (see getpath())</td></tr>
+      <tr><td>canonicalize</td><td>(none)</td><td>Attempt to create a canonicalized representation of this URL. Note that the canonical form is dependent on tag_index_paths</td></tr>
+      <tr><td>fromelement</td>(xmldocu,element,tag_index_paths_override=None)<td>(none)</td><td>Create and return an hrefvalue that points at the specified element, including URL path and fragment. Use tag_index_paths_override to specify additional tag_index_paths</td></tr>
+      <tr><td>islocalfile</td><td>(none)</td><td>same as isfile()</td></tr>
+      <tr><td>absurl</td><td>(none)</td><td>Return full, absolute URL. Note that this is NOT a file path (see getpath())</td></tr>
+      <tr><td>attempt_relative_href</td><td>(new_context)</td><td>Create a new hrefvalue relative to specified new_context</td></tr>
+      <tr><td>has_fragment</td><td>(none)</td><td>Return if the URL has a fragment (portion after the '#')</td></tr>
+      <tr><td>getunquotedfragment</td><td>(none)</td><td>Get URL fragment (after the #) in non-percent-encoded form</td></tr>
+      <tr><td>getquotedfragment</td><td>(none)</td><td>Get URL fragment (after the #) in proper percent-encoded URL form</td></tr>
+      <tr><td>gethumanfragment</td><td>(none)</td><td>Get URL fragment (after the #) translated to most human-readable form</td></tr>
+      <tr><td>get_bare_quoted_filename</td><td>(none)</td><td>Return filename portion of URL, with special characters quoted as in a URL</td></tr>
+      <tr><td>get_bare_unquoted_filename</td><td>(none)</td><td>Return filename portion of URL, not using quoting of special URL characters, as in a filename</td></tr>
+      <tr><td>isdirectory</td><td>(none)</td><td>Determine if the URL is that of a directory (i.e. ends with a slash '/')</td></tr>
+      <tr><td>getpath</td><td>(none)</td><td>For FILE URL's, convert URL to a filesystem pathname and return</td></tr>
+      <tr><td>fragless</td><td>(none)</td><td>Return a hrefvalue with any fragment portion of the URL removed</td></tr>
+      <tr><td>leafless</td><td>(none)</td><td>Return a hrefvalue with any file part portion of the URL removed (but with trailing slash present)</td></tr>
+      <tr><td>__hash__</td><td>(none)</td><td>hrefvalue is hashable, based on the return value of absurl(), so it is usable for dictionary keys</td></tr>
+      <tr><td>evaluate_fragment</td><td>(xmldocu,refelement,noprovenance=False)</td><td>Given this hrefvalue and an opened document xmldocu which contains its target, evaluate the fragment portion of the hrefvalue and return an element set of those which match the fragment criterion. refelement is used if the fragment is a relative in-document URI (not fully supported)</td></tr>
+            
+    </table>
+
+    <h3><tt>datacollect2.dc_value.complexunitsvalue</tt></h3>
+    <p>
+      complexunitsvalue represents a complex number with units. It can be initialized from a string, a number, a complex number, a complexunitsvalue, or a numericunitsvalue. Units can also be optionally supplied.  Special methods: 
+    </p>
+    <table>
+      <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
+      <tr><td>numvalue</td><td>(units=None)</td><td>Return value in the specified units</td></tr>
+      <tr><td>value</td><td>(units=None)</td><td>Return value in the specified units</td></tr>
+      <tr><td>units</td><td>(none)</td><td>Return lm_units instance of the specified units</td></tr>
+      <tr><td>valuedefunits</td><td>(none)</td><td>Return value converted to specified defunits from constructor</td></tr>
+      <tr><td>format</td><td>(formatstr=None,unit=None)</td><td>Return formatted value plus units based on formatstr and in specified units</td></tr>
+      <tr><td>comsolstr</td><td>(none)</td><td>Return value and units using COMSOL's notation for specifying units</td></tr>
+      <tr><td>simplifyunits</td><td>(none)</td><td>Attempt to simplify units, returning a new complexunitsvalue</td></tr>
+      <tr><td>inunits</td><td>(unit)</td><td>Convert to a new complexunitsvalue in specified units</td></tr>
+      <tr><td>equiv</td><td>(other)</td><td>Evaluate equivalence. Simlar to equality, but NaN is equivalent to NaN</td></tr>
+      <tr><td>__pow__</td><td>(other)</td><td>Return new complexunitsvalue raised to specify power</td></tr>
+      <tr><td>__add__</td><td>(other)</td><td>Add value of other, return new complexunitsvalue</td></tr>
+      <tr><td>__sub__</td><td>(other)</td><td>Subtract value of other, return new complexunitsvalue</td></tr>
+      <tr><td>__mul__</td><td>(other)</td><td>Multiply value of other, return new complexunitsvalue</td></tr>
+      <tr><td>__div__</td><td>(other)</td><td>Divide value of other, return new complexunitsvalue</td></tr>
+    </table>
+
+
+    <h3><tt>datacollect2.dc_value.numericunitsvalue</tt></h3>
+    <p>
+      numericunitsvalue represents a real number with units. It can be initialized from a string, a number, or a numericunitsvalue. Units can also be optionally supplied.  Special methods: 
+    </p>
+    <table>
+      <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
+      <tr><td>numvalue</td><td>(units=None)</td><td>Return value in the specified units</td></tr>
+      <tr><td>value</td><td>(units=None)</td><td>Return value in the specified units</td></tr>
+      <tr><td>units</td><td>(none)</td><td>Return lm_units instance of the specified units</td></tr>
+      <tr><td>valuedefunits</td><td>(none)</td><td>Return value converted to specified defunits from constructor</td></tr>
+      <tr><td>format</td><td>(formatstr=None,unit=None)</td><td>Return formatted value plus units based on formatstr and in specified units</td></tr>
+      <tr><td>comsolstr</td><td>(none)</td><td>Return value and units using COMSOL's notation for specifying units</td></tr>
+      <tr><td>simplifyunits</td><td>(none)</td><td>Attempt to simplify units, returning a new numericunitsvalue</td></tr>
+      <tr><td>__float__</td><td>(none)</td><td>Return value as floating point</td></tr>
+      <tr><td>inunits</td><td>(unit)</td><td>Convert to a new numericunitsvalue in specified units</td></tr>
+      <tr><td>equiv</td><td>(other)</td><td>Evaluate equivalence. Simlar to equality, but NaN is equivalent to NaN</td></tr>
+      <tr><td>__pow__</td><td>(other)</td><td>Return new numericunitsvalue raised to specify power</td></tr>
+      <tr><td>__add__</td><td>(other)</td><td>Add value of other, return new numericunitsvalue</td></tr>
+      <tr><td>__sub__</td><td>(other)</td><td>Subtract value of other, return new numericunitsvalue</td></tr>
+      <tr><td>__mul__</td><td>(other)</td><td>Multiply value of other, return new numericunitsvalue</td></tr>
+      <tr><td>__div__</td><td>(other)</td><td>Divide value of other, return new numericunitsvalue</td></tr>
+    </table>
+
+    
+    <h3><tt>datacollect2.dc_value.integervalue</tt></h3>
+    <p>
+      integervalue represents an integer. It can be initialized from an integer, a string, or an integervalue object. Special methods: 
+    </p>
+    <table>
+      <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
+      <tr><td>numvalue</td><td>(none)</td><td>Return value as from value() method</td></tr>
+      <tr><td>format</td><td>(formatstr=None)</td><td>Return formatted value based on formatstr</td></tr>
+      <tr><td>comsolstr</td><td>(none)</td><td>Return value using COMSOL's notation (no different from __str__())</td></tr>
+      <tr><td>__add__</td><td>(other)</td><td>Add value of other, return new integervalue</td></tr>
+      <tr><td>__sub__</td><td>(other)</td><td>Subtract value of other, return new integervalue</td></tr>
+      <tr><td>__mul__</td><td>(other)</td><td>Multiply value of other, return new integervalue</td></tr>
+      <tr><td>__div__</td><td>(other)</td><td>Divide value of other, return new integervalue</td></tr>
+      
+    </table>
+
+
+    <h3><tt>datacollect2.dc_value.excitationparamsvalue</tt></h3>
+    <p>
+      Represents vibrothermography excitation parameters. Initialized from an
+      object or dictionary with type, f0, f1, t0, t1, t2, t3 parameters. (No special methods)
+    </p>
+
+    <h3><tt>datacollect2.dc_value.imagevalue</tt></h3>
+    <p>
+      imagevalue represents an image.  It can be initialized from a PIL (Python Imaging Library, or derivatives) object, an or an imagevalue object. (No special methods)
+    </p>
+
+
+    <h3><tt>datacollect2.dc_value.photosvalue</tt></h3>
+    <p>
+      photosvalue represents a set of experiment photographs. It can be iniaizlied from a photosvalue or from a list or set of hrefvalues. Special methods: 
+    </p>
+    <table>
+      <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
+      <tr><td>copyandappend</td><td>(newphotohref)</td><td>Create a new photosvalue with one element added to the set based on newphotohref</td></tr>
+    </table>
+
+    <h3><tt>datacollect2.dc_value.datesetvalue</tt></h3>
+    <p>
+      datesetvalue represents a set of dates. It can be iniaizlied from a datesetvalue or from a string representing a date or semicolon-separated set of dates , or from a set of datetime.date objects.  Special methods: 
+    </p>
+    <table>
+      <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
+      <tr><td>union</td><td>(other)</td><td>Return the union of this datesetvalue with other.</td></tr>
+      <tr><td>__contains__</td><td>(other)</td><td>Return if this datesetvalue contains all elements in other</td></tr>
+    </table>
+
+
+    <h3><tt>datacollect2.dc_value.accumulatingdatesetvalue</tt></h3>
+    <p>
+      accumulatingdatesetvalue represents a set of dates. It is similar to datesetvalue but it overrides the merge operation, so that attempts to merge
+      accumulate (union) together. 
+      (Special methods are same as datesetvalue) 
+    </p>
+
+
+    <h3><tt>datacollect2.dc_value.integersetvalue</tt></h3>
+    <p>
+      integersetvalue represents a set of integers. It can be initialized from an integer or from set of integers, or from an integersetvalue.  Special methods: 
+    </p>
+    <table>
+      <tr><th>Method name</th><th>parameters</th><th>function</th></tr>
+      <tr><td>union</td><td>(other)</td><td>Return the union of this integersetvalue with other.</td></tr>
+      <tr><td>__contains__</td><td>(other)</td><td>Return if this integersetvalue contains all elements in other</td></tr>
+    </table>
+
+    <h3><tt>datacollect2.dc_value.accumulatingintegersetvalue</tt></h3>
+    <p>
+      accumulatingintegersetvalue represents a set of dates. It is similar to integersetvalue but it overrides the merge operation, so that attempts to merge
+      accumulate (union) together. 
+      (Special methods are same as integersetvalue) 
+    </p>
+
+    <h3><tt>datacollect2.dc_value.arrayvalue</tt></h3>
+    <p>
+      arrayvalue represents a numpy array. It can be initialized from a numpy array or from an arrayvalue.  (No special methods)
+    </p>
+    
+    
+    <h2>Appendix: datacollect2.xmldoc.xmldoc class</h2>
+    <p>
+      The xmldoc class represents an XML document with a suitable API
+      for adding/removing elements, working with XML namespaces, and looking
+      up arrays of values.
+    </p>
+    <h3>General constructor parameters</h3>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>nsmap</td><td>Dictionary for namespace prefix mapping to use when reading/writing elements. If provided as None, the following mapping will be used:
+	  <table>
+	    <tr><th>Prefix</th><th>Namespace URI</th></tr>
+	    <tr><td>(None)</td><td>http://limatix.org/datacollect</td></tr>
+	    <tr><td>dc</td><td>http://limatix.org/datacollect</td></tr>
+            <tr><td>dcv</td><td>http://limatix.org/dcvalue</td></tr>
+            <tr><td>chx</td><td>http://limatix.org/checklist</td></tr>
+            <tr><td>lip</td><td>http://limatix.org/provenance</td></tr>
+	    <tr><td>dbvar</td><td>http://limatix.org/databrowse/variable</td></tr>
+	    <tr><td>dbdir</td><td>http://limatix.org/databrowse/dir</td></tr>
+	    <tr><td>sp</td><td>http://limatix.org/spatial</td></tr>
+            <tr><td>xlink</td><td>http://www.w3.org/1999/xlink</td></tr>
+ 	  </table>
+	  Note that datacollect2.dc_value.hrefvalues will not work if the xlink: prefix is not as defined above. Likewise datacollect2.dc_value.complexunitsvalue and datacollect2.dc_value.numericunitsvalue will not work unless the dcv: prefix is as defined above.
+	  
+      </td></tr>
+      <tr><td>readonly</td><td>Boolean, should the document allow modification</td></tr>
+      <tr><td>use_databrowse</td><td>Boolean, should the document be accessed via databrowse library (only works with readonly)</td></tr>
+      <tr><td>num_backups</td><td>Number of backup files to keep on disk</td></tr>
+      <tr><td>use_locking</td><td>Boolean: Should locking be enabled? Locking requires the .lock_ro(), .unlock_ro(), .lock_rw(), and/or .unlock_rw() methods to be used to lock the document prior to access, and implements that locking using whatever underlying disk access model is active. Note that a future RESTful API version may use merge attemps on unlock() rather than actually locking the underlying filesystem object. </td></tr>
+      <tr><td>contexthref</td><td>Context URL location for hypertext references within the document</td></tr>
+      <tr><td>debug</td><td>Enable debugging</td></tr>
+      
+      
+    </table>
+    <h3>Constructor class methods</h3>
+    <h3>datacollect2.xmldoc.xmldoc.loadhref(href,nsmap=None,readonly=True,use_databrowse=False,num_backups=1,use_locking=False,debug=False)</h3>
+    <p>Constructor for loading an xmldoc from a serialized file specified by HREF URL. Parameters:</p>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>href</td><td>Hypertext reference to serialized file to load</td></tr>
+    </table>
+
+    <h3>datacollect2.xmldoc.xmldoc.loadfile(filename,nsmap=None,readonly=True,use_databrowse=False,num_backups=1,use_locking=False,debug=False)</h3>
+    <p>Constructor for loading an xmldoc from a serialized file specified by name. Parameters:</p>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>filename</td><td>filename path of file to load</td></tr>
+    </table>
+
+    <h3>datacollect2.xmldoc.xmldoc.newdoc(maintagname,nsmap=None,num_backups=1,use_locking=False,contextdir=None,contexthref=None,debug=False)</h3>
+    <p>Constructor for creating a blank xmldoc in memory. You can use
+    the set_href() method to save it to disk</p>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>maintagname</td><td>namespace prefix and tag name for main tag of new document</td></tr>
+    </table>
+
+    <h3>datacollect2.xmldoc.xmldoc.fromstring(xml_string,nsmap=None,num_backups=1,use_locking=False,contexthref=None,debug=False,force_abs_href=False)</h3>
+    <p>Constructor for creating a blank xmldoc in memory. You can use
+    the set_href() method to save it to disk. contexthref gives the assumed context of hypertext references in the file</p>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>xml_string</td><td>Serialized string of XML tags to load into the document</td></tr>
+      <tr><td>force_abs_href</td><td>Convert all relative hypertext references to absolute on load</td></tr>
+    </table>
+
+    <h3>datacollect2.xmldoc.xmldoc.inmemorycopy(xmldoc,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False)</h3>
+    <p>Constructor for creating an in-memory copy of an xmldoc object. Converts hypertext references to the specified contexthref, or make them absolute if force_abs_href is specified.</p>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>xmldoc</td><td>Pre-existing xmldoc object</td></tr>
+      <tr><td>force_abs_href</td><td>Convert all relative hypertext references to absolute on load</td></tr>
+    </table>
+    
+    <h3>datacollect2.xmldoc.xmldoc.copy_from_element(xmldocu,etree_or_element,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False)</h3>
+    <p>Constructor for creating an in-memory XML document by copying a
+      tree of elements from another document. Can be the whole
+      document, just one element, or anwhere inbetween. Note that this
+      makes its own deep copy of the original, so the original can be
+      modified independently.  Assumes hypertext references are in the
+      context of specified xmldocu, unless that is None in which case
+      they are assumed to be in the context of contexthref, and will
+      make them absolute if force_abs_href is specified.</p>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>lxmletree</td><td>Pre-existing lxml ElementTree object. Don't keep using it after passing it to frometree() as it becomes embedded in the new xmldoc object. </td></tr>
+      <tr><td>force_abs_href</td><td>Convert all relative hypertext references to absolute on load</td></tr>
+    </table>
+    
+    <h3>datacollect2.xmldoc.xmldoc.frometree(lxmletree,nsmap=None,readonly=False,contexthref=None,debug=False,force_abs_href=False)</h3>
+    <p>Constructor for creating an in-memory XML document from a Python LXML etree. Note that this steals the existing object, so don't use it for anything else.  Assumes hypertext references are in the context of specified contexthref, and will make them absolute if force_abs_href is specified.</p>
+    <table>
+      <tr><th>Parameter</th><th>meaning</th></tr>
+      <tr><td>lxmletree</td><td>Pre-existing lxml ElementTree object. Don't keep using it after passing it to frometree() as it becomes embedded in the new xmldoc object. </td></tr>
+      <tr><td>force_abs_href</td><td>Convert all relative hypertext references to absolute on load</td></tr>
+    </table>
+    
+    <h3>primary xmldoc object methods</h3>
+    <h3>get_filehref()</h3>
+    <p>
+      Get the URI HREF (datacollect2.dc_value.hrefvalue object) for a this
+      document, or a mem://URI for in-memory checklists
+    </p>
+    <h3>getcontexthref()</h3>
+    <p>
+      Get the URI HREF context (datacollect2.dc_value.hrefvalue
+      object) for a this document
+    </p>
+    <h3>setcontexthref(self,contexthref,force_abs_href=False)</h3>
+    <p>
+      For an xmldoc with no filename set, adjust the contexthref
+      for xlink:hrefs to contexthref. 
+      If contexthref is already set will do fixups on 
+      all xlink:hrefs in the tree.
+      force_abs_href=True will force convert all relative xlink:hrefs
+      into absolute (and also allows contexthref=None)
+    </p>
+    <h4>get_href(contextnode=None,xpath=None,namespaces=None,extensions=None,variables=None)</h4>
+    <p>
+       convert an xlink:href=... to a dc_value.hrefvalue object
+       if contextnode is None, context is assumed to be the root
+       if xpath is None, path is assumed to be the context node.
+       xpath should be path to a node which contains the xlink:href attribute
+       Remaining parameters are passed to xpathsingle()
+       for help in evaluating the xpath
+       returns dc_value.hrefvalue object.
+       Raises NameError if the xpath gives zero or multiple results
+       raises AttributeError if no suitable xlink:href is found in the tag
+       can be found
+    </p>
+    <h3>get_href_absurl(self,contextnode=None,xpath=None,namespaces=None,extensions=None,variables=None)</h3>
+    <p> convert an xlink:href=... to an absolutized url 
+      if contextnode is None, context is assumed to be the root
+      if xpath is None, path is assumed to be the context node.
+      xpath should be path to a node which contains the xlink:href attribute
+      Remaining parameters are passed to xpathsingle()
+      for help in evaluating the xpath.
+      Returns URL.
+      Raises NameError if the xpath gives zero or multiple results.
+      Raises AttributeError if no suitable xlink:href is found in the tag
+      can be found.
+      Raises IOError if the xlink:href does not refer to a local file.
+    </p>
+    <h3>
+      get_href_filepath(self,contextnode=None,xpath=None,namespaces=None,extensions=None,variables=None)</h3>
+    <p>
+      convert an xlink:href=... to a complete filesystem path
+      if contextnode is None, context is assumed to be the root
+      if xpath is None, path is assumed to be the context node.
+      xpath should be path to a node which contains the xlink:href attribute.
+      Remaining parameters are passed to xpathsingle()
+      for help in evaluating the xpath.
+      Returns filename.
+      Raises NameError if the xpath gives zero or multiple results.
+      Raises AttributeError if no suitable xlink:href is found in the tag
+      can be found.
+      Raises IOError if the xlink:href does not refer to a local file.
+    </p>
+    <h3>set_href(self,href,readonly=False,contexthref=None,force_abs_href=False)</h3>
+    <pre>
+        This is used to set a file location if the document did
+           not have one, or to set a new file location (i.e. href, i.e. filename). 
+           It also 
+           updates the readonly attribute (default False). 
+
+           if file is currently locked, it triggers a write under the old href
+        (i.e. filename)
+
+        It triggers a write under the new href (i.e. filename)
+           unless readonly is set. 
+
+           Note: if the file is not locked, and changes have been made 
+           to the on disk copy, and you change the filename, those 
+           changes will NOT be copied into the new file. 
+           If you want such behavior, lock the file (thereby reading in 
+           the changes) prior to calling setfilename.
+
+           If the file is new and we're supposed to be locked, 
+           this creates the lock too. 
+
+           NOTE: readonly applies to the new name, but NOT NECESSARILY 
+           the old name
+           If the name changes to something other than None, readonly must not be set
+        
+           If the name changes to None, you can specify a new contexthref
+           and it will convert xlink:href's to the new contexthref. 
+           If you don't specify the new contexthref, it will store the 
+           old context in the xmldoc contexthref field. 
+           
+           In general, xlink:hrefs will be updated with the change. 
+           if force_abs_href is True, then all such updates will be to 
+           absolute paths
+    </pre>
+    <h3>set_readonly(self,readonly)</h3>
+    <p>
+      Set readonly status... If locking is used, must be fully unlocked.
+    </p>
+    <h3>xpathsingle(self,xpath,namespaces=None,contextnode=None,extensions=None,variables=None,default=NameError("No result found for xpath"),noprovenance=False)</h3>
+    <pre>
+    xpathsingle() finds a single element based on an 
+        arbitrary XPath expression. If 0 elements or more than one
+        element is returned, it raises a NameError. The configured
+        nsmap may be used, but note that that the default namespace
+        is inoperative for xpath (implicit namespace means null namespace). 
+
+        If your path is simple, and you don't care if there are 
+        excess matches, use the find() method instead 
+
+        xpath:         Path to search
+        namespaces:    additional namespaces
+        contextnode:   Context node or list for relative search
+        extensions:    additional extensions
+    </pre>
+    <h3>
+      xpathsinglecontext(self,contextnode,xpath,namespaces=None,extensions=None,variables=None,default=NameError("No result found for xpath"),noprovenance=False)</h3>
+    <p>Alias for xpathsingle(xpath,namespaces,contextnode)</p>
+
+    <h3>xpathsingleint(self,xpath,namespaces=None,contextnode=None,extensions=None,variables=None,default=NameError("No result found for xpath"),noprovenance=False)</h3>
+    <p>       Like xpathsingle(), but converts result to an integer. 
+      Do NOT use the number() function of xpath, as that gives floats,
+      not integers</p>
+
+    <h3>xpathsinglecontextint(self,contextnode,xpath,namespaces=None,extensions=None,variables=None,default=NameError("No result found for xpath"),noprovenance=False)</h3>
+    <p>Alias for xpathsingleint(xpath,namespaces,contextnode)</p>
+    <h3>xpathsinglefloat(self,xpath,units=None,namespaces=None,contextnode=None,extensions=None,variables=None,default=NameError("No result found for xpath"),noprovenance=False)</h3>
+    <p>Like xpathsingle, but converts result to a float</p>
+
+    <h3>xpathsinglecontextfloat(self,contextnode,xpath,units=None,namespaces=None,extensions=None,variables=None,default=NameError("No result found for xpath"),noprovenance=False)</h3>
+    <p>Alias for xpathsinglefloat(xpath,namespaces,contextnode)</p>
+    <h3>xpathsinglestr(self,xpath,namespaces=None,contextnode=None,extensions=None,variables=None,default=NameError("No result found for xpath"),noprovenance=False)</h3>
+    <p>Like xpathsingle, but converts result to unicode</p>
+    <h3>xpathsinglecontextstr(self,contextnode,xpath,namespaces=None,extensions=None,variables=None,default=NameError("No result found for xpath"),noprovenance=False)</h3>
+    <p>Alias for xpathsinglestr(xpath,namespaces,contextnode)</p>
+
+    <h3> gettag(self,element,namespaces=None)</h3>
+    <p>Get the name of the tag for a specific element, with proper
+      namespace prefix. Raises IndexError if no prefix available</p>
+
+    <h3>getsingleelement(self,xpath)</h3>
+    <p>getsingleelement() is an alias for xpathsingle() for 
+        backward compatibility.
+    </p>
+    <h3>remelement(self,element)</h3>
+    <p>Remove the provided element from the document</p>
+    <h3>remelements(self,elementlist)</h3>
+    <p>Remove the provided elements from the document</p>
+    <h3>addelement(self,parent,elname)</h3>
+    <pre>
+        This routine creates and appends a new empty element to the document.
+           parent:  a path (find()-style) or an element, or None to 
+                    represent the main tag. 
+           elname:  name of the element prefix, with namespace prefix if
+                    appropriate 
+           The newly created element is returned
+    </pre>
+    <h3>copyelements(self,parent,sourcedoc,sourceelements)</h3>
+    <pre>
+           This routine copies preexisting elements (sourceelements -- 
+           a list of elements) from another document (sourcedoc)
+           into this document.
+           parent:  a path (find()-style) or an element, or None to 
+                    represent the main tag. 
+           sourcedoc: xmldoc from which to copy the elements
+           sourceelements: list of elements to copy
+    </pre>
+
+    <h3>insertelement(self,parent,position,elname)</h3>
+    <pre>This routine creates and inserts a new empty element to the document.
+           parent:  a path (find()-style) or an element, or None to 
+                    represent the main tag.
+           position: Position within parent... 0 means first, -1 means last.
+           elname:  name of the element prefix, with namespace prefix if
+                    appropriate 
+    </pre>
+
+    <h3>settext(self,element,text):</h3>
+    <pre>Set the text content of an element. 
+           element:  The element object
+           text:     string or unicode object with the replacement text
+      
+          NOTE: Doesn't currently handle text after subelements or comments properly!
+    </pre>
+    <h3>gettext(self,element)</h3>
+    
+    <pre>Set the text content of an element. 
+           element:  The element object
+
+      NOTE: Doesn't currently handle text after subelements or comments properly!
+    </pre>
+    <h3>xpath(self,path,namespaces=None,contextnode=None,extensions=None,variables=None,noprovenance=False)</h3>
+    <pre>
+        Find the specified path given the option context (or main tag)
+        Additional namespaces or extensions can be provided if desired.
+
+        path:         path to search
+        namespaces:   additional namespaces to merge with the main dictionary
+        contextnode:  Starting point for path, or list of starting points.
+        extensions:   Any additional xpath extensions desired
+       
+    </pre>
+    <h3>xpathcontext(self,contextnode,path,namespaces=None,extensions=None,variables=None)</h3>
+    <p>Alias for xpath(path,namespaces,contextnode)</p>
+
+    <h3>xpathnumpy(self,path,namespaces=None,contextnodes=None,extensions=None,variables=None,iscomplex=False,oneper=True)</h3>
+    <pre>
+        Like xpath, but convert node-set to floating point, return as 
+        numpy array along with units.
+
+        All entries are presumed to have the same units. An exception
+        will be thrown if a unit mismatch is found. 
+
+        contextnodes can be either a single context node, or a list, 
+        in which case if oneper==True, there must be exactly one result
+        per context node.
+
+        Do NOT use xpath to convert node to number
+
+        returns (resultunits, numpyarray) where resultunits is a 
+        lm_units instance. Don't forget to properly initialize lm_units!
+
+        iscomplex:    If true, output array should be complex instead of 
+                      real. 
+        oneper:       If True, there must be exactly one result per 
+                      context node (if contextnodes is a list)
+    </pre>
+    
+    <h3>xpathcontextnumpy(self,contextnodes,path,namespaces=None,extensions=None,variables=None,iscomplex=False,oneper=True)</h3>
+    <p>Like xpathnumpy but must provide context nodes</p>
+
+    <h3>xpathnumpystr(self,path,namespaces=None,contextnodes=None,extensions=None,variables=None,oneper=True)</h3>
+    <pre>
+Like xpath, but convert node-set to unicode, return as 
+        numpy array.
+
+        contextnodes can be either a single context node, or a list, 
+        in which case if oneper==True, there must be exactly one result
+        per context node
+
+        oneper:       If True, there must be exactly one result per 
+                      context node (if contextnodes is a list)
+
+    </pre>
+    <h3>xpathcontextnumpystr(self,contextnodes,path,namespaces=None,extensions=None,variables=None,oneper=True)</h3>
+    <p>Like xpathnumpy but must provide context nodes before path</p>
+
+    <h3>xpathnumpyint(self,path,namespaces=None,contextnodes=None,extensions=None,variables=None,oneper=True)</h3>
+    <pre>
+        Like xpath, but convert node-set to integers, return as 
+        numpy array.
+
+        Nodes must NOT be comverted to numbers using xpath but must be 
+        given as nodes or (if necessary) as strings . 
+
+        contextnodes can be either a single context node, or a list, 
+        in which case if oneper==True, there must be exactly one result
+        per context node
+
+        oneper:       If True, there must be exactly one result per 
+                      context node (if contextnodes is a list)
+    </pre>
+
+    <h3>xpathcontextnumpyint(self,contextnodes,path,namespaces=None,extensions=None,variables=None,oneper=True)</h3>
+    <p>
+       Like xpathnumpyint, but with mandatory context before path
+    </p>
+
+    <h3>getroot(self)</h3>
+    <p>Get the root node of the document</p>
+
+    <h3>get_canonical_etxpath(self,element)</h3>
+    <p>
+      Find a canonical absolute (Clark notation) xpath representation based 
+        off the filesystem root for the specified element within
+        doc. The document must have a filename for this to work. 
+    </p>
+
+    <h3>savepath(self,element)</h3>
+    <pre>
+           Get a saveable path the specified element. Treat the 
+           data structure as opaque as it may evolve: 
+ 
+           NOTE: The returned xpath is currently NOT compatible 
+           with find() and WILL be incorrect if nodes have been 
+           added or removed upwards and prior in the tree. 
+
+           If the canonicalize_path package is available, it
+           will be used to provide a more consistent scheme for
+           identifying deep content, which can often be correct
+           even if nodes are added or removed prior in the tree. 
+           
+           The canonicalize_path package can be customized with
+           /etc/canonicalize_path/tag_index_paths_local.conf or
+           /usr/local/etc/canonicalize_path/tag_index_paths_local.conf
+           depending on the installation prefix of canonicalize_path. 
+    </pre>
+    <h3>restorepath(self,savedpath)</h3>
+    <p>
+      Restore a saved path (as returned from savepath) to an element. 
+      Treat the data structure as opaque as it may evolve. 
+    </p>
+
+    <h3>find(self,path,namespaces=None,contextnode=None)</h3>
+    <pre>
+        Find the element matching path in the tree, 
+        optionally with respect to the specified context node or the document root. 
+        
+        find is always relative to the main tag node (default) or 
+        supplied context node. Absolute finds not supported.
+
+        path: An ElementPath (simplified XPath)
+        namespaces: additional namespaces needed for interpreting path
+        contextnode: optional context node"""
+    </pre>
+
+    <h3>findcontext(self,contextnode,path,namespaces=None)</h3>
+    <p>alias for find(path,namespaces,contextnode</p>
+
+    <h3>addsimpleelement(self,parent,elname,valueunits)</h3>
+    <pre>
+        Add a simple sub-element containing value and optional units
+
+        parent:      may be a path or an element
+        elname:      Name of element to create, optionally with namespace 
+                     prefix. In addition if elname begins with '@', 
+                     an attribute is added instead of an element
+        valueunits:  (value,units) tuple. If units is provided, it will 
+                     be an attribute with name dcv:units.
+    </pre>
+
+    <h3>child(self,context,tag,namespaces=None,noprovenanceupdate=False)</h3>
+    <p>Find context child specified by tag. Return child or None
+      (return value can be used as truth value)</p>
+    
+    <h3>children(self,context,tag=None,namespaces=None,noprovenanceupdate=False,allow_comments=False)</h3>
+    <p>Find context children specified by tag or all children. Return list
+    </p>
+
+    <h3>is_comment(self,element)</h3>
+    <p>Determine whether an element is actually an XML comment</p>
+
+    <h3>setattr(self,tag,attrname,value,namespaces=None)</h3>
+    <pre>
+        Set an attribute of an element to the specified value.
+        Use namespace prefixes as usual. 
+
+        tag:      The element itself, or path to it from the main tag, or 
+                  None to reference attributes of the main tag
+        attrname: Name of attribute to set
+        value:    Value of the attribute
+    </pre>
+    
+    <h3>remattr(self,tag,attrname,namespaces=None)</h3>
+    <pre>
+        Remove an attribute of an element.
+        Use namespace prefixes as usual. 
+
+        tag:      The element itself, or path to it from the main tag
+        attrname: Name of attribute to remove
+    </pre>
+    <h3>
+    removeelement(self,element)</h3>
+    <p> Remove the specified element.</p>
+
+    <h3>getattr(self,tag,attrname,defaultvalue=None,namespaces=None) </h3>
+    <pre>
+        Set the attribute of the specified element or path
+        Use namespace prefixes as usual. 
+
+        tag:      The element itself, or path to it from the main tag,
+                  or None to get attributes of the main tag
+        attrname: Name of attribute to get
+        defaultvalue: Default value of the attribute to return. If
+                  this is None and the attribute is not set, IndexError
+                  will be raised. 
+        namespaces: Additional namespaces for attribute evaluation
+    </pre>
+
+    <h3>hasattr(self,tag,attrname)</h3>
+    <pre>
+        Check if the attribute of the specified element or path
+        exists. Use namespace prefixes as usual. 
+
+        tag:      The element itself, or path to it from the main tag,
+                  or None to reference the main tag
+        attrname: Name of attribute to check the existance of 
+    </pre>
+
+    <h3>lock_ro(self)</h3>
+    <p>
+      Lock the file for read only access. File locking is counted, 
+      so lock calls may be nested
+    </p>
+
+    <h3>unlock_ro(self)</h3>
+    
+    <p>Unlock the file from read-only-access</p>
+
+    <h3>is_locked(self)</h3>
+    <p>Return whether the document is locked for access</p>
+    <h3>lock_rw(self)</h3>
+    <p>
+      Lock the file for read-write access. File locking is counted, 
+      so lock calls may be nested</p>
+
+    <h3>unlock_rw(self)</h3>
+    <p>Unlock the file from read-write access</p>
+
+    <h3>shouldbeunlocked(self)</h3>
+    <p>Assert that the document should be unlocked</p>
+
+    <h3>should_be_rwlocked_once(self)</h3>
+    <p>Assert that the document should be read-write locked exactly once</p>
+    
+    <h3>tag_is(self,element,tagname,namespaces=None)</h3>
+    <p> Return true if element tag matches tagname</p>
+
+    <h3>tostring(self,element=None,pretty_print=False)</h3>
+    <p>Convert to unicode string... see also tobytes()</p>
+    
+    <h3>tobytes(self,element=None,encoding='utf-8',pretty_print=False)</h3>
+    <pre>
+      Convert to utf-8 bytes
+      can specify encoding=None to generate ascii (and use entities
+      for higher characters)
+    </pre>
+    <h3>getparent(self,element)</h3>
+    <p>Get the parent of a particular element</p>
+
+    <h3>close(self)</h3>
+    <p>Close and empty this document. Flush to disk first if modified
+    </p>
+
+    
+    <h2>Appendix: Extending datacollect2 with custom widget classes, step classes, and parameter controllers</h2>
+    <h3>Custom widget classes and custom checklist step classes</h3>
+    <p>
+      Datacollect uses GTK as its GUI toolkit. To create a custom widget or checklist step class, you create a new GTK widget class and then
+      tell datacollect about it. 
+    </p>
+    <p>
+      The current version of datacollect works with PyGTK2 and (via
+      GObject introspection) GTK3.
+      Try to make your new class compatible with both. For example, use
+      the following import statments to test for GObject introspection and
+      if present, use GTK3:
+    </p>
+    <pre>
+if "gi" in sys.modules:  # gtk3
+    import gi
+    gi.require_version('Gtk','3.0')
+    from gi.repository import Gtk as gtk
+    from gi.repository import Gdk as gdk
+    from gi.repository import GObject as gobject
+    pass
+else : 
+    # gtk2
+    import gobject
+    import gtk
+    import gtk.gdk as gdk
+    pass
+</pre>
+    <p>
+      Your new class will usually derive from an existing GTK class. Most
+      often you derive from gtk.HBox or gtk.GBox. See the GTK documentation
+      for information on defining GTK classes in Python.
+    </p>
+    <p>
+      You will need to define special class members to name your GTK class
+      and specify its settable GTK properties: <tt>__gtype_name__</tt> and
+      <tt>__gproperties__</tt>. You also need to call gobject.type_register()
+      after defining your class to register it with GTK's type system. 
+    </p>
+    <p>
+      For creating general purpose widgets, your class's constructor <tt>__init__()</tt> should require no parameters beyond <tt>self</tt>. For a checklist step, <tt>__init__()</tt> is given three additional parameters: <tt>checklist</tt>, the checklist object, <tt>step</tt>, the <tt>datacollect2.steptemplate</tt> instance, and <tt>xmlpath</tt>, a path that can be passed to <tt>checklist.xmldoc.restorepath()</tt> to find the XML element corresponding to this step.
+    </p>
+    <p>
+      Often it is convienient in the constructor to construct the internal structure of a widget or step with the Glade GUI builder or Glade XML. This structure can then be conveniently instantiated:
+    </p>
+    <pre>
+      (self.gladeobjdict,self.gladebuilder)=datacollect2.dc_gtksupp.build_from_file(os.path.join(os.path.split(sys.modules[self.__module__].__file__)[0],"my_glade_file.glade"))   
+    </pre>
+    <p>
+      The components can then be looked up in <tt>self.gladeobjdict</tt> and, if your class is derived from a GTK container, added to that container.  
+    </p>
+    <p>
+      In addition to a constructor, all datacollect steps and widgets are expected to have
+      a <tt>dc_gui_init()</tt> method that takes a <tt>datacollect2.dc_gtksupp.guistate</tt> object as a parameter in addition to <tt>self</tt>. The
+      <tt>dc_gui_init()</tt> method is called later in the initialization
+      phase, once I/O connections have been created and the parameter database is available. 
+    </p>
+    <p>
+      Optional methods for datacollect steps and widgets include <tt>isconsistent(self,inconsistentlist)</tt> which returns False (and appends the name of the parameter to inconsistentlist) if the widget or a subwidget has an inconsistent representation of a parameter. An example of this is the user typing a few letters, but not pressing ENTER to trigger the parameter change. 
+    </p>
+    <p>
+      Another optional method is <tt>set_readonly(self,readonly)</tt>,
+      which is called to set the readonly status of the step or widget to
+      <tt>readonly</tt>.  Optional methods for checklist steps only include <tt>handle_check(self,checked)</tt>, which is called when the checklist box is checked or unchecked, and <tt>resetchecklist(self)</tt>, which is called when the checklist is reset, and <tt>destroystep(self)</tt> which is called to indicate the checklist is being permanently closed. 
+    </p>
+    <p>
+      It is also necessary to inform datacollect that the step and/or widget is available to use. This is accomplished in the <tt>setup.py</tt> of your package by marking the class as an entry point for "datacollect2.step" or "datacollect2.widget":
+    </p>
+    <pre>
+      setup(...,
+            entry_points={"datacollect2.step": ["my_package.my_module.my_step_class"],
+                          "datacollect2.widget": ["my_package.my_module.my_widget_class"]})
+    </pre>
+    <p>
+      You may also want to make your widgets accessible to the glade GUI-builder. This is normally done by creating a "catalog" XML file plus corresponding .py file for loading the widgets and adding it to the glade catalog path. 
+      Unfortunately the version of glade currently used with datacollect (glade-3.6.7, for GTK2 compatibility) does not accept more than a single entry for its GLADE_CATALOG_PATH environment variable, so if you want both Datacollect's widgets and your widgets to be accessible simultaneously you have to hack around this problem. 
+    </p>
+    <h3>Custom parameter controllers</h3>
+    <p>
+      The parameter controller for a parameter database entry is a class
+      instance that is responsible
+      for managing the value of the parameter and requests to change the
+      parameter. It is usually called within a <tt>build=</tt> lambda
+      parameter to <tt>addparam()</tt>. The first constructor parameter
+      is the paramdb2.param instance for the parameter being controlled. 
+    </p>
+    <p>
+      The controller needs to define a <tt>requestval(self,param,newvalue,*cbargs)</tt> method: <tt>param</tt> is the paramdb2.param instance, <tt>newvalue</tt> is the desired new value (<tt>datacollect2.dc_value.value</tt> subclass instance), <tt>cbargs</tt> is the callback function followed by extra parameters to the callback function. <tt>requestval()</tt> is an asynchronous request for the parameter to take on a particular value. It should only be called by the main GTK thread. In general, the callback may happen immediately or later after <tt>requestval()</tt> returns, but should be called in the context of the main GTK thread (such as by queueing a call with <tt>gobject.timeout_add()</tt>). <tt>requestval</tt> returns an ID that can be used to attempt to cancel the request prior to the callback. 
+    </p>
+    <p>
+      <tt>cbargs[0]</tt>, if present, is interpreted as the function to call when the request is complete. It is called as
+    </p>
+    <pre>
+      (cbargs[0])(controlparam,request_id,error_message_or_None,new_parameter_dcvalue_or_None_if_failure,*cbargs[1:])
+    </pre>
+    <p>
+      The controller should also define a <tt>cancelrequest(self,param,requestid)</tt> that attempts to cancel a pending request. In this case <tt>requestid</tt> would be the return value from a prior <tt>requestval()</tt>.
+    </p>
+    <p>
+      When the controller determines that a new value should be assigned to the
+      parameter -- either as a result of an assignment attempt or some external
+      process that might have changed the parameter -- it should call <tt>controlparam.assignval(newvalue,self.id)</tt>
+      where <tt>newvalue</tt> is the new value to assign, which should be an instance of the <tt>datacollect2.dc_value.value</tt> subclass <tt>controlparam.paramtype</tt>. 
+    </p>
+    <p>
+      An optional controller method is <tt>perform_save(self,param,savehref,*cbargs)</tt>.
+      This method is used for parameters that are used to store references to
+      files containing saved data.
+      The <tt>perform_save</tt> method is called by the <tt>savebuttonstep</tt>.
+      The controller should ask the underlying hardware or virtual instrument
+      model to save its data at the specified location (<tt>savehref</tt>) and once complete assign the <tt>savehref</tt> to the parameter value.
+    </p>
+  </body>
+</html>

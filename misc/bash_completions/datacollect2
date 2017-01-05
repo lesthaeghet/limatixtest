@@ -1,0 +1,40 @@
+_datacollect2() 
+{
+    # Required Local Variables
+    local cur prev opts base
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # Potential Options
+    opts="-s -m -a -f -g -c -p -d --gtk3 --help"
+
+
+    case "${prev}" in
+        -f)
+            _filedir '@(dcc)'
+            return 0
+            ;;
+        -g)
+            _filedir '@(glade)'
+            return 0
+            ;;
+        -c)
+            _filedir '@(chf|chx)'
+            return 0
+            ;;
+        -p)
+            _filedir '@(plf|plx)'
+            return 0
+            ;;
+        -d)
+            _filedir '@(dpd)'
+            return 0
+            ;;
+        *)
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+    esac    
+}
+complete -F _datacollect2 datacollect2

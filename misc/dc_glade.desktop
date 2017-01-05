@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=dc_glade
+Comment=Data Collection Automation GUI builder
+Exec=dc_glade
+TryExec=dc_glade
+Type=Application
+Terminal=false
+StartupNotify=false
+Encoding=UTF-8
+Categories=Application;Science;
+Icon=gnome-session.png
