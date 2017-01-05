@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=datacollect2
+Comment=Data Collection Automation
+Exec=datacollect2
+TryExec=datacollect2
+Type=Application
+Terminal=false
+StartupNotify=false
+Encoding=UTF-8
+Categories=Application;Science;
+Icon=gnome-session.png

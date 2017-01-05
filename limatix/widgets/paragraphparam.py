@@ -229,6 +229,8 @@ class paragraphparam(gtk.ScrolledWindow,paramhandler):
 
     def sync_to_paramdb(self):
         if self.myprops["paramname"] not in self.paramdb:
+            #import pdb as pdbtest
+            #pdbtest.set_trace()
             raise ValueError("No parameter database entry for \"%s\". Does this file need to be viewed within datacollect, and are you using the correct .dcc file?" % (self.myprops["paramname"]))
         self.param=self.paramdb[self.myprops["paramname"]]
 

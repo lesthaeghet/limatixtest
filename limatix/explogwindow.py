@@ -1182,8 +1182,8 @@ class explogwindow(gtk.Window):
         pass
 
     def open_gui(self,fhref):
-        
-        (gladeobjdict,builder)=build_from_file(fhref.getpath())
+        fname=fhref.getpath() 
+        (gladeobjdict,builder)=build_from_file(fname)
         dc_initialize_widgets(gladeobjdict,self.guistate)
         
         
@@ -1202,7 +1202,7 @@ class explogwindow(gtk.Window):
         pass
 
     def expphotograph(self,event):
-        filenamexpath="concat(substring-before(dc:paramdb('explogname'),'.xlg'),'_expphoto-%.3d.jpg')"
+        filenamexpath="concat(substring-before(dc:paramdb('explogname'),'.xlg'),'_expphoto-.jpg')"
         
         photorequest=ricohcamera.ricohphotorequest(self.paramdb,"expphotos",reqfilenamexpath=filenamexpath,explogwindow=self)
         
@@ -1215,7 +1215,7 @@ class explogwindow(gtk.Window):
         # xpath conditional mirror xmlexplog get_measnum() method. See http://stackoverflow.com/questions/971067/is-there-an-if-then-else-statement-in-xpath
         # use dc:formatintegermindigits (defined in paramdb2.py) to demand a minimum number of digits for an integer 
         # filenamexpath="concat(dc:paramdb('explogname'),'_meas',format-number(number(concat(/dc:experiment/dc:measurement[last()]/dc:measnum,substring('-1',1,number(count(/dc:experiment/dc:measurement) &lt; 1)*2)))+1,'####'),'_photo-%.3d.jpg')"
-        filenamexpath="concat(dc:paramdb('explogname'),'_meas',dc:formatintegermindigits(number(concat(/dc:experiment/dc:measurement[last()]/dc:measnum,substring('-1',1,number(count(/dc:experiment/dc:measurement) < 1)*2)))+1,4),'_photo-%.3d.jpg')"
+        filenamexpath="concat(dc:paramdb('explogname'),'_meas',dc:formatintegermindigits(number(concat(/dc:experiment/dc:measurement[last()]/dc:measnum,substring('-1',1,number(count(/dc:experiment/dc:measurement) < 1)*2)))+1,4),'_photo-.jpg')"
         
         photorequest=ricohcamera.ricohphotorequest(self.paramdb,"measphotos",filenamexpath,self)
         

@@ -70,21 +70,29 @@ class paramhandler(object):
                 pass
             pass
 
+        #sys.stderr.write("type(self)=%s\n" % (str(type(self))))
+        #sys.stderr.write("proplist=%s\n" % (repr(proplist)))
+
         # set defaults
         for prop in proplist:
             # sys.stderr.write("type(self)=%s\n" % (str(type(self))))
 
             # this next line may cause segfaults in gtk3 (!)
+            #sys.stderr.write("setting prop %s to default %s\n" % (prop, self.gtksuper.get_property(prop)))
             self.myprops[prop]=self.gtksuper.get_property(prop)
             pass
         pass
     
     def do_set_property(self,property,value):
         if property.name in self.myprops:
+            #sys.stderr.write("setting prop %s to %s in %s\n" % (property.name, value, str(type(self))))
+            #if len(value)>100:
+            #    import pdb as pdb3
+            #    pdb3.set_trace()
             self.myprops[property.name]=value
             pass
         else :
-            print("Setting property: %s" % (property.name))
+            #print("Setting property: %s" % (property.name))
             self.gtksuper.do_set_property(self,property,value)
             pass
         

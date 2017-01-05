@@ -61,6 +61,8 @@ from .dc_gtksupp import dc_initialize_widgets
 from .dc_value import numericunitsvalue as numericunitsv
 from .dc_value import stringvalue as stringv
 
+from .xmldoc import xmldoc
+
 from .dbus_camera import dbus_camera
 
 from . import paramdb2 as pdb
@@ -87,7 +89,8 @@ DC='{http://limatix.org/datacollect}'
 xpathnamespaces={ 
     #'chx': 'http://limatix.org/checklist',
     'dc': 'http://limatix.org/datacollect',
-    #'dcv': 'http://limatix.org/dcvalue',
+    'dcv': 'http://limatix.org/dcvalue',
+    'xlink': 'http://www.w3.org/1999/xlink',
     }
 
 
@@ -219,54 +222,75 @@ class ricohphotorequest(gtk.Window):
 
     def build_qr(self):
         # Should probably modify this to use xmldoc. 
-        self.qrxml=etree.Element(DC+"photometadata",nsmap=xpathnamespaces)
+        #self.qrxml=etree.Element(DC+"photometadata",nsmap=xpathnamespaces)
+        self.qrxml=xmldoc(None, 'dc:photometadata', nsmap=xpathnamespaces)
         
-        
+        #import pdb as pdb2
+        #pdb2.set_trace()
 
-        specimentag=etree.Element(DC+"specimen")
-        self.paramdb["specimen"].dcvalue.xmlrepr(None,specimentag)
-        self.qrxml.append(specimentag)
+        #specimentag=etree.Element(DC+"specimen")
+        #self.paramdb["specimen"].dcvalue.xmlrepr(None,specimentag)
+        #self.qrxml.append(specimentag)
+        specimentag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:specimen')
+        self.paramdb["specimen"].dcvalue.xmlrepr(self.qrxml, specimentag)
 
-        perfbytag=etree.Element(DC+"perfby")
-        self.paramdb["perfby"].dcvalue.xmlrepr(None,perfbytag)
-        self.qrxml.append(perfbytag)
+        #perfbytag=etree.Element(DC+"perfby")
+        #self.paramdb["perfby"].dcvalue.xmlrepr(None,perfbytag)
+        #self.qrxml.append(perfbytag)
+        perfbytag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:perfby')
+        self.paramdb["perfby"].dcvalue.xmlrepr(self.qrxml, perfbytag)
 
-        datetag=etree.Element(DC+"date")
-        self.paramdb["date"].dcvalue.xmlrepr(None,datetag)
-        self.qrxml.append(datetag)
+        #datetag=etree.Element(DC+"date")
+        #self.paramdb["date"].dcvalue.xmlrepr(None,datetag)
+        #self.qrxml.append(datetag)
+        datetag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:date')
+        self.paramdb["date"].dcvalue.xmlrepr(self.qrxml, datetag)
 
-        desttag=etree.Element(DC+"dest")
-        self.paramdb["dest"].dcvalue.xmlrepr(None,desttag)
-        self.qrxml.append(desttag)
+        #desttag=etree.Element(DC+"dest")
+        #self.paramdb["dest"].dcvalue.xmlrepr(None,desttag)
+        #self.qrxml.append(desttag)
+        desttag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:dest')
+        self.paramdb["dest"].dcvalue.xmlrepr(self.qrxml, desttag)
 
         if self.reqfilenamexpath is not None:
-            filenametag=etree.Element(DC+"reqfilenamexpath")
-            filenametag.text=self.reqfilenamexpath
-            self.qrxml.append(filenametag)
+            #filenametag=etree.Element(DC+"reqfilenamexpath")
+            #filenametag.text=self.reqfilenamexpath
+            #self.qrxml.append(filenametag)
+            filenametag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:reqfilenamexpath')
+            self.qrxml.settext(filenametag, self.reqfilenamexpath)
             pass
         else :
-            filenametag=etree.Element(DC+"reqfilename")
-            self.paramdb["reqfilename"].dcvalue.xmlrepr(None,filenametag)
-            self.qrxml.append(filenametag)
+            #filenametag=etree.Element(DC+"reqfilename")
+            #self.paramdb["reqfilename"].dcvalue.xmlrepr(None,filenametag)
+            #self.qrxml.append(filenametag)
+            filenametag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:reqfilenamexpath')
+            self.paramdb["reqfilename"].dcvalue.xmlrepr(self.qrxml, filenametag)
             pass
 
         if self.paramname is not None:
-            paramnametag=etree.Element(DC+"paramname")
-            paramnametag.text=self.paramname
-            self.qrxml.append(paramnametag)
+            #paramnametag=etree.Element(DC+"paramname")
+            #paramnametag.text=self.paramname
+            #self.qrxml.append(paramnametag)
+            paramnametag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:paramname')
+            self.qrxml.settext(paramnametag, self.paramname)
             pass
 
 
-        commenttag=etree.Element(DC+"comment")
-        commenttag.text=str(self.private_paramdb["comments"].dcvalue)
-        self.qrxml.append(commenttag)
+        #commenttag=etree.Element(DC+"comment")
+        #commenttag.text=str(self.private_paramdb["comments"].dcvalue)
+        #self.qrxml.append(commenttag)
+        commenttag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:comment')
+        self.private_paramdb["comments"].dcvalue.xmlrepr(self.qrxml, commenttag)
         
-        timestamptag=etree.Element(DC+"reqtimestamp")
+        #timestamptag=etree.Element(DC+"reqtimestamp")
         timestamp=lm_timestamp.roundtosecond(lm_timestamp.now()).isoformat()
-        timestamptag.text=timestamp
-        self.qrxml.append(timestamptag)
+        #timestamptag.text=timestamp
+        #self.qrxml.append(timestamptag)
+        timestamptag=self.qrxml.addelement(self.qrxml.getroot(), 'dc:reqtimestamp')
+        self.qrxml.settext(timestamptag, timestamp)
         
-        self.qrxmlstring=etree.tostring(self.qrxml,pretty_print=True,encoding='utf-8')
+        #self.qrxmlstring=etree.tostring(self.qrxml,pretty_print=True,encoding='utf-8')
+        self.qrxmlstring=self.qrxml.tostring(pretty_print=True)
         self.qrxmlhash=readablehash(self.qrxmlstring)
         self.hashhistory[self.qrxmlhash]=None  # store hash long-term
 

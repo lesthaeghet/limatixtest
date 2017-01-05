@@ -943,7 +943,14 @@ class runcheckliststep(gtk.HBox):
         specimen = str(self.checklist.paramdb["specimen"].dcvalue)
         perfby = str(self.checklist.paramdb["perfby"].dcvalue)
         date = str(self.checklist.paramdb["date"].dcvalue)
-        dest = str(self.checklist.private_paramdb["dest"].dcvalue)
+        
+        if "dest" in self.checklist.private_paramdb:
+            dest = self.checklist.private_paramdb["dest"].dcvalue.canonicalize()
+        elif "dest" in self.checklist.paramdb: 
+            dest = self.checklist.paramdb["dest"].dcvalue.canonicalize()
+        else:
+            sys.stderr.write("Unable to determine checklist destination\n")
+            dest = ""
 
         # Run chx2pdf
         subprocess.check_call(['chx2pdf', checklistfile, specimen, perfby, date, dest], stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno(),cwd=tmpdir)

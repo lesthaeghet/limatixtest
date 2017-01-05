@@ -388,7 +388,7 @@ Flags:
 
     if explogwin.explog is not None and explogwin.explog.filehref is not None:
         for gui in guis:
-            guihref=hrefv(pathname2url(gui),contexthref=hrefv("./")
+            guihref=hrefv(pathname2url(gui),contexthref=hrefv("./"))
             explogwin.open_gui(guihref)
             #explogwin.open_gui(gui)
             pass
@@ -401,7 +401,7 @@ Flags:
             pass
     
         for plan in plans:
-            planhref=hrefv(pathname2url(plan),contexthref=hrefv("./")
+            planhref=hrefv(pathname2url(plan),contexthref=hrefv("./"))
             explogwin.open_plan(planhref)
             pass
         pass

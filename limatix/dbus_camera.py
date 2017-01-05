@@ -133,6 +133,9 @@ class dbus_camera(object):
                     reqfilename=self.explogwindow.explog.xpath(reqfilenamexpath)
                     pass
                 except: 
+                    #import pdb as pd2
+                    #pd2.set_trace()
+                    sys.stderr.write('Error Processing XPath Expression on Experiment Log:  "%s"\n' % reqfilenamexpath)
                     raise
                 finally:
                     self.explogwindow.explog.unlock_ro()

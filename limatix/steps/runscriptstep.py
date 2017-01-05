@@ -90,10 +90,15 @@ def filter_controlchars(line):
 class runscriptstep(buttontextareastep):
     __gtype_name__="runscriptstep"
     __gproperties__ = {       
+        "scriptlogparam": (gobject.TYPE_STRING,
+                           "parameter to store script output log",
+                           "parameter to store script output log",
+                           "", # default value 
+                     gobject.PARAM_READWRITE), # flags
         "scriptlog": (gobject.TYPE_STRING,
-                       "parameter to store script output log",
-                       "parameter to store script output log",
-                     "", # default value 
+                      "Current script log content",
+                      "Current script log content",
+                           "", # default value 
                      gobject.PARAM_READWRITE), # flags
         "buttonlabel": (gobject.TYPE_STRING,
                        "Text for the button label",
@@ -116,7 +121,7 @@ class runscriptstep(buttontextareastep):
     checklist=None
     buttonlabel=None
     xmlpath=None
-    scriptlog=None
+    scriptlogparam=None
     command=None
     readonlydialogrunning=None
     queue=None  # Queue for lines coming in from subprocess
@@ -146,8 +151,12 @@ class runscriptstep(buttontextareastep):
         self.checklist=checklist
         self.xmlpath=xmlpath
         self.readonlydialogrunning=False
-        if self.scriptlog is None:
-            self.scriptlog=""
+        #if self.scriptlog is None:
+        #    self.scriptlog=""
+        #    pass
+
+        if self.scriptlogparam is None:
+            self.scriptlogparam=""
             pass
 
         if self.command is None:
@@ -194,8 +203,8 @@ class runscriptstep(buttontextareastep):
 
     def assign_readoutparam(self):
 
-        # use our private paramdb if scriptlog is blank
-        if self.scriptlog=="":
+        # use our private paramdb if scriptlogparam is blank
+        if self.scriptlogparam=="":
             self.gladeobjdict["textarea"].set_paramdb(self.private_paramdb)
             self.set_property("readoutparam","scriptlog")
             pass
@@ -205,7 +214,7 @@ class runscriptstep(buttontextareastep):
                 self.gladeobjdict["textarea"].set_paramdb(self.guistate.paramdb)
                 pass
 
-            self.set_property("readoutparam",self.scriptlog)
+            self.set_property("readoutparam",self.scriptlogparam)
 
             pass
         pass
@@ -313,9 +322,13 @@ class runscriptstep(buttontextareastep):
         pass
 
     def do_set_property(self,property,value):
-        if property.name=="scriptlog":
-            self.scriptlog=value
+        if property.name=="scriptlogparam":
+            self.scriptlogparam=value
             self.assign_readoutparam()
+            pass
+        elif property.name=="scriptlog":
+            # no-op. This is not set on initialization (we read the XML directly ourselves), 
+            # and modifications are done only through this widget
             pass
         elif property.name=="command":
             # command should have a "%(id)s" where the id should be substituted 
@@ -342,8 +355,10 @@ class runscriptstep(buttontextareastep):
         pass
     
     def do_get_property(self,property,value):
-        if property.name=="scriptlog":
-            return self.scriptlog
+        if property.name=="scriptlogparam":
+            return self.scriptlogparam
+        elif property.name=="scriptlog":
+            return self.value_from_xml()[0].value()
         elif property.name=="command":
             return self.command
         elif property.name=="buttonlabel":
@@ -542,7 +557,7 @@ class runscriptstep(buttontextareastep):
             try: 
                 xmltag=self.checklist.xmldoc.restorepath(self.xmlpath)
 
-                scriptoutputparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:scriptlog")
+                scriptoutputparamnodes=self.checklist.xmldoc.xpathcontext(xmltag,"chx:parameter[@name='scriptlog']|chx:scriptlog")
                 if len(scriptoutputparamnodes) < 1:
                     # need to add a node
                     scriptoutputparamnode=self.checklist.xmldoc.addelement(xmltag,"chx:scriptlog")

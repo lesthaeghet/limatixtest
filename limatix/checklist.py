@@ -1635,7 +1635,7 @@ class checklist(object):
             
                 aecopy=copy.deepcopy(autoexp)
                 # sys.stderr.write("\n\ngot aecopy: %s\n" % (etree.tostring(aecopy)))
-                aecopydoc=xmldoc.copy_from_element(self.xmldoc,autoexp)
+                aecopydoc=xmldoc.xmldoc.copy_from_element(self.xmldoc,autoexp)
                 
                 title=self.xmldoc.xpathcontext(autoexp,"string(../@title)")
                 if len(title)==0:
@@ -1929,7 +1929,7 @@ class checklist(object):
                     parentclobj.set_readonly(False)
                     pass
                 elif parent is not None:
-                    sys.stderr.write("checklist.set_readonly(%s,False): Cannot find parent %s to set it in read/write mode. This is not a problem if the parent checklist is managed by dc_checklist instead of datacollect2.\n"  % (self.xmldoc.get_filehref(),parent.absurl()))
+                    sys.stderr.write("checklist.set_readonly(%s,False): Cannot find parent %s in-memory to set it in read/write mode. This is not a problem if the parent checklist is managed by dc_checklist instead of datacollect2.\n"  % (self.xmldoc.get_filehref(),parent.absurl()))
                     pass
                 
                 

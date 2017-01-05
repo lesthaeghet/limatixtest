@@ -35,16 +35,15 @@ import cPickle
 #dg_units.units_config('insert_basic_units')
 # sys.path.append('/usr/local/dataguzzler/gui2/lib')
 # import dg_io
-from dc_value import numericunitsvalue as numericunitsv
-from dc_value import complexunitsvalue as complexunitsv
-from dc_value import stringvalue as stringv
-from dc_value import excitationparamsvalue as excitationparamsv
-from paramdb2 import autocontroller_specimendb
-from paramdb2 import autocontroller_xducerdb
-from paramdb2 import autocontroller_xmlfile
-from paramdb2 import optionscontroller_xmlfile
-import paramdb2 as pdb2
-from dc_dbus_paramserver import dc_dbus_paramserver
+from limatix.dc_value import hrefvalue as hrefv
+from limatix.dc_value import numericunitsvalue as numericunitsv
+from limatix.dc_value import complexunitsvalue as complexunitsv
+from limatix.dc_value import stringvalue as stringv
+from limatix.dc_value import excitationparamsvalue as excitationparamsv
+from limatix.paramdb2 import autocontroller_xmlfile
+from limatix.paramdb2 import optionscontroller_xmlfile
+import limatix.paramdb2 as pdb2
+from limatix.dc_dbus_paramserver import dc_dbus_paramserver
 
 class _dummy(object):
     pass

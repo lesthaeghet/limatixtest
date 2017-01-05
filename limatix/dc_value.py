@@ -2218,6 +2218,9 @@ class photosvalue(value):
         elif isinstance(value,photosvalue):
             self.photoset=copy.deepcopy(value.photoset)
             pass
+        elif isinstance(value,frozenset):
+            self.photoset=copy.deepcopy(value)
+            pass
         else :
             self.photoset=frozenset([])
             
@@ -2227,7 +2230,7 @@ class photosvalue(value):
         pass
 
     def __str__(self):
-        return ";".join([ os.path.split(photohref.getpath("."))[-1] for photohref in self.photoset ])
+        return ";".join([ os.path.split(photohref.getpath())[-1] for photohref in self.photoset ])
 
     def copyandappend(self,newphotohref):
         tmp=set(self.photoset)
@@ -2274,8 +2277,8 @@ class photosvalue(value):
         
         for photohref in self.photoset:
             newel=etree.Element(DCV+"photo")
-            photohref.xmlrepr(xmldocu,newel)
             tag.append(newel)
+            photohref.xmlrepr(xmldocu,newel)
             pass
         if xmldocu is not None:
             xmlstorevalueclass(xmldocu,tag,self.__class__)
@@ -2288,6 +2291,8 @@ class photosvalue(value):
 
     @classmethod
     def merge(cls,parent,descendentlist,contexthref=None,maxmergedepth=np.Inf,tag_index_paths_override=None):
+        #import pdb as pd
+        #pd.set_trace()
         added=set([])
         removed=set([])
         if parent is not None:

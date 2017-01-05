@@ -245,7 +245,7 @@ def main(args=None):
         
         
     prxfile=positionals[0]
-    prxfilehref=dcv.hrefvalue(prxfile,contexthref=None)
+    prxfilehref=dcv.hrefvalue(prxfile,contexthref=dcv.hrefvalue("."))
 
     
     # prxdoc is loaded into memory once, so we don't use locking on it. 

@@ -314,8 +314,9 @@ class optionscontroller_xmlfile_class(simplecontroller):
         # Callback function to handle changes to a controller field
 
         options = []
+        filelist = []
         valuelist = []
-
+        filename=""
         try:
             paramdb = param.parent
             
@@ -328,23 +329,22 @@ class optionscontroller_xmlfile_class(simplecontroller):
                     subparam = subparam[0]
                 # Get Value
                 if type(paramdb[subparam].dcvalue) is numericunitsv:
-                    valuelist.append(paramdb[subparam].value(units))
+                    filelist.append(paramdb[subparam].dcvalue.value(units))
                 elif type(paramdb[subparam].dcvalue) is stringv:
-                    valuelist.append(str(paramdb[subparam]))
+                    filelist.append(str(paramdb[subparam].dcvalue))
                 else:
                     raise Exception('Parameter %s depends on %s which is type %s - This type is Not Supported (Must be dc_value.stringvalue or dc_value.numericunitsvalue)' % (param.xmlname, subparam, repr(type(paramdb[subparam].dcvalue))))
                 pass
-            valuelist = tuple(valuelist)
+            filelist = tuple(filelist)
 
             # Get Filename Value
-            filename = filestring % valuelist
+            filename = filestring % filelist
 
             # Open File
             # ***!!! Should we be wrapping this in an xmldoc????
             xml = dbl.GetXML(filename, output=dbl.OUTPUT_ETREE, **kwargs)
 
             # Prepare to Fetch Data
-            valuelist = []
             for subparam in xpathparams:
                 # Pull Units if they Exist
                 units = None
@@ -353,9 +353,9 @@ class optionscontroller_xmlfile_class(simplecontroller):
                     subparam = subparam[0]
                 # Get Value
                 if type(paramdb[subparam].dcvalue) is numericunitsv:
-                    valuelist.append(paramdb[subparam].value(units))
+                    valuelist.append(paramdb[subparam].dcvalue.value(units))
                 elif type(paramdb[subparam].dcvalue) is stringv:
-                    valuelist.append(str(paramdb[subparam]))
+                    valuelist.append(str(paramdb[subparam].dcvalue))
                 else:
                     raise Exception('Parameter %s depends on %s which is type %s - This type is Not Supported (Must be dc_value.stringvalue or dc_value.numericunitsvalue)' % (param.xmlname, subparam, repr(type(paramdb[subparam].dcvalue))))
                 pass
@@ -376,7 +376,7 @@ class optionscontroller_xmlfile_class(simplecontroller):
             
         except:
             (exctype, excvalue) = sys.exc_info()[:2]
-            sys.stderr.write("%s: %s fetching options: %s\n%s: Query xpath was \"%s\"" % (controlparam, str(exctype), str(excvalue),str(controlparam),str(xpath % valuelist)))
+            sys.stderr.write("%s: %s fetching options: %s\n  Filename: %s\n  Query: \"%s\"\n" % (controlparam, str(exctype), str(excvalue),str(filename),str(xpath % valuelist)))
         finally:
             paramdb[controlparam].options = options
             paramdb[controlparam].do_notify(paramdb[controlparam].NOTIFY_NEWOPTIONS)
@@ -1456,8 +1456,14 @@ class autocontroller_xmlfile_class(autocontrollerbase):
 
     @classmethod
     def xmlfileupdated(cls, param, condition, controlparam, filestring, fileparams, xpath, xpathparams, namespaces, **kwargs):
+
+        #import pdb
+        #pdb.set_trace()
+
         # Callback function to handle changes to a controller field
+        filelist = []
         valuelist = []
+        filename=""
         try:
             paramdb = param.parent
             
@@ -1470,22 +1476,21 @@ class autocontroller_xmlfile_class(autocontrollerbase):
                     subparam = subparam[0]
                 # Get Value
                 if type(paramdb[subparam].dcvalue) is numericunitsv:
-                    valuelist.append(paramdb[subparam].value(units))
+                    filelist.append(paramdb[subparam].value(units))
                 elif type(paramdb[subparam].dcvalue) is stringv:
-                    valuelist.append(str(paramdb[subparam].dcvalue))
+                    filelist.append(str(paramdb[subparam].dcvalue))
                 else:
                     raise Exception('Parameter %s depends on %s which is type %s - This type is Not Supported (Must be dc_value.stringvalue or dc_value.numericunitsvalue)' % (param.xmlname, subparam, repr(type(paramdb[subparam].dcvalue))))
                 pass
-            valuelist = tuple(valuelist)
+            filelist = tuple(filelist)
 
             # Get Filename Value
-            filename = filestring % valuelist
+            filename = filestring % filelist
 
             # Open File
             xml = dbl.GetXML(filename, output=dbl.OUTPUT_ETREE, **kwargs)
 
             # Prepare to Fetch Data
-            valuelist = []
             for subparam in xpathparams:
                 # Pull Units if they Exist
                 units = None
@@ -1516,12 +1521,17 @@ class autocontroller_xmlfile_class(autocontrollerbase):
             
         except:
             (exctype, excvalue) = sys.exc_info()[:2]
-            sys.stderr.write("%s: %s creating value object: %s\n%s: Query xpath was \"%s\"" % (controlparam, str(exctype), str(excvalue),str(controlparam),str(xpath % valuelist)))
+            sys.stderr.write("%s: %s creating value object: %s\n  Filename: %s\n  Query: \"%s\"\n" % (str(controlparam), str(exctype), str(excvalue),str(filename),str(xpath % valuelist)))
             if paramdb[controlparam].defunits is not None:
                 valueobj = paramdb[controlparam].paramtype("NaN", units=paramdb[controlparam].defunits)
             else:
                 valueobj = paramdb[controlparam].paramtype("NaN")
         finally:
+            if 'valueobj' not in locals(): 
+                if paramdb[controlparam].defunits is not None:
+                    valueobj = paramdb[controlparam].paramtype("NaN", units=paramdb[controlparam].defunits)
+                else:
+                    valueobj = paramdb[controlparam].paramtype("NaN")
             paramdb[controlparam].assignval(valueobj, paramdb[controlparam].controller.id)
 
     pass

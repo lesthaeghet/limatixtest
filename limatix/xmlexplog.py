@@ -130,7 +130,7 @@ class explog(xmldoc.xmldoc):
             if extratagdoclist is not None:
                 for tagdoc in extratagdoclist:
                     # Make copy in correct context
-                    newtagdoc=xmldoc.xmldoc.inmemorycopy(tagdoc,contexthref=self.doc.getcontexthref())
+                    newtagdoc=xmldoc.xmldoc.inmemorycopy(tagdoc,contexthref=self.getcontexthref())
                     # Insert copy of copy into experiment log
                     meastag.append(copy.deepcopy(newtagdoc.getroot()))
                     
