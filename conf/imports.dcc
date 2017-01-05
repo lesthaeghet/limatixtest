@@ -5,8 +5,6 @@ if "imports_dcc" not in locals():
    import limatix.dg_io
    
    from limatix.paramdb2 import dgcontroller
-   from limatix.paramdb2 import autocontroller_specimendb
-   from limatix.paramdb2 import autocontroller_xducerdb
    from limatix.paramdb2 import autocontroller_xmlfile
    from limatix.paramdb2 import optionscontroller_xmlfile
    from limatix.paramdb2 import dgcontroller_nummathparam
