@@ -70,14 +70,15 @@ import_widgets()
 
 def newsdbdest(param,condition):
     # set parameters if in specimendatabase mode
-    
-    paramdb["dest"].requestvalstr_sync("specimens/%s_files" % (str(paramdb["specimen"].dcvalue)))
+    paramdb=param.parent 
+    paramdb["dest"].requestvalstr_sync("specimens/%s_files/" % (str(paramdb["specimen"].dcvalue)))
     
     pass
 
 def newfilename(param,condition):
     # set parameters if in specimendatabase mode
-    paramdb["reqfilename"].requestvalstr_sync("%s_%s-%%.3d.jpg" % (str(paramdb["specimen"].dcvalue),str(paramdb["date"].dcvalue)))
+    paramdb=param.parent
+    paramdb["reqfilename"].requestvalstr_sync("%s_%s_.jpg" % (str(paramdb["specimen"].dcvalue),str(paramdb["date"].dcvalue)))
     pass
 
 
@@ -93,7 +94,7 @@ def main(args=None):
         args=sys.argv
         pass
     
-    
+    global paramdb 
     paramdb=pdb.paramdb(None)
     
     paramdb.addparam("specimen",stringv)
@@ -144,8 +145,9 @@ def main(args=None):
     
     # Automatically create/update dest and filename fields
     if mode=="specimendatabase":
-        paramdb.addnotify("specimen",newsdbdest,pdb.param.NOTIFY_NEWVALUE)
-        newsdbdest(None,None)    
+        paramdb.addnotify("specimen",newsdbdest,pdb.param.NOTIFY_NEWVALUE)    
+        #newsdbdest(None, None)
+        paramdb["dest"].requestvalstr_sync("specimens/%s_files/" % (str(paramdb["specimen"].dcvalue)))
         pass
     else :
         paramdb["dest"].requestvalstr_sync(os.getcwd()) 
@@ -154,7 +156,8 @@ def main(args=None):
     
     paramdb.addnotify("specimen",newfilename,pdb.param.NOTIFY_NEWVALUE)
     paramdb.addnotify("date",newfilename,pdb.param.NOTIFY_NEWVALUE)
-    newfilename(None,None)
+    #newfilename(None,None)
+    paramdb["reqfilename"].requestvalstr_sync("%s_%s_.jpg" % (str(paramdb["specimen"].dcvalue),str(paramdb["date"].dcvalue)))
     
 
 

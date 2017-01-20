@@ -124,25 +124,34 @@ class dbus_camera(object):
                 # won't work on output                       
                 
                 parser=etree.XMLParser(remove_blank_text=True)
-                XMLtree=etree.parse(pmdpath,parser=parser)
+                XMLtree=etree.parse(pmdpath,parser=parser)  
 
-                reqfilenamexpath=XMLtree.xpath("string(/dc:photometadata/dc:reqfilenamexpath)",namespaces={"dc":"http://limatix.org/datacollect"})
+                if self.explogwindow is not None:
+
+                    reqfilenamexpath=XMLtree.xpath("string(/dc:photometadata/dc:reqfilenamexpath)",namespaces={"dc":"http://limatix.org/datacollect"})
                 
-                self.explogwindow.explog.lock_ro()
-                try : 
-                    reqfilename=self.explogwindow.explog.xpath(reqfilenamexpath)
-                    pass
-                except: 
+                    self.explogwindow.explog.lock_ro()
+                    try : 
+                        reqfilename=self.explogwindow.explog.xpath(reqfilenamexpath)
+                        pass
+                    except: 
+                        #import pdb as pd2
+                        #pd2.set_trace()
+                        sys.stderr.write('Error Processing XPath Expression on Experiment Log:  "%s"\n' % reqfilenamexpath)
+                        raise
+                    finally:
+                        self.explogwindow.explog.unlock_ro()
+                        pass
+
+
+                    dest=str(self.explogwindow.paramdb["dest"].dcvalue)
+                
+                else:
                     #import pdb as pd2
                     #pd2.set_trace()
-                    sys.stderr.write('Error Processing XPath Expression on Experiment Log:  "%s"\n' % reqfilenamexpath)
-                    raise
-                finally:
-                    self.explogwindow.explog.unlock_ro()
+                    reqfilename=XMLtree.xpath("string(/dc:photometadata/dc:reqfilenamexpath)",namespaces={"dc":"http://limatix.org/datacollect"})
+                    dest=XMLtree.xpath("string(/dc:photometadata/dc:dest)",namespaces={"dc":"http://limatix.org/datacollect"})
                     pass
-
-
-                dest=str(self.explogwindow.paramdb["dest"].dcvalue)
 
                 basefilehref=dc_value.hrefvalue(quote(reqfilename),contexthref=dest)
                 num=1
@@ -183,8 +192,9 @@ class dbus_camera(object):
                 outfh.close()
                                 
                 # Add photo into paramdb element specified by dc:paramname element in XMLtree
-                paramname=XMLtree.xpath("/dc:photometadata/dc:paramname",namespaces={"dc":"http://limatix.org/datacollect"})[0].text
-                self.explogwindow.paramdb[paramname].requestval_sync(self.explogwindow.paramdb[paramname].dcvalue.copyandappend(newfilehref))
+                if self.explogwindow is not None:
+                    paramname=XMLtree.xpath("/dc:photometadata/dc:paramname",namespaces={"dc":"http://limatix.org/datacollect"})[0].text
+                    self.explogwindow.paramdb[paramname].requestval_sync(self.explogwindow.paramdb[paramname].dcvalue.copyandappend(newfilehref))
                 
                                                                                                  
                 msgdialog=gtk.MessageDialog(type=gtk.MESSAGE_INFO,buttons=gtk.BUTTONS_CLOSE)
