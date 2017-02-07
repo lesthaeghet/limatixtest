@@ -43,7 +43,7 @@ files, documentation, and processtrak steps.
 
 Windows installation instructions
 ---------------------------------
-   RUN WITH A 32-BIT PYTHON 2.8 INSTALLATAION
+   RUN WITH A 32-BIT PYTHON 2.7 INSTALLATAION
 1. Install Anaconda Python 2.7 version 32 bit or Enthought
    Canopy 32 bit. http://www.continuum.io or 
    http://www.enthought.com
