@@ -1173,10 +1173,9 @@ class explogwindow(gtk.Window):
         result=guichooser.run()
         fname=guichooser.get_filename()
         guichooser.destroy()
-        
+
         if result==RESPONSE_OK:
-            
-            self.open_gui(dcv.hrefvalue(pathname2url(fname),href_context=dcv.hrefvalue("./")))
+            self.open_gui(dcv.hrefvalue(pathname2url(fname),contexthref=dcv.hrefvalue("./")))
             pass
 
         pass
