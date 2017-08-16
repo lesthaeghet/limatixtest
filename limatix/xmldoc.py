@@ -194,7 +194,7 @@ def _xlinkcontextfixuptree(ETree,oldcontexthref,newcontexthref,force_abs_href=Fa
     # returns number of modifications made
 
 
-    ETXobj=etree.ETXPath("//*[@{http://www.w3.org/1999/xlink}href]")
+    ETXobj=etree.ETXPath("descendant-or-self::*[@{http://www.w3.org/1999/xlink}href]")
     xmlellist=ETXobj(ETree)
 
     modcnt=0
@@ -1751,6 +1751,11 @@ class xmldoc(object):
             parent=self.find(parent) # convert path to element
             pass
 
+        if sourcedoc is not None:
+            sourcecontext=sourcedoc.getcontexthref()
+            destcontext=self.getcontexthref()
+            pass
+        
 	# Out List Of New Nodes
         newnodes = []
 
@@ -1760,12 +1765,16 @@ class xmldoc(object):
         
         for node in sourceelements: 
             newnode=copy.deepcopy(node)
-            parent.append(newnode);
             # Record provenance of this element
             if sourcedoc is not None:
                 provenance.xmldocelementaccessed(sourcedoc,node)
+
+                # Fixup any xlink:hrefs
+                _xlinkcontextfixuptree(newnode,sourcecontext,destcontext)
+
                 pass
-            provenance.elementgenerated(self,newnode)
+            parent.append(newnode);
+            provenance.elementgenerated(self,newnode)            
             newnodes.append(newnode)
             pass
             

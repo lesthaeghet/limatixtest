@@ -95,7 +95,14 @@ global_nsmap={
     }
 
 
+hostname_global=None
+
 def determinehostname():
+    global hostname_global
+
+    if hostname_global is not None:
+        return hostname_global
+    #sys.stderr.write("determining hostname...\n")
     hostname=socket.getfqdn()
 
     # work aroud bug issues in getfqdn()
@@ -126,6 +133,8 @@ def determinehostname():
             pass
         pass
     # now have (hopefully robust) fqdn or worst-case bare hostname 
+    #sys.stderr.write("done.\n")
+    hostname_global=hostname
     return hostname
 
 def write_timestamp(doc,process_el,tagname,timestamp=None):
@@ -558,7 +567,8 @@ def elementgenerated(xmldocu,element):
 
     if isinstance(element,etree._Comment) or isinstance(element,etree._ProcessingInstruction):
         return # Don't track provenance of comments or processing instructions
-    
+
+    #sys.stderr.write("provenance.elementgenerated(%s)\n" % (element.tag))
 
     our_tid=id(threading.current_thread)
     if our_tid in ProvenanceDB:
@@ -568,7 +578,7 @@ def elementgenerated(xmldocu,element):
 
             hrefc=href_context.fromelement(xmldocu,element)
 
-            # print("provenance.elementgenerated(%s)" % hrefc.humanurl())
+            #print("provenance.elementgenerated(%s)" % hrefc.humanurl())
             
             ourdb[-1][0].add(hrefc)
             ourdb[-1][2][id(element)]=(element,hrefc)
@@ -714,8 +724,13 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
     for modified_element_hrefc in modified_elements:
 
         # Doesn't currently support going across file boundaries
-        assert(modified_element_hrefc.fragless()==xmldocu.filehref.value())
-
+        #sys.stderr.write("mark_modified_elements %s\n" % (modified_element_hrefc.humanurl()))
+        #sys.stderr.write("fragless()==%s; value=%s\n" % (modified_element_hrefc.fragless().humanurl(),xmldocu.filehref.value().humanurl()))
+        #assert(modified_element_hrefc.fragless()==xmldocu.filehref.value())
+        #import pdb
+        #pdb.set_trace()
+        if modified_element_hrefc.fragless() != xmldocu.filehref.value():
+            continue
         
         foundelement=modified_element_hrefc.evaluate_fragment(xmldocu,None,noprovenance=True)
 
@@ -738,6 +753,7 @@ def mark_modified_elements(xmldocu,modified_elements,process_uuid):
             oldwgb=""
             pass
 
+        #sys.stderr.write("lip:wasgeneratedby for %s\n" % (foundelement[0].tag))
         
         # rewrite "lip:wasgeneratedby" tag with this process uuid attached
         foundelement[0].attrib[LIP+"wasgeneratedby"]=oldwgb+"uuid="+process_uuid+";"

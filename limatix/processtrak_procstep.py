@@ -14,6 +14,7 @@ import ast
 import hashlib
 import fnmatch
 import binascii
+from distutils.version import LooseVersion
 
 from lxml import etree
 
@@ -189,20 +190,51 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
             matplotlib.rcParams['backend.qt4']='PySide'
             pass
 
-        from IPython.lib import guisupport
-        app = guisupport.get_app_qt4() 
+        import IPython
+        from IPython.core.interactiveshell import DummyMod
 
-        from IPython.qt.inprocess import QtInProcessKernelManager
+        if LooseVersion(IPython.__version__) >= LooseVersion('4.0.0'):
+            # Recent Jupyter/ipython: Import from qtconsole
+            # Force PySide bindings
+            import PySide.QtCore
+            from qtconsole.qt import QtGui
+            from qtconsole.inprocess import QtInProcessKernelManager
+
+            # Obtain the running QApplication instance
+            app=QtGui.QApplication.instance()
+            if app is None:
+                # Start our own if necessary
+                app=QtGui.QApplication([])
+                pass
+            
+            pass
+        else:
+            from IPython.qt.inprocess import QtInProcessKernelManager
+            from IPython.lib import guisupport
+            app = guisupport.get_app_qt4() 
+
+            pass
+        
         kernel_manager = QtInProcessKernelManager()
         kernel_manager.start_kernel()
         kernel = kernel_manager.kernel
         kernel.gui = 'qt4'
+
+        #sys.stderr.write("id(stepglobals)=%d" % (id(stepglobals)))
+
+        # Make ipython use our globals as its global dictionary
+        # ... but first keep a backup
+        stepglobalsbackup=copy.copy(stepglobals)
+        
+        (kernel.user_module,kernel.user_ns)=kernel.shell.prepare_user_module(user_ns=stepglobals)
         
         # Should we attempt to run the function here?
         
-        gui, backend, clobbered = kernel.shell.enable_pylab("qt4",import_all=False) # (args.gui, import_all=import_all)
+        # (gui, backend) = kernel.shell.enable_matplotlib("qt4") #,import_all=False) # (args.gui, import_all=import_all)
+        (gui, backend, clobbered) = kernel.shell.enable_pylab("qt4",import_all=False) # (args.gui, import_all=import_all)
 
-        kernel.shell.push(stepglobals) # provide globals as variables
+        # kernel.shell.push(stepglobals) # provide globals as variables -- no longer necessary as it's using our namespace already
+        
         kernel.shell.push(argkw) # provide arguments as variables
         
         kernel.shell.push({"kernel":kernel},interactive=False) # provide kernel for debugging purposes
@@ -244,7 +276,14 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
         kernel.shell.write("Set cont=True to disable interactive mode\n")
         # kernel.shell.write("call abort() to exit\n")
 
-        from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
+        if LooseVersion(IPython.__version__) >= LooseVersion('4.0.0'):
+            # Recent Jupyter/ipython: Import from qtconsole
+            from qtconsole.rich_jupyter_widget import RichJupyterWidget as RichIPythonWidget
+            pass
+        else: 
+            from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
+            pass
+        
         control = RichIPythonWidget()
         control.kernel_manager = kernel_manager
         control.kernel_client = kernel_client
@@ -254,6 +293,8 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
 
         #sys.stderr.write("lines=%s\n" % (str(lines)))
         #sys.stderr.write("lines[0]=%s\n" % (str(lines[0])))
+
+        
         try:
             if pycode_text is None:
                 (lines,startinglineno)=inspect.getsourcelines(runfunc)
@@ -294,6 +335,7 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
                     if isinstance(codeelement,ast.FunctionDef):
                         if codeelement.name==runfunc.__name__:
                             code_container=codeelement
+                            runfunc_syntaxtree=codeelement
                             pass
                         pass
                     
@@ -304,6 +346,15 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
                 kernel.shell.push({"fullsyntaxtree": fullsyntaxtree},interactive=False) # provide full syntax tree for debugging purposes
                 
                 pass
+
+            # identify global variables from runfunc_syntaxtree
+            globalvars=set()
+            for treeelem in ast.walk(runfunc_syntaxtree):
+                if isinstance(treeelem,ast.Global):
+                    globalvars=globalvars.union(treeelem.names)
+                    pass
+                pass
+            
             
             
             kernel.shell.push({"abort": abort}) # provide abort function
@@ -328,7 +379,13 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
             kernel.shell.push({"runfunc_lines": runfunc_lines,"scripthref": scripthref},interactive=False) # provide processed syntax tree for debugging purposes
             
             # kernel.shell.run_code(compile("kernel.shell.run_ast_nodes(runfunc_lines,scriptpath,interactivity='all')","None","exec"))
-            from IPython.qt.inprocess import QtCore
+            if LooseVersion(IPython.__version__) >= LooseVersion('4.0.0'):
+                # Recent Jupyter/ipython: Import from qtconsole
+                from qtconsole.inprocess import QtCore
+                pass
+            else: 
+                from IPython.qt.inprocess import QtCore
+                pass
             QTimer=QtCore.QTimer
 
             def showret():
@@ -357,7 +414,15 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
 
 
 
-        guisupport.start_event_loop_qt4(app) 
+        if LooseVersion(IPython.__version__) >= LooseVersion('4.0.0'):
+            # Recent Jupyter/ipython: Import from qtconsole
+            app.exec_()
+            pass
+        else:
+            # Old ipython
+            guisupport.start_event_loop_qt4(app)
+            pass
+        
         if abort_requested_list[0]:
             pass
         
@@ -366,13 +431,29 @@ def procsteppython_do_run(stepglobals,runfunc,argkw,ipythonmodelist,action,scrip
             ipythonmodelist.pop()
             ipythonmodelist.append(False)
             pass
-        
 
         try : 
-            return kernel.shell.ev("ret") # Assign result dictionary to "ret" variablex
+            retval = kernel.shell.ev("ret") # Assign result dictionary to "ret" variable
+            pass
         except NameError: # if ret not assigned, return {}
-            return {}
-        pass
+            retval = {}
+            pass
+        
+        # Performing this execution changed values in stepglobals
+        # but it should have only done that for variables specified
+        # as 'global' in the function.
+
+        # So: Update our backup of the value of stepglobals,
+        #     according to the specified globals, and
+        #     replace stepglobals with that updated backup
+
+        
+        stepglobalsbackup.update(dict([ (varname,stepglobals[varname]) for varname in globalvars]))
+        stepglobals.clear()
+        stepglobals.update(stepglobalsbackup)
+
+        return retval
+    
     pass
 
 def resultelementfromdict(output,resultdict):
