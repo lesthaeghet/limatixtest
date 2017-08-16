@@ -194,7 +194,7 @@ def _xlinkcontextfixuptree(ETree,oldcontexthref,newcontexthref,force_abs_href=Fa
     # returns number of modifications made
 
 
-    ETXobj=etree.ETXPath("//*[@{http://www.w3.org/1999/xlink}href]")
+    ETXobj=etree.ETXPath("descendant-or-self::*[@{http://www.w3.org/1999/xlink}href]")
     xmlellist=ETXobj(ETree)
 
     modcnt=0
@@ -1751,6 +1751,11 @@ class xmldoc(object):
             parent=self.find(parent) # convert path to element
             pass
 
+        if sourcedoc is not None:
+            sourcecontext=sourcedoc.getcontexthref()
+            destcontext=self.getcontexthref()
+            pass
+        
 	# Out List Of New Nodes
         newnodes = []
 
@@ -1760,12 +1765,16 @@ class xmldoc(object):
         
         for node in sourceelements: 
             newnode=copy.deepcopy(node)
-            parent.append(newnode);
             # Record provenance of this element
             if sourcedoc is not None:
                 provenance.xmldocelementaccessed(sourcedoc,node)
+
+                # Fixup any xlink:hrefs
+                _xlinkcontextfixuptree(newnode,sourcecontext,destcontext)
+
                 pass
-            provenance.elementgenerated(self,newnode)
+            parent.append(newnode);
+            provenance.elementgenerated(self,newnode)            
             newnodes.append(newnode)
             pass
             
@@ -2043,7 +2052,7 @@ class xmldoc(object):
         """Alias for xpath(path,namespaces,contextnode)"""
         return self.xpath(path,namespaces=namespaces,contextnode=contextnode,extensions=extensions,variables=variables,noprovenance=noprovenance)
         
-    def xpathnumpy(self,path,namespaces=None,contextnodes=None,extensions=None,variables=None,iscomplex=False,oneper=True):
+    def xpathnumpy(self,path,namespaces=None,contextnodes=None,extensions=None,variables=None,iscomplex=False,oneper=True,desiredunits=None):
         """Like xpath, but convert node-set to floating point, return as 
         numpy array along with units.
 
@@ -2080,7 +2089,17 @@ class xmldoc(object):
         # nodeset=[]
         
         resultarray=np.zeros(len(nodeset),dtype=dtype)
-        resultunits=None
+
+        if desiredunits is not None:
+            if isinstance(desiredunits,basestring):
+                desiredunits=lmu.parseunits(desiredunits)
+                pass
+            resultunits=desiredunits
+            pass
+        else:
+            resultunits=None
+            pass
+        
         if len(nodeset) > 0:
 
             for cnt in range(len(nodeset)):
@@ -2135,16 +2154,16 @@ class xmldoc(object):
 
 
                 
-                resultarray[cnt]=coeff*converted
+                resultarray[cnt]=converted/coeff
                                 
                 pass
             pass
         return (resultarray,resultunits)
 
 
-    def xpathcontextnumpy(self,contextnodes,path,namespaces=None,extensions=None,variables=None,iscomplex=False,oneper=True):
+    def xpathcontextnumpy(self,contextnodes,path,namespaces=None,extensions=None,variables=None,iscomplex=False,oneper=True,desiredunits=None):
         """Like xpathnumpy but must provide context nodes"""
-        return self.xpathnumpy(path,namespaces=namespaces,contextnodes=contextnodes,extensions=extensions,variables=variables,iscomplex=iscomplex,oneper=oneper)
+        return self.xpathnumpy(path,namespaces=namespaces,contextnodes=contextnodes,extensions=extensions,variables=variables,iscomplex=iscomplex,oneper=oneper,desiredunits=desiredunits)
 
     def xpathtonodestrlist(self,path,namespaces=None,contextnodes=None,extensions=None,variables=None,oneper=True):
         """Intended for internal use only. Convert an xpath and provided 

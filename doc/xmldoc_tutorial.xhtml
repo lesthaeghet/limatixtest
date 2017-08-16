@@ -1,0 +1,213 @@
+<html xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Limatix</title>
+    <style type="text/css"><![CDATA[
+
+    body {
+      counter-reset: counth2;
+    }
+    h1  {
+      counter-reset: counth2;
+
+    }
+    h2:before {
+      content: counter(counth2) ".\0000a0\0000a0";
+      counter-increment: counth2;
+    }
+    h2 {
+      counter-reset: counth3;
+    }
+    h3:before {
+      content: counter(counth2) "." counter(counth3) ".\0000a0\0000a0";
+      counter-increment: counth3;
+    }
+
+
+    td {
+      vertical-align: top; 
+    }
+]]></style>
+  </head>
+  <body>
+    <h1>Xmldoc Tutorial</h1>
+    <h2>Introduction</h2>
+    <p>
+      LIMATIX xmldoc is a library built on <a href="http://lxml.de">lxml</a>
+      for processing XML data in science and engineering applications. 
+    </p>
+    <h3>Features:</h3>
+    <ul>
+      <li>XML Namespace and namespace prefix management</li>
+      <li>Live synchronization of in-memory document to disk and
+	change reconciliation (for real-time
+	human editing in parallel with programmatic editing)</li>
+      <li>Routines to extract data as numpy vectors</li>
+      <li>Instrumented to observe extraction and modification operation
+	to support data provenance tracking</li>
+    </ul>
+    <h2>Installation</h2>
+    <p>
+      LIMATIX Xmldoc is part of the Limatix package. Follow the instructions
+      in INSTALL.txt in the main LIMATIX distribution. The only prerequisites
+      required to use LIMATIX Xmldoc are Python, Lxml, and Numpy.
+    </p>
+    <h2> A simple example </h2>
+    <p>This example illustrates creating an XML document in memory,
+      adding an element, setting the textual content of that element,
+      and then writing the document to disk.
+    </p>
+    <pre>
+# import the xmldoc class
+from limatix.xmldoc import xmldoc
+
+# import the hrefvalue class. This is used to manage hypertext references
+# (hypertext references are used for all file locations) 
+from limatix.dc_value import hrefvalue
+
+# Create a new document just containing maintag,
+# and with an empty namespace mapping
+fh = xmldoc.newdoc("maintag",nsmap={})
+
+# Get the root element of the document (i.e. maintag)
+rootel=fh.getroot()
+
+# Set an attribute of the root element
+fh.setattr(rootel,"myattr","myattrval")
+
+# Add a new element
+myelement=fh.addelement(rootel,"myelement")
+fh.settext(myelement,"my element text!")
+
+# Now we write it to disk	  
+outfile_url = "outfile.xml"
+
+# Note that outfile_url is a URL, not a filesystem path.
+# If you wanted to specify a filesystem path, you would need
+# to convert it to a URL with urllib.pathname2url()   (Python 2.x)
+# or urllib.request.pathname2url()   (Python 3.x)
+	  	 
+# Setting the location writes it to disk
+fh.set_href(hrefvalue(outfile_url,".")) # The "." here is the context URL... in this case the current directory
+
+# If we were to make additional modifications from here on, we
+# would need to call fh.flush()	to flush those changes to disk
+
+
+    </pre>
+    
+
+    
+
+    <h2> A more complicated example </h2>
+    <p>This example illustrates the use of namespaces and writing
+	  numeric values with units.
+    </p>
+    <pre>
+# import the xmldoc class
+from limatix.xmldoc import xmldoc
+
+# import the hrefvalue class. This is used to manage hypertext references
+# (hypertext references are used for all file locations) 
+from limatix.dc_value import hrefvalue
+
+# import the numericunitsvalue class
+from limatix.dc_value import numericunitsvalue
+
+
+# Define a namespace mapping for the new document.
+# We need at minimum to define a prefix for the dcvalue
+# namespace http://limatix.org/dcvalue
+# We also define a namespace http://example.com/ournamespace
+# and prefix for the tags we are creating
+nsmap={
+  "dcv": "http://limatix.org/dcvalue",
+  "on": "http://example.com/ournamespace",
+}
+
+# Create a new document just containing on:maintag,
+# and with our specified namespace mapping
+fh = xmldoc.newdoc("on:maintag",nsmap=nsmap)
+
+# Get the root element of the document (i.e. on:maintag)
+rootel=fh.getroot()
+
+
+# Add a new element
+myelement=fh.addelement(rootel,"on:myelement")
+
+# Add a value element under on:myelement
+subelement=fh.addsimpleelement(myelement,"on:value",(23.0, "mm"))	  
+
+# Add another value element under on:myelement, this
+# time using the numericunitsvalue class
+myvalue2 = numericunitsvalue("32.0","mm")
+subelement2=fh.addelement(myelement,"on:value")
+# store myvalue2 into subelement2
+myvalue2.xmlrepr(fh,subelement2)
+
+# Now we write it to disk	  
+outfile_url = "outfile.xml"
+
+# Note that outfile_url is a URL, not a filesystem path.
+# If you wanted to specify a filesystem path, you would need
+# to convert it to a URL with urllib.pathname2url()   (Python 2.x)
+# or urllib.request.pathname2url()   (Python 3.x)
+	  	 
+# Setting the location writes it to disk
+fh.set_href(hrefvalue(outfile_url,".")) # The "." here is the context URL... in this case the current directory
+
+# If we were to make additional modifications from here on, we
+# would need to call fh.flush()	to flush those changes to disk
+
+
+    </pre>
+
+    <h2> Reading numeric data </h2>
+    <p>This example illustrates reading 
+	  arrays of numeric values with units.
+    </p>
+    <pre>
+# import the xmldoc class
+from limatix.xmldoc import xmldoc
+
+
+# import the numericunitsvalue class
+from limatix.dc_value import numericunitsvalue
+
+
+# Define a namespace prefix mapping for our references to the
+# document. We can't rely on mappings within the
+# document itself, as they are unpredictable. 
+# We need at minimum to define a prefix for our namespace
+# http://example.com/ournamespace
+nsmap={
+  "on": "http://example.com/ournamespace",
+}
+
+# Load an existing file in read-only mode.
+# Note that this is really a shorthand for
+# xmldoc.loadhref() where the href is the specified pathname converted to a url
+# and in the context of the current directory. 
+fh = xmldoc.loadfile("outfile.xml",nsmap=nsmap)
+
+# Extract an array of values, based on an XPath relative
+# to the root element of the document (the on:maintag)
+# See https://en.wikipedia.org/wiki/XPath for more information on
+# XPath. 
+(vals,valunits)=fh.xpathnumpy("on:myelement/on:value",desiredunits="m")
+# (if you don't specify desiredunits, you'll get whatever the units
+# are in the first element)
+
+print("vals=%s; units=%s" % (str(vals),str(valunits)))
+
+# vals is a numpy array
+# valunits is a limatix.lm_units.units object. 
+
+# Try messing with the units in outfile.xml and you'll find that
+# it automatically converts things in the sensible way if it can.
+# Otherwise it raises an exception. 
+
+    </pre>
+
+  </body>
+</html>
