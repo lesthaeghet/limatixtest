@@ -8,6 +8,7 @@
 import os
 import sys
 import posixpath
+import json
 
 try:
     # py2.x
@@ -59,7 +60,12 @@ class savebuttonstep(buttonreadoutstep):
 
         "paramname": (gobject.TYPE_STRING,
                   "parameter",
-                  "datacollect parameter to show and to use for save. The named parameter should store an hrefvalue with a controller that supports the perform_save method. Only this parameter is shown in the readout (the others are invisible)",
+                      "datacollect parameter to show and to use for save. The named parameter should store an hrefvalue with a controller that supports the perform_save method. Only this parameter is shown in the readout (the others are invisible)",
+                      "", # default value
+                      gobject.PARAM_READWRITE), # flags
+        "saveparamdictoverride": (gobject.TYPE_STRING,
+                  "save parameter configuration",
+                  "JSON string representation of a dictionary of override parameters for save call",
                   "", # default value 
                 gobject.PARAM_READWRITE), # flags
         "paramname2": (gobject.TYPE_STRING,
@@ -67,9 +73,19 @@ class savebuttonstep(buttonreadoutstep):
                   "second datacollect parameter to show and to use for save. The named parameter should store an hrefvalue with a controller that supports the perform_save method",
                   "", # default value 
                 gobject.PARAM_READWRITE), # flags
+        "saveparamdictoverride2": (gobject.TYPE_STRING,
+                  "save parameter configuration",
+                  "JSON string representation of a dictionary of override parameters for save call",
+                  "", # default value 
+                gobject.PARAM_READWRITE), # flags
         "paramname3": (gobject.TYPE_STRING,
                   "third parameter",
                   "third datacollect parameter to show and to use for save. The named parameter should store an hrefvalue with a controller that supports the perform_save method",
+                  "", # default value 
+                gobject.PARAM_READWRITE), # flags
+        "saveparamdictoverride3": (gobject.TYPE_STRING,
+                  "save parameter configuration",
+                  "JSON string representation of a dictionary of override parameters for save call",
                   "", # default value 
                 gobject.PARAM_READWRITE), # flags
         # NOTE: "buttonlabel" parameter handled by buttonreadoutstep superclass
@@ -102,6 +118,9 @@ class savebuttonstep(buttonreadoutstep):
         self.myprops["paramname"]=""
         self.myprops["paramname2"]=""
         self.myprops["paramname3"]=""
+        self.myprops["saveparamdictoverride"]=""
+        self.myprops["saveparamdictoverride2"]=""
+        self.myprops["saveparamdictoverride3"]=""
         self.myprops["intermediate"]=False
         self.set_property("readoutparam",self.myprops["paramname"])
         self.set_property("buttonlabel","Save DGS Snapshot")
@@ -155,13 +174,25 @@ class savebuttonstep(buttonreadoutstep):
             nameobj.name="readoutparam"
             buttonreadoutstep.do_set_property(self,nameobj,value)
             pass
+        elif gproperty.name=="saveparamdictoverride":
+            # print "paramname=%s" % value
+            self.myprops["saveparamdictoverride"]=value
+            pass
         elif gproperty.name=="paramname2":
             # print "paramname=%s" % value
             self.myprops["paramname2"]=value
             pass
+        elif gproperty.name=="saveparamdictoverride2":
+            # print "paramname=%s" % value
+            self.myprops["saveparamdictoverride2"]=value
+            pass
         elif gproperty.name=="paramname3":
             # print "paramname=%s" % value
             self.myprops["paramname3"]=value
+            pass
+        elif gproperty.name=="saveparamdictoverride3":
+            # print "paramname=%s" % value
+            self.myprops["saveparamdictoverride3"]=value
             pass
         elif gproperty.name=="intermediate":
             # print "paramname=%s" % value
@@ -176,16 +207,22 @@ class savebuttonstep(buttonreadoutstep):
     def do_get_property(self,property):
         if property.name == "paramname":
             return self.myprops["paramname"]
+        if property.name == "saveparamdictoverride":
+            return self.myprops["saveparamdictoverride"]
         if property.name == "paramname2":
             return self.myprops["paramname2"]
+        if property.name == "saveparamdictoverride2":
+            return self.myprops["saveparamdictoverride2"]
         if property.name == "paramname3":
             return self.myprops["paramname3"]
+        if property.name == "saveparamdictoverride3":
+            return self.myprops["saveparamdictoverride3"]
         if property.name == "intermediate":
             return self.myprops["intermediate"]
         return buttonreadoutstep.do_get_property(self,property)
     
 
-    def do_save_param_datacollect(self,paramname):
+    def do_save_param_datacollect(self,paramname,saveparamdictoverride):
         if paramname is None or paramname=="":
             return
         
@@ -227,12 +264,18 @@ class savebuttonstep(buttonreadoutstep):
         #import pdb as pythondb
         #pythondb.set_trace()
 
-        self.paramdb[paramname].perform_save(savefilehref)
+        decodedsaveparamdictoverride=None
+        
+        if len(saveparamdictoverride.strip()) > 0:
+            decodedsaveparamdictoverride=json.loads(saveparamdictoverride)
+            pass
+        
+        self.paramdb[paramname].perform_save(savefilehref,decodedsaveparamdictoverride)
 
 
         pass
 
-    def do_save_param_nondatacollect(self,paramname,desthref):
+    def do_save_param_nondatacollect(self,paramname,desthref,saveparamdictoverride):
 
         defname=""
         
@@ -275,8 +318,16 @@ class savebuttonstep(buttonreadoutstep):
         
         savefilehref=dc_value.hrefvalue(pathname2url(save_relpath),contexthref=desthref)
         
+
+
+        decodedsaveparamdictoverride=None
         
-        self.paramdb[paramname].perform_save(savefilehref)
+        if len(saveparamdictoverride.strip()) > 0:
+            decodedsaveparamdictoverride=json.loads(saveparamdictoverride)
+            pass
+        
+        self.paramdb[paramname].perform_save(savefilehref,decodedsaveparamdictoverride)
+        
 
         
         pass
@@ -298,8 +349,8 @@ class savebuttonstep(buttonreadoutstep):
             if self.checklist.xmldoc.filehref is None:
                 raise ValueError("Save button step is too early -- checklist not yet saved to a file, so impossible to determine filename")
 
-            for paramname in [self.myprops["paramname"],self.myprops["paramname2"],self.myprops["paramname3"]]:
-                self.do_save_param_datacollect(paramname)
+            for (paramname,saveparamdictoverride) in [(self.myprops["paramname"],self.myprops["saveparamdictoverride"]),(self.myprops["paramname2"],self.myprops["saveparamdictoverride2"]),(self.myprops["paramname3"],self.myprops["saveparamdictoverride3"])]:
+                self.do_save_param_datacollect(paramname,saveparamdictoverride)
                 pass
 
             pass
@@ -316,8 +367,8 @@ class savebuttonstep(buttonreadoutstep):
                 pass
             
 
-            for paramname in [self.myprops["paramname"],self.myprops["paramname2"],self.myprops["paramname3"]]:
-                self.do_save_param_nondatacollect(paramname,desthref)
+            for (paramname,saveparamdictoverride) in [(self.myprops["paramname"],self.myprops["saveparamdictoverride"]),(self.myprops["paramname2"],self.myprops["saveparamdictoverride2"]),(self.myprops["paramname3"],self.myprops["saveparamdictoverride3"])]:
+                self.do_save_param_nondatacollect(paramname,desthref,saveparamdictoverride)
                 pass
             pass
 
