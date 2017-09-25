@@ -751,7 +751,7 @@ class threadserializedcontroller(object):
     # and you would set pollms to -1.0 so it doesn't get polled
     #
     # perform_save() uses the saver routine
-    def perform_save(self,param,savefilehref,*cbargs):
+    def perform_save(self,param,savefilehref,save_paramdictoverride,*cbargs):
 
         if self.state != param.CONTROLLER_STATE_QUIESCENT:
             # Cancel current pending request
@@ -1051,7 +1051,7 @@ class dgcontroller(object):
     # (This is an asynchronous request. Will get callback when complete)
     # returns request identifier that can be used to cancel request 
     # callback(param,requestid,errorstr,newvalue,*cbargs)
-    def perform_save(self,param,savehref,*cbargs):
+    def perform_save(self,param,savehref,save_paramdictoverride,*cbargs):
         # print "requestval %s = %s" % (param.xmlname,str(newvalue))
 
         if not issubclass(self.controlparam.paramtype,dc_value.hrefvalue):
@@ -1068,10 +1068,19 @@ class dgcontroller(object):
             sys.stderr.write("dgcontroller: attempting to save dataguzzler parameter %s (%s) even though dataguzzler communication link has failed!\n" % (self.controlparam.xmlname,self.dgparam))
             pass
         
+        if self.controlparam.save_paramdict is None:
+            save_paramdict={}
+            pass
+        else:
+            save_paramdict=copy.copy(self.controlparam.save_paramdict)
+            pass
         
+        if save_paramdictoverride is not None:
+            save_paramdict.update(save_paramdictoverride)
+            pass
 
         try:
-            reqid=self.controlparam.iohandlers["dgio"].performsave(None,savehref,self.controlparam.save_extension,self.performsavecallback,cbargs)
+            reqid=self.controlparam.iohandlers["dgio"].performsave(None,savehref,self.controlparam.save_extension,self.controlparam.save_function,save_paramdict,self.performsavecallback,cbargs)
             pass
         except ValueError as e:
             sys.stderr.write("Exception performing save... Should get requestvalerrorcallback\n")
@@ -1685,7 +1694,9 @@ class param(object):
     non_settable=None # specified on creation or by controller to indicate that this parameter is not generally settable by the user. Used to select which parameters in the database are saved. 
     # xml_attribute=None # if not None, dc_value.value.xmlrepr()  and dc_value.value.fromxml() should store their data this attribute, specified by name (namespace prefixes OK) rather than in the content of the tag
     save_extension=None # filename extension to use when saving
-    
+    save_function=None  # Function to call for saving... called with parameters (href,save_extension,save_paramdict)  # !!!*** May be called from separate saving thread ***!!!
+    save_paramdict=None
+
     # NOTE: since this class shadows a dc_value object, it should NOT have members
     # with the same name as those in a dc_value or it's derived classes 
     # i.e. final, str, val, unit, defunit, pixbuf, type, f0, f1, t0, t1, t2, t3
@@ -1704,7 +1715,7 @@ class param(object):
     NOTIFY_NEWVALUE=1  # every successful controller request should result in a newvalue, whether or not the value actually changed
     NOTIFY_NEWOPTIONS=2 # Called when options are updated by the controller so that they can be reloaded in the GUI
 
-    def __init__(self,parent,xmlname,paramtype,options=None,defunits=None,build=None,displayfmt=None,hide_from_meas=False,reset_with_meas_record=False,dangerous=False,non_settable=False,save_extension=".dat"): # xml_attribute=None):
+    def __init__(self,parent,xmlname,paramtype,options=None,defunits=None,build=None,displayfmt=None,hide_from_meas=False,reset_with_meas_record=False,dangerous=False,non_settable=False,save_extension=".dat",save_function=None,save_paramdict=None): # xml_attribute=None):
         # DO NOT CALL THIS DIRECTLY.... Should be called indirectly from pdb.addparam() 
         # create a parameter with the specified xmlname (string/unicode)
         # paramtype should be dc_value.stringvalue, dc_value.numericunitsvalue, dc_value.excitationparamsvalue, or similar
@@ -1731,6 +1742,8 @@ class param(object):
         self.dangerous=dangerous
         self.non_settable=non_settable  # specified on creation or by controller to indicate that this parameter is not generally settable by the user. Used to select which parameters in the database are saved.
         self.save_extension=save_extension
+        self.save_function=save_function
+        self.save_paramdict=save_paramdict
         #self.xml_attribute=xml_attribute
 
         #import pdb as pythondb
@@ -1751,10 +1764,10 @@ class param(object):
         
         pass
 
-    def perform_save(self,savefilehref,*cbargs):
+    def perform_save(self,savefilehref,saveparamdictoverride,*cbargs):
         
         # pass request onto controller
-        return self.controller.perform_save(self,savefilehref,*cbargs)
+        return self.controller.perform_save(self,savefilehref,saveparamdictoverride,*cbargs)
     
     # requestval is a request that this parameter take on the requested value
     # (This is an asynchronous request. Will get callback when complete)

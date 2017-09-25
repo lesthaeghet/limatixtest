@@ -144,6 +144,8 @@ class hrefbuttonstep(buttonreadoutstep):
     
 
     def do_save_param_datacollect(self,paramname):
+        raise ValueError("This function is never called from anywhere... not sure if it makes sense")
+
         if paramname is None or paramname=="":
             return
         
@@ -185,6 +187,8 @@ class hrefbuttonstep(buttonreadoutstep):
         #import pdb as pythondb
         #pythondb.set_trace()
 
+
+        # NOTE: perform_save() now takes an extra parameter: saveparamdictoverride
         self.paramdb[paramname].perform_save(savefilehref)
 
 
