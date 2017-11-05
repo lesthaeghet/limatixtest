@@ -96,6 +96,10 @@ def addhandler(iohandlers):
 
 
 def savefilterpass(save_paramdict,ChanName):
+    if not "filter" in save_paramdict:
+        # no filter condition
+        return True
+ 
     filter=save_paramdict["filter"]
     for regexp in filter:
         matchobj=re.match(regexp,ChanName)
@@ -258,12 +262,16 @@ class cmdiochan(iochan):
                 wfm.wfmname=Chan[0];
                 dgf.writenamedwfm(dgfh,wfm);
                 
-                dgc.command(self,"WFM:UNLOCK %s %d" % (Chan[0],Chan[1]));
                 pass
             dgf.endchunk(dgfh); # SNAPSHOT
             dgf.close(dgfh);
             
+            # unlock all waveforms
+            for Chan in ChanList :
+                dgc.command(self,"WFM:UNLOCK %s %d" % (Chan[0],Chan[1]));
+                pass
             pass
+
         pass
 
     def readerthreadcode(self):
